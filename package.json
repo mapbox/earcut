@@ -1,0 +1,26 @@
+{
+  "name": "earcut",
+  "version": "0.0.0",
+  "description": "Crazy fast polygon triangulation using improved ear slicing algorithm.",
+  "main": "src/earcut.js",
+  "scripts": {
+    "test": "jshint src",
+    "watch": "watchify -v -d src/earcut.js -s earcut -o dist/earcut.dev.js",
+    "build-dev": "browserify -d src/earcut.js -s earcut > dist/earcut.dev.js",
+    "build-min": "browserify src/earcut.js -s earcut | uglifyjs -c warnings=false -m > dist/earcut.min.js",
+    "prepublish": "mkdirp dist && npm run build-dev && npm run build-min"
+  },
+  "author": "Vladimir Agafonkin",
+  "license": "ISC",
+  "devDependencies": {
+    "browserify": "^5.10.0",
+    "jshint": "^2.5.3",
+    "mkdirp": "^0.5.0",
+    "uglifyjs": "^2.3.6",
+    "watchify": "^1.0.2"
+  },
+  "jshintConfig": {
+    "node": true,
+    "unused": true
+  }
+}
