@@ -18,11 +18,11 @@
         var canvas = document.getElementById('canvas');
         var ctx = canvas.getContext('2d');
 
-        console.profile('seidel');
+        console.profile('earcut');
         for (var i = 0; i < 1000; i++) {
             triangles = earcut(testPoints);
         }
-        console.profileEnd('seidel');
+        console.profileEnd('earcut');
 
         var minX = Infinity,
             maxX = -Infinity,
