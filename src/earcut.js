@@ -18,7 +18,7 @@ function earcut(points) {
     var node = last;
     do {
         var next = node.next;
-        if (clipped(node.p, next.p, next.next.p)) {
+        if (equals(node.p, next.p) || clipped(node.p, next.p, next.next.p)) {
             node.next = next.next;
             next.next.prev = node;
             if (next === last) break;
@@ -37,6 +37,10 @@ function earcut(points) {
 
 function clipped(p1, p2, p3) {
     return (p1[0] === p2[0] && p2[0] === p3[0]) || (p1[1] === p2[1] && p2[1] === p3[1]);
+}
+
+function equals(p1, p2) {
+    return p1[0] === p2[0] && p1[1] === p2[1];
 }
 
 function earcutLinked(ear, clockwise, triangles) {
