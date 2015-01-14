@@ -54,7 +54,7 @@ function earcutLinked(ear, clockwise, triangles) {
         next = ear.next;
 
         if (isEar(ear, clockwise)) {
-            triangles.push([prev.p, ear.p, next.p]);
+            triangles.push(prev.p, ear.p, next.p);
             next.prev = prev;
             prev.next = next;
             stop = next;
