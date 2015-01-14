@@ -52,13 +52,19 @@
             ctx.scale(2, 2);
         }
 
+        console.time('earcut');
+        // for (var i = 0; i < 1000; i++) {
+            triangles = earcut(testPoints);
+        // }
+        console.timeEnd('earcut');
+
         for (var i = 0; triangles && i < triangles.length; i++) {
-            drawPoly(triangles[i], 'rgba(255,0,0,0.5)', 'rgba(255,255,0,0.07)');
+            // debugger;
+            drawPoly(triangles[i], 'rgba(255,0,0,0.5)', 'rgba(255,255,0,0.5)');
+            // drawPoly(triangles[i], 'rgba(255,0,0,0.0)', 'rgba(255,0,0,0.3)');
         }
 
-        // for (i = 0; i < testPoints.length; i++) {
         drawPoly(testPoints, 'black');
-        // }
 
         function drawPoint(p, color) {
             var x = (p[0] - minX) * ratio + 5,
