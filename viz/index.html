@@ -54,7 +54,7 @@
 
         for (var i = 0; triangles && i < triangles.length; i += 3) {
             drawPoly(triangles.slice(i, i + 3), 'rgba(255,0,0,0.5)', 'rgba(255,255,0,0.5)');
-            // drawPoly(triangles[i], 'rgba(255,0,0,0.0)', 'rgba(255,0,0,0.3)');
+            // drawPoly(triangles.slice(i, i + 3), 'rgba(255,0,0,0.0)', 'rgba(255,0,0,0.3)');
         }
 
         drawPoly(testPoints, 'black');
