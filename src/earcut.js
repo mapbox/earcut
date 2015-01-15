@@ -45,7 +45,6 @@ function equals(p1, p2) {
 
 function earcutLinked(ear, clockwise, triangles) {
     var stop = ear,
-        k = 0,
         prev, next;
 
     // iterate through ears, slicing them one by one
@@ -57,13 +56,11 @@ function earcutLinked(ear, clockwise, triangles) {
             triangles.push(prev.p, ear.p, next.p);
             next.prev = prev;
             prev.next = next;
-            stop = next;
-            k = 0;
+            stop = next.next;
         }
-        ear = next;
-        k++;
+        ear = next.next;
 
-        if (ear.next === stop) {
+        if (ear.next.next === stop) {
             // if we can't find valid ears anymore, split remaining polygon into two
             splitEarcut(ear, clockwise, triangles);
             break;
