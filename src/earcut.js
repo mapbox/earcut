@@ -1,6 +1,6 @@
 'use strict';
 
-// module.exports = earcut;
+module.exports = earcut;
 
 function earcut(points) {
 
@@ -39,10 +39,6 @@ function filterPoints(start) {
     } while (node !== start);
 
     return start;
-}
-
-function equals(p1, p2) {
-    return p1[0] === p2[0] && p1[1] === p2[1];
 }
 
 function earcutLinked(ear, ccw, triangles) {
@@ -111,6 +107,107 @@ function isEar(ear, ccw) {
     return true;
 }
 
+function splitEarcut(start, ccw, triangles) {
+    // find a valid diagonal that divides the polygon into two
+    var a = start;
+    do {
+        var b = a.next.next;
+        while (b !== a.prev) {
+            if (!intersectsPolygon(start, a.p, b.p) && locallyInside(a, b, ccw) && locallyInside(b, a, ccw) &&
+                    middleInside(start, a.p, b.p)) {
+
+                // split the polygon in two by the diagonal
+                var c = splitPolygon(a, b);
+
+                // run earcut on each half
+                earcutLinked(a, ccw, triangles);
+                earcutLinked(c, ccw, triangles);
+                return;
+            }
+            b = b.next;
+        }
+        a = a.next;
+    } while (a !== start);
+}
+
+function orient(p, q, r) {
+    return Math.sign((q[1] - p[1]) * (r[0] - q[0]) - (q[0] - p[0]) * (r[1] - q[1]));
+}
+
+function equals(p1, p2) {
+    return p1[0] === p2[0] && p1[1] === p2[1];
+}
+
+// check if two segments intersect
+function intersects(p1, q1, p2, q2) {
+    return orient(p1, q1, p2) !== orient(p1, q1, q2) &&
+           orient(p2, q2, p1) !== orient(p2, q2, q1);
+}
+
+// check if a polygon diagonal intersects any polygon segments
+function intersectsPolygon(start, a, b) {
+    var node = start;
+    do {
+        var p1 = node.p,
+            p2 = node.next.p;
+
+        if (p1 !== a && p2 !== a && p1 !== b && p2 !== b && intersects(p1, p2, a, b)) return true;
+
+        node = node.next;
+    } while (node !== start);
+
+    return false;
+}
+
+// check if a polygon diagonal is locally inside the polygon
+function locallyInside(a, b, ccw) {
+    var sign = ccw ? -1 : 1;
+    return orient(a.prev.p, a.p, a.next.p) === sign ?
+        orient(a.p, b.p, a.next.p) !== sign && orient(a.p, a.prev.p, b.p) !== sign :
+        orient(a.p, b.p, a.prev.p) === sign || orient(a.p, a.next.p, b.p) === sign;
+}
+
+// check if the middle point of a polygon diagonal is inside the polygon
+function middleInside(start, a, b) {
+    var node = start,
+        inside = false,
+        px = (a[0] + b[0]) / 2,
+        py = (a[1] + b[1]) / 2;
+    do {
+        var p1 = node.p,
+            p2 = node.next.p;
+
+        if (((p1[1] > py) !== (p2[1] > py)) && (px < (p2[0] - p1[0]) * (py - p1[1]) / (p2[1] - p1[1]) + p1[0])) {
+            inside = !inside;
+        }
+        node = node.next;
+    } while (node !== start);
+
+    return inside;
+}
+
+// split the polygon vertices circular doubly-linked linked list into two
+function splitPolygon(a, b) {
+    var a2 = {p: a.p, prev: null, next: null},
+        b2 = {p: b.p, prev: null, next: null},
+        an = a.next,
+        bp = b.prev;
+
+    a.next = b;
+    b.prev = a;
+
+    a2.next = an;
+    an.prev = a2;
+
+    b2.next = a2;
+    a2.prev = b2;
+
+    bp.next = b2;
+    b2.prev = bp;
+
+    return a2;
+}
+
 function insertNode(point, last) {
     var node = {
         p: point,
@@ -129,94 +226,4 @@ function insertNode(point, last) {
         last.next = node;
     }
     return node;
-}
-
-function splitEarcut(start, ccw, triangles) {
-
-    // find a valid diagonal that divides the polygon into two
-    var a = start;
-    do {
-        var b = a.next.next;
-        while (b !== a.prev) {
-            if (!intersectsPolygon(start, a.p, b.p) && locallyInside(a, b, ccw) && locallyInside(b, a, ccw) &&
-                    middleInside(start, a.p, b.p)) {
-                splitEarcutByDiag(a, b, ccw, triangles);
-                return;
-            }
-            b = b.next;
-        }
-        a = a.next;
-    } while (a !== start);
-}
-
-function splitEarcutByDiag(a, b, ccw, triangles) {
-    var a2 = {p: a.p, prev: null, next: null},
-        b2 = {p: b.p, prev: null, next: null},
-        an = a.next,
-        bp = b.prev;
-
-    // split the polygon vertices circular doubly-linked linked list into two
-    a.next = b;
-    b.prev = a;
-
-    a2.next = an;
-    an.prev = a2;
-
-    b2.next = a2;
-    a2.prev = b2;
-
-    bp.next = b2;
-    b2.prev = bp;
-
-    // run earcut on each half
-    earcutLinked(a, ccw, triangles);
-    earcutLinked(a2, ccw, triangles);
-}
-
-function orient(p, q, r) {
-    return Math.sign((q[1] - p[1]) * (r[0] - q[0]) - (q[0] - p[0]) * (r[1] - q[1]));
-}
-
-function intersects(p1, q1, p2, q2) {
-    return orient(p1, q1, p2) !== orient(p1, q1, q2) &&
-           orient(p2, q2, p1) !== orient(p2, q2, q1);
-}
-
-function intersectsPolygon(start, a, b) {
-    var node = start;
-    do {
-        var p1 = node.p,
-            p2 = node.next.p;
-
-        if (p1 !== a && p2 !== a && p1 !== b && p2 !== b && intersects(p1, p2, a, b)) return true;
-
-        node = node.next;
-    } while (node !== start);
-
-    return false;
-}
-
-function locallyInside(a, b, ccw) {
-    var sign = ccw ? -1 : 1;
-    return orient(a.prev.p, a.p, a.next.p) === sign ?
-        orient(a.p, b.p, a.next.p) !== sign && orient(a.p, a.prev.p, b.p) !== sign :
-        orient(a.p, b.p, a.prev.p) === sign || orient(a.p, a.next.p, b.p) === sign;
-}
-
-function middleInside(start, a, b) {
-    var node = start,
-        inside = false,
-        px = (a[0] + b[0]) / 2,
-        py = (a[1] + b[1]) / 2;
-    do {
-        var p1 = node.p,
-            p2 = node.next.p;
-
-        if (((p1[1] > py) !== (p2[1] > py)) && (px < (p2[0] - p1[0]) * (py - p1[1]) / (p2[1] - p1[1]) + p1[0])) {
-            inside = !inside;
-        }
-        node = node.next;
-    } while (node !== start);
-
-    return inside;
 }

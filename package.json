@@ -21,6 +21,7 @@
   },
   "jshintConfig": {
     "node": true,
-    "unused": true
+    "unused": true,
+    "undef": true
   }
 }
