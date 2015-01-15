@@ -6,9 +6,8 @@
   "scripts": {
     "test": "jshint src",
     "watch": "watchify -v -d src/earcut.js -s earcut -o dist/earcut.dev.js",
-    "build-dev": "browserify -d src/earcut.js -s earcut > dist/earcut.dev.js",
-    "build-min": "browserify src/earcut.js -s earcut | uglifyjs -c warnings=false -m > dist/earcut.min.js",
-    "prepublish": "mkdirp dist && npm run build-dev && npm run build-min"
+    "build-dev": "mkdirp dist && browserify -d src/earcut.js -s earcut > dist/earcut.dev.js",
+    "build-min": "mkdirp dist && browserify src/earcut.js -s earcut | uglifyjs -c warnings=false -m > dist/earcut.min.js"
   },
   "author": "Vladimir Agafonkin",
   "license": "ISC",
