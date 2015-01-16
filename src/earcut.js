@@ -114,25 +114,35 @@ function isEar(ear) {
         acx = ax - cx,
         aby = ay - by,
         bax = bx - ax,
-        px, py, s, t;
+        px, py, s, t, k;
 
     while (node !== ear.prev) {
 
         px = node.p[0];
         py = node.p[1];
 
-        s = cay * px + acx * py - acd;
-        if (s > 0) {
-            t = aby * px + bax * py + abd;
-            if (t > 0 && s + t < A) return false;
-        }
         node = node.next;
+
+        s = cay * px + acx * py - acd;
+        if (s < 0) continue;
+        t = aby * px + bax * py + abd;
+        if (t < 0) continue;
+        k = A - s - t;
+        if (k < 0) continue;
+
+        if (s > 0 && t > 0 && k > 0) return false;
+        if (t === 0 && (a[0] === b[0] || a[1] === b[1])) return false;
+        if (k === 0 && (b[0] === c[0] || b[1] === c[1])) return false;
+        if (s === 0 && (a[0] === c[0] || a[1] === c[1])) return false;
     }
     return true;
 }
 
 function splitEarcut(start, triangles) {
     // find a valid diagonal that divides the polygon into two
+
+    start = filterPoints(start);
+
     var a = start;
     do {
         var b = a.next.next;
