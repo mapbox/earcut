@@ -43,17 +43,20 @@ function linkedList(points, ccw) {
 
 function filterPoints(start) {
     // eliminate colinear or duplicate points
-    var node = start;
+    var node = start,
+        again;
     do {
-        var next = node.next;
-        if (equals(node.p, next.p) || orient(node.p, next.p, next.next.p) === 0) {
-            node.next = next.next;
-            next.next.prev = node;
-            if (next === start) return next.next;
-            continue;
+        again = false;
+        if (equals(node.p, node.next.p) || orient(node.prev.p, node.p, node.next.p) === 0) {
+            node.prev.next = node.next;
+            node.next.prev = node.prev;
+            node = start = node.prev;
+            again = true;
+
+        } else {
+            node = node.next;
         }
-        node = next;
-    } while (node !== start);
+    } while (again || node !== start);
 
     return start;
 }
