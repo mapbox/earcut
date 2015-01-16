@@ -18,7 +18,7 @@ function earcut(points) {
 function linkedList(points, ccw) {
     var sum = 0,
         len = points.length,
-        i, j, last, leftmost;
+        i, j, last;
 
     // calculate original winding order of a polygon ring
     for (i = 0, j = len - 1; i < len; j = i++) {
@@ -27,18 +27,12 @@ function linkedList(points, ccw) {
 
     // link points into circular doubly-linked list in the specified winding order; return the leftmost point
     if (ccw === (sum < 0)) {
-        for (i = 0; i < len; i++) {
-            last = insertNode(points[i], last);
-            if (!ccw && (!leftmost || last.p[0] < leftmost.p[0])) leftmost = last;
-        }
+        for (i = 0; i < len; i++) last = insertNode(points[i], last);
     } else {
-        for (i = len - 1; i >= 0; i--) {
-            last = insertNode(points[i], last);
-            if (!ccw && (!leftmost || last.p[0] < leftmost.p[0])) leftmost = last;
-        }
+        for (i = len - 1; i >= 0; i--) last = insertNode(points[i], last);
     }
 
-    return leftmost || last;
+    return last;
 }
 
 function filterPoints(start) {
@@ -51,6 +45,7 @@ function filterPoints(start) {
             node.prev.next = node.next;
             node.next.prev = node.prev;
             node = start = node.prev;
+            if (node === node.next) return null;
             again = true;
 
         } else {
@@ -167,14 +162,26 @@ function eliminateHoles(points, outerNode) {
 
     var queue = [];
     for (var i = 1; i < len; i++) {
-        queue.push(filterPoints(linkedList(points[i], false)));
+        var list = filterPoints(linkedList(points[i], false));
+        if (list) queue.push(getLeftmost(list));
     }
     queue.sort(compareX);
 
     // process holes from left to right
-    for (i = 0; i < len - 1; i++) {
+    for (i = 0; i < queue.length; i++) {
         eliminateHole(outerNode, queue[i]);
     }
+}
+
+function getLeftmost(start) {
+    var node = start,
+        leftmost = start;
+    do {
+        if (node.p[0] < leftmost.p[0]) leftmost = node;
+        node = node.next;
+    } while (node !== start);
+
+    return leftmost;
 }
 
 function eliminateHole(outerNode, holeNode) {
