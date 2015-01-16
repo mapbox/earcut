@@ -1,6 +1,6 @@
 ## Earcut
 
-The fastest and smallest JavaScript polygon triangulation library for your WebGL apps.
+The fastest and smallest JavaScript polygon triangulation library for your WebGL apps. 1.6KB gzipped.
 
 The library implements an ear slicing algorithm which is extended to handle holes, twisted polygons,
 degeneracies and self-intersections in a way that doesn't _guarantee_ correctness of triangulation,
@@ -11,8 +11,25 @@ It's based on ideas from
 
 #### Why another triangulation library?
 
-The aim of this project is to create a JS triangulation library that is **fast enough for real-time triangulation in the browser**,
-sacrificing triangulation quality for raw speed.
+The aim of this project is to create a JS triangulation library
+that is **fast enough for real-time triangulation in the browser**,
+sacrificing triangulation quality for raw speed and simplicity,
+while being robust enough to handle most practical datasets without crashing or producing garbage.
+Some benchmarks:
+
+(ops/sec)             | pts  | earcut    | libtess  | poly2tri | pnltri    | fastest vs 2nd fastest
+--------------------- | ---- | --------- | -------- | -------- | --------- | ----------------------
+OSM building          | 15   | _572,982_ | _28,124_ | _28,131_ | _210,320_ | earcut vs pnltri, **172% faster**
+dude shape            | 94   | _22,238_  | _5,904_  | _3,544_  | _12,916_  | earcut vs pnltri, **72% faster**
+dude shape with holes | 104  | _9,752_   | _5,204_  | _3,205_  | _2,232_   | earcut vs libtess, **87% faster**
+complex OSM water     | 2523 | _29.17_   | _64.73_  | failure  | failure   | libtess vs earcut, **122% faster**
+
+Earcut may be slow for huge complex shapes,
+but when it comes to triangulating lots of shapes with relatively low number of vertices on average
+([the use case](https://github.com/mapbox/mapbox-gl-js) earcut was created for), it's much faster.
+
+If you want a library that is always guaranteed to produce correct triangulation even on very bad data,
+[libtess.js](https://github.com/brendankenny/libtess.js) is certainly the best choice.
 
 #### Usage
 
