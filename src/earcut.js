@@ -75,10 +75,11 @@ function earcutLinked(ear, triangles) {
             next.prev = prev;
             prev.next = next;
             stop = next.next;
+            ear = next;
         }
-        ear = next.next;
+        ear = ear.next;
 
-        if (ear.next.next === stop) {
+        if (ear.next === stop) {
             // if we can't find valid ears anymore, split remaining polygon into two
             splitEarcut(ear, triangles);
             break;
