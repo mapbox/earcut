@@ -44,10 +44,10 @@
         var width = maxX - minX,
             height = maxY - minY;
 
-        canvas.height = window.innerHeight - 5;
+        canvas.width = window.innerWidth;
+        canvas.height = canvas.width * height / width + 10;
 
-        var ratio = (canvas.height - 5) / height;
-        canvas.width = canvas.height * width / height + 5;
+        var ratio = (canvas.width - 10) / width;
 
         if (devicePixelRatio > 1) {
             canvas.style.width = canvas.width + 'px';
