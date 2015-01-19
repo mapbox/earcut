@@ -9,7 +9,7 @@ function earcut(points) {
     if (points.length > 1) eliminateHoles(points, outerNode);
 
     var triangles = [];
-    earcutLinked(outerNode, triangles);
+    if (outerNode) earcutLinked(outerNode, triangles);
 
     return triangles;
 }
@@ -137,6 +137,7 @@ function splitEarcut(start, triangles) {
     // find a valid diagonal that divides the polygon into two
 
     start = filterPoints(start);
+    if (!start) return;
 
     var a = start;
     do {
