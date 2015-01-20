@@ -4,7 +4,7 @@
   "description": "The fastest and smallest JavaScript polygon triangulation library for your WebGL apps",
   "main": "src/earcut.js",
   "scripts": {
-    "test": "jshint src",
+    "test": "jshint src test/test.js && tape test/test.js",
     "watch": "watchify -v -d src/earcut.js -s earcut -o dist/earcut.dev.js",
     "build-dev": "mkdirp dist && browserify -d src/earcut.js -s earcut > dist/earcut.dev.js",
     "build-min": "mkdirp dist && browserify src/earcut.js -s earcut | uglifyjs -c warnings=false -m > dist/earcut.min.js"
@@ -15,12 +15,14 @@
     "browserify": "^8.1.1",
     "jshint": "^2.5.11",
     "mkdirp": "^0.5.0",
+    "tape": "^3.4.0",
     "uglifyjs": "^2.3.6",
     "watchify": "^2.2.1"
   },
   "jshintConfig": {
     "node": true,
     "unused": true,
-    "undef": true
+    "undef": true,
+    "eqeqeq": true
   }
 }
