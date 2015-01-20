@@ -199,7 +199,7 @@ function eliminateHole(outerNode, holeNode) {
     for (var i = 0; i < queue.length; i++) {
         node = queue[i].node;
 
-        if (!intersectsPolygon(node, node.p, holeNode.p) && locallyInside(node, holeNode)) {
+        if (!intersectsPolygon(node, node.p, holeNode.p, true) && locallyInside(node, holeNode)) {
             splitPolygon(holeNode, node);
             return;
         }
@@ -222,22 +222,22 @@ function equals(p1, p2) {
 }
 
 // check if two segments intersect
-function intersects(p1, q1, p2, q2) {
+function intersects(p1, q1, p2, q2, touches) {
     var o1 = orient(p1, q1, p2),
         o2 = orient(p1, q1, q2),
         o3 = orient(p2, q2, p1),
         o4 = orient(p2, q2, q1);
-    return !!(o1 && o2 && o3 && o4) && o1 !== o2 && o3 !== o4;
+    return (!touches || o1 && o2 && o3 && o4) && o1 !== o2 && o3 !== o4;
 }
 
 // check if a polygon diagonal intersects any polygon segments
-function intersectsPolygon(start, a, b) {
+function intersectsPolygon(start, a, b, touches) {
     var node = start;
     do {
         var p1 = node.p,
             p2 = node.next.p;
 
-        if (p1 !== a && p2 !== a && p1 !== b && p2 !== b && intersects(p1, p2, a, b)) return true;
+        if (p1 !== a && p2 !== a && p1 !== b && p2 !== b && intersects(p1, p2, a, b, touches)) return true;
 
         node = node.next;
     } while (node !== start);
