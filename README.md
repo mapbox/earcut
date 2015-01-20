@@ -19,16 +19,16 @@ Some benchmarks:
 
 (ops/sec)         | pts  | earcut    | libtess  | poly2tri | pnltri
 ------------------| ---- | --------- | -------- | -------- | ---------
-OSM building      | 15   | _572,982_ | _28,124_ | _28,131_ | _210,320_
-dude shape        | 94   | _22,238_  | _5,904_  | _3,544_  | _12,916_
-holed dude shape  | 104  | _9,752_   | _5,204_  | _3,205_  | _2,232_
-complex OSM water | 2523 | _29.17_   | _64.73_  | failure  | failure
+OSM building      | 15   | _562,471_ | _28,124_ | _28,131_ | _210,320_
+dude shape        | 94   | _22,027_  | _5,904_  | _3,544_  | _12,916_
+holed dude shape  | 104  | _10,594_  | _5,204_  | _3,205_  | _2,232_
+complex OSM water | 2523 | _32.66_   | _64.73_  | failure  | failure
 
 Earcut may be slow for huge complex shapes,
 but when it comes to triangulating lots of shapes with relatively low number of vertices on average
 ([the use case](https://github.com/mapbox/mapbox-gl-js) earcut was created for), it's much faster.
 
-If you want a library that is always guaranteed to produce correct triangulation even on very bad data,
+If you want a library that is more likely to produce correct triangulation even on very bad data,
 [libtess.js](https://github.com/brendankenny/libtess.js) is certainly the best choice.
 
 #### Usage
@@ -56,6 +56,12 @@ Browser builds:
 npm install
 npm run build-dev # builds dist/earcut.dev.js, a dev version with a source map
 npm run build-min # builds dist/earcut.min.js, a minified production build
+```
+
+Running tests:
+
+```bash
+npm test
 ```
 
 ![](https://cloud.githubusercontent.com/assets/25395/5778431/e8ec0c10-9da3-11e4-8d4e-a2ced6a7d2b7.png)
