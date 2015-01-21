@@ -1,6 +1,9 @@
 ## Earcut
 
-The fastest and smallest JavaScript polygon triangulation library for your WebGL apps. 1.6KB gzipped.
+The fastest and smallest JavaScript polygon triangulation library. 1.5KB gzipped.
+
+[![Build Status](https://travis-ci.org/mapbox/earcut.svg?branch=master)](https://travis-ci.org/mapbox/earcut)
+[![Coverage Status](https://coveralls.io/repos/mapbox/earcut/badge.svg?branch=master)](https://coveralls.io/r/mapbox/earcut?branch=master)
 
 The library implements an ear slicing algorithm which is extended to handle holes, twisted polygons,
 degeneracies and self-intersections in a way that doesn't _guarantee_ correctness of triangulation,
