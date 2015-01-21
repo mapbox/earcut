@@ -1,6 +1,6 @@
 ## Earcut
 
-The fastest and smallest JavaScript polygon triangulation library. 1.5KB gzipped.
+The fastest and smallest JavaScript polygon triangulation library. 1.7KB gzipped.
 
 [![Build Status](https://travis-ci.org/mapbox/earcut.svg?branch=master)](https://travis-ci.org/mapbox/earcut)
 [![Coverage Status](https://coveralls.io/repos/mapbox/earcut/badge.svg?branch=master)](https://coveralls.io/r/mapbox/earcut?branch=master)
@@ -10,7 +10,8 @@ degeneracies and self-intersections in a way that doesn't _guarantee_ correctnes
 but attempts to always produce acceptable results for practical data like geographical shapes.
 
 It's based on ideas from
-[FIST: Fast Industrial-Strength Triangulation of Polygons](http://www.cosy.sbg.ac.at/~held/projects/triang/triang.html) paper.
+[FIST: Fast Industrial-Strength Triangulation of Polygons](http://www.cosy.sbg.ac.at/~held/projects/triang/triang.html) by Martin Held
+and [Triangulation by Ear Clipping](http://www.geometrictools.com/Documentation/TriangulationByEarClipping.pdf) by David Eberly.
 
 #### Why another triangulation library?
 
@@ -22,10 +23,10 @@ Some benchmarks:
 
 (ops/sec)         | pts  | earcut    | libtess  | poly2tri | pnltri
 ------------------| ---- | --------- | -------- | -------- | ---------
-OSM building      | 15   | _600,314_ | _28,124_ | _28,131_ | _210,320_
-dude shape        | 94   | _28,226_  | _5,904_  | _3,544_  | _12,916_
-holed dude shape  | 104  | _10,674_  | _5,204_  | _3,205_  | _2,232_
-complex OSM water | 2523 | _35.95_   | _64.73_  | failure  | failure
+OSM building      | 15   | _603,533_ | _28,124_ | _28,131_ | _210,320_
+dude shape        | 94   | _28,620_  | _5,904_  | _3,544_  | _12,916_
+holed dude shape  | 104  | _13,913_  | _5,204_  | _3,205_  | _2,232_
+complex OSM water | 2523 | _45.13_   | _64.73_  | failure  | failure
 
 Earcut may be slow for huge complex shapes,
 but when it comes to triangulating lots of shapes with relatively low number of vertices on average
@@ -68,3 +69,18 @@ npm test
 ```
 
 ![](https://cloud.githubusercontent.com/assets/25395/5778431/e8ec0c10-9da3-11e4-8d4e-a2ced6a7d2b7.png)
+
+#### Changelog
+
+##### 1.1.0 (Jan 21)
+
+- Improved performance on polygons with holes by switching from Held to Eberly hole elimination algorithm
+- More robustness fixes and tests
+
+##### 1.0.1 &mdash; 1.0.6 (Jan 20, 2015)
+
+- Various robustness improvements and fixes.
+
+##### 1.0.0 (Jan 18, 2015)
+
+- Initial release.

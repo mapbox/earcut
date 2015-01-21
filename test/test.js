@@ -4,12 +4,16 @@ var test = require('tape'),
 
 areaTest('building');
 areaTest('dude');
-areaTest('water', 0.0009);
+areaTest('water', 0.0021);
 areaTest('water2');
 areaTest('water3');
+areaTest('water3b');
 areaTest('water4');
-areaTest('water-huge', 0.0007);
+areaTest('water-huge', 0.0021);
+areaTest('water-huge2', 0.0023);
 areaTest('degenerate');
+areaTest('bad-hole', 0.05);
+areaTest('empty-square');
 
 function areaTest(filename, expectedDeviation) {
     expectedDeviation = expectedDeviation || 0.000001;

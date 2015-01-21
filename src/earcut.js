@@ -4,9 +4,9 @@ module.exports = earcut;
 
 function earcut(points) {
 
-    var outerNode = filterPoints(linkedList(points[0], true));
+    var outerNode = linkedList(points[0], true);
 
-    if (points.length > 1) eliminateHoles(points, outerNode);
+    if (points.length > 1) outerNode = eliminateHoles(points, outerNode);
 
     var triangles = [];
     if (outerNode) earcutLinked(outerNode, triangles);
@@ -58,7 +58,10 @@ function filterPoints(start) {
     return start;
 }
 
-function earcutLinked(ear, triangles) {
+function earcutLinked(ear, triangles, secondPass) {
+    ear = filterPoints(ear);
+    if (!ear) return;
+
     var stop = ear,
         prev, next;
 
@@ -79,11 +82,13 @@ function earcutLinked(ear, triangles) {
             continue;
         }
 
-        ear = ear.next;
+        ear = next;
 
         if (ear === stop) {
-            // if we can't find valid ears anymore, split remaining polygon into two
-            splitEarcut(ear, triangles);
+            // if we can't find any more ears, try filtering points and cutting again
+            if (!secondPass) earcutLinked(ear, triangles, true);
+            // if this didn't work, try splitting the remaining polygon into two
+            else splitEarcut(ear, triangles);
             break;
         }
     }
@@ -118,6 +123,8 @@ function isEar(ear) {
         px = node.p[0];
         py = node.p[1];
 
+        node = node.next;
+
         s = cay * px + acx * py - acd;
         if (s >= 0) {
             t = aby * px + bax * py + abd;
@@ -126,7 +133,6 @@ function isEar(ear) {
                 if ((k >= 0) && ((s && t) || (s && k) || (t && k))) return false;
             }
         }
-        node = node.next;
     }
 
     return true;
@@ -134,11 +140,6 @@ function isEar(ear) {
 
 function splitEarcut(start, triangles) {
     // find a valid diagonal that divides the polygon into two
-
-    start = filterPoints(start);
-    if (!start) return;
-
-    // iterate through all potential diagonals
     var a = start;
     do {
         var b = a.next.next;
@@ -169,29 +170,84 @@ function eliminateHoles(points, outerNode) {
     queue.sort(compareX);
 
     // process holes from left to right
-    for (i = 0; i < queue.length; i++) eliminateHole(queue[i], outerNode);
+    for (i = 0; i < queue.length; i++) {
+        eliminateHole(queue[i], outerNode);
+        outerNode = filterPoints(outerNode);
+    }
+
+    return outerNode;
 }
 
 function eliminateHole(holeNode, outerNode) {
-    var queue = [];
+    outerNode = findHoleBridge(holeNode, outerNode);
+    if (outerNode) splitPolygon(holeNode, outerNode);
+}
 
-    var node = outerNode;
+function findHoleBridge(holeNode, outerNode) {
+    var node = outerNode,
+        p = holeNode.p,
+        px = p[0],
+        py = p[1],
+        qMax = -Infinity,
+        mNode, a, b;
+
     do {
-        if (node.p[0] <= holeNode.p[0]) queue.push({node: node, dist: sqrDist(node.p, holeNode.p)});
+        a = node.p;
+        b = node.next.p;
+
+        if (py <= a[1] && py >= b[1]) {
+            var qx = a[0] + (py - a[1]) * (b[0] - a[0]) / (b[1] - a[1]);
+            if (qx <= px && qx > qMax) {
+                qMax = qx;
+                mNode = a[0] < b[0] ? node : node.next;
+            }
+        }
         node = node.next;
     } while (node !== outerNode);
 
-    queue.sort(compareDist);
+    if (!mNode) return null;
 
-    // look for bridges between inner and outer ring, from shortest to longest
-    for (var i = 0; i < queue.length; i++) {
-        node = queue[i].node;
+    var bx = mNode.p[0],
+        by = mNode.p[1],
+        pbd = px * by - py * bx,
+        pcd = px * py - py * qMax,
+        cpy = py - py,
+        pcx = px - qMax,
+        pby = py - by,
+        bpx = bx - px,
+        A = pbd - pcd - (qMax * by - py * bx),
+        sign = A <= 0 ? -1 : 1,
+        stop = mNode,
+        tanMin = Infinity,
+        mx, my, amx, s, t, tan;
 
-        if (!intersectsPolygon(node, node.p, holeNode.p, true) && locallyInside(node, holeNode)) {
-            splitPolygon(holeNode, node);
-            return;
+    node = mNode.next;
+
+    while (node !== stop) {
+
+        mx = node.p[0];
+        my = node.p[1];
+        amx = px - mx;
+
+        if (amx >= 0 && mx >= bx) {
+            s = (cpy * mx + pcx * my - pcd) * sign;
+            if (s >= 0) {
+                t = (pby * mx + bpx * my + pbd) * sign;
+
+                if (t >= 0 && A * sign - s - t >= 0) {
+                    tan = Math.abs(py - my) / amx; // tangential
+                    if (tan < tanMin && locallyInside(node, holeNode)) {
+                        mNode = node;
+                        tanMin = tan;
+                    }
+                }
+            }
         }
+
+        node = node.next;
     }
+
+    return mNode;
 }
 
 function getLeftmost(start) {
@@ -223,22 +279,19 @@ function equals(p1, p2) {
 }
 
 // check if two segments intersect
-function intersects(p1, q1, p2, q2, touches) {
-    var o1 = orient(p1, q1, p2),
-        o2 = orient(p1, q1, q2),
-        o3 = orient(p2, q2, p1),
-        o4 = orient(p2, q2, q1);
-    return (!touches || o1 && o2 && o3 && o4) && o1 !== o2 && o3 !== o4;
+function intersects(p1, q1, p2, q2) {
+    return orient(p1, q1, p2) !== orient(p1, q1, q2) &&
+           orient(p2, q2, p1) !== orient(p2, q2, q1);
 }
 
 // check if a polygon diagonal intersects any polygon segments
-function intersectsPolygon(start, a, b, touches) {
+function intersectsPolygon(start, a, b) {
     var node = start;
     do {
         var p1 = node.p,
             p2 = node.next.p;
 
-        if (p1 !== a && p2 !== a && p1 !== b && p2 !== b && intersects(p1, p2, a, b, touches)) return true;
+        if (p1 !== a && p2 !== a && p1 !== b && p2 !== b && intersects(p1, p2, a, b)) return true;
 
         node = node.next;
     } while (node !== start);
@@ -270,16 +323,6 @@ function middleInside(start, a, b) {
     } while (node !== start);
 
     return inside;
-}
-
-function sqrDist(a, b) {
-    var dx = a[0] - b[0],
-        dy = a[1] - b[1];
-    return dx * dx + dy * dy;
-}
-
-function compareDist(a, b) {
-    return a.dist - b.dist;
 }
 
 function compareX(a, b) {
