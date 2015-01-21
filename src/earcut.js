@@ -15,18 +15,20 @@ function earcut(points) {
 }
 
 // create a circular doubly linked list from polygon points in the specified winding order
-function linkedList(points, ccw) {
+function linkedList(points, clockwise) {
     var sum = 0,
         len = points.length,
         i, j, last;
 
     // calculate original winding order of a polygon ring
     for (i = 0, j = len - 1; i < len; j = i++) {
-        sum += (points[i][0] - points[j][0]) * (points[i][1] + points[j][1]);
+        var p1 = points[i],
+            p2 = points[j];
+        sum += (p2[0] - p1[0]) * (p1[1] + p2[1]);
     }
 
-    // link points into circular doubly-linked list in the specified winding order; return the leftmost point
-    if (ccw === (sum < 0)) {
+    // link points into circular doubly-linked list in the specified winding order
+    if (clockwise === (sum > 0)) {
         for (i = 0; i < len; i++) last = insertNode(points[i], last);
     } else {
         for (i = len - 1; i >= 0; i--) last = insertNode(points[i], last);
@@ -87,7 +89,6 @@ function earcutLinked(ear, triangles) {
     }
 }
 
-// iterate through points to check if there's a reflex point inside a potential ear
 function isEar(ear) {
 
     var a = ear.prev.p,
@@ -102,7 +103,7 @@ function isEar(ear) {
         cbd = cx * by - cy * bx,
         A = abd - acd - cbd;
 
-    if (A <= 0) return false; // reflex
+    if (A <= 0) return false; // reflex, can't be an ear
 
     var node = ear.next.next,
         cay = cy - ay,
@@ -111,12 +112,11 @@ function isEar(ear) {
         bax = bx - ax,
         px, py, s, t, k;
 
+    // make sure we don't have other points inside the potential ear
     while (node !== ear.prev) {
 
         px = node.p[0];
         py = node.p[1];
-
-        node = node.next;
 
         s = cay * px + acx * py - acd;
         if (s >= 0) {
@@ -126,7 +126,9 @@ function isEar(ear) {
                 if ((k >= 0) && ((s && t) || (s && k) || (t && k))) return false;
             }
         }
+        node = node.next;
     }
+
     return true;
 }
 
@@ -136,6 +138,7 @@ function splitEarcut(start, triangles) {
     start = filterPoints(start);
     if (!start) return;
 
+    // iterate through all potential diagonals
     var a = start;
     do {
         var b = a.next.next;
@@ -166,8 +169,28 @@ function eliminateHoles(points, outerNode) {
     queue.sort(compareX);
 
     // process holes from left to right
-    for (i = 0; i < queue.length; i++) {
-        eliminateHole(outerNode, queue[i]);
+    for (i = 0; i < queue.length; i++) eliminateHole(queue[i], outerNode);
+}
+
+function eliminateHole(holeNode, outerNode) {
+    var queue = [];
+
+    var node = outerNode;
+    do {
+        if (node.p[0] <= holeNode.p[0]) queue.push({node: node, dist: sqrDist(node.p, holeNode.p)});
+        node = node.next;
+    } while (node !== outerNode);
+
+    queue.sort(compareDist);
+
+    // look for bridges between inner and outer ring, from shortest to longest
+    for (var i = 0; i < queue.length; i++) {
+        node = queue[i].node;
+
+        if (!intersectsPolygon(node, node.p, holeNode.p, true) && locallyInside(node, holeNode)) {
+            splitPolygon(holeNode, node);
+            return;
+        }
     }
 }
 
@@ -182,32 +205,13 @@ function getLeftmost(start) {
     return leftmost;
 }
 
-function eliminateHole(outerNode, holeNode) {
-    var queue = [];
-
-    var node = outerNode;
-    do {
-        if (node.p[0] <= holeNode.p[0]) queue.push({node: node, dist: sqrDist(node.p, holeNode.p)});
-        node = node.next;
-    } while (node !== outerNode);
-
-    queue.sort(compareDist);
-
-    for (var i = 0; i < queue.length; i++) {
-        node = queue[i].node;
-
-        if (!intersectsPolygon(node, node.p, holeNode.p, true) && locallyInside(node, holeNode)) {
-            splitPolygon(holeNode, node);
-            return;
-        }
-    }
-}
-
 function isValidDiagonal(a, b) {
     return !intersectsPolygon(a, a.p, b.p) &&
-           locallyInside(a, b) && locallyInside(b, a) && middleInside(a, a.p, b.p);
+           locallyInside(a, b) && locallyInside(b, a) &&
+           middleInside(a, a.p, b.p);
 }
 
+// winding order of triangle formed by 3 given points
 function orient(p, q, r) {
     var o = (q[1] - p[1]) * (r[0] - q[0]) - (q[0] - p[0]) * (r[1] - q[1]);
     return o > 0 ? 1 :
@@ -259,9 +263,9 @@ function middleInside(start, a, b) {
         var p1 = node.p,
             p2 = node.next.p;
 
-        if (((p1[1] > py) !== (p2[1] > py)) && (px < (p2[0] - p1[0]) * (py - p1[1]) / (p2[1] - p1[1]) + p1[0])) {
-            inside = !inside;
-        }
+        if (((p1[1] > py) !== (p2[1] > py)) &&
+            (px < (p2[0] - p1[0]) * (py - p1[1]) / (p2[1] - p1[1]) + p1[0])) inside = !inside;
+
         node = node.next;
     } while (node !== start);
 
