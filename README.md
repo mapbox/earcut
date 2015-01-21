@@ -23,10 +23,10 @@ Some benchmarks:
 
 (ops/sec)         | pts  | earcut    | libtess  | poly2tri | pnltri
 ------------------| ---- | --------- | -------- | -------- | ---------
-OSM building      | 15   | _605,427_ | _28,124_ | _28,131_ | _210,320_
-dude shape        | 94   | _28,757_  | _5,904_  | _3,544_  | _12,916_
-holed dude shape  | 104  | _11,575_  | _5,204_  | _3,205_  | _2,232_
-complex OSM water | 2523 | _35.93_   | _64.73_  | failure  | failure
+OSM building      | 15   | _603,533_ | _28,124_ | _28,131_ | _210,320_
+dude shape        | 94   | _28,620_  | _5,904_  | _3,544_  | _12,916_
+holed dude shape  | 104  | _13,913_  | _5,204_  | _3,205_  | _2,232_
+complex OSM water | 2523 | _45.13_   | _64.73_  | failure  | failure
 
 Earcut may be slow for huge complex shapes,
 but when it comes to triangulating lots of shapes with relatively low number of vertices on average
@@ -74,8 +74,8 @@ npm test
 
 ##### 1.1.0 (Jan 21)
 
-- Improved performance on complex polygons with lots of holes
-by switching from Held to Eberly hole elimination algorithm
+- Improved performance on polygons with holes by switching from Held to Eberly hole elimination algorithm
+- More robustness fixes and tests
 
 ##### 1.0.1 &mdash; 1.0.6 (Jan 20, 2015)
 

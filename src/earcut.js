@@ -4,9 +4,9 @@ module.exports = earcut;
 
 function earcut(points) {
 
-    var outerNode = filterPoints(linkedList(points[0], true));
+    var outerNode = linkedList(points[0], true);
 
-    if (points.length > 1) eliminateHoles(points, outerNode);
+    if (points.length > 1) outerNode = eliminateHoles(points, outerNode);
 
     var triangles = [];
     if (outerNode) earcutLinked(outerNode, triangles);
@@ -58,7 +58,10 @@ function filterPoints(start) {
     return start;
 }
 
-function earcutLinked(ear, triangles) {
+function earcutLinked(ear, triangles, secondPass) {
+    ear = filterPoints(ear);
+    if (!ear) return;
+
     var stop = ear,
         prev, next;
 
@@ -82,8 +85,10 @@ function earcutLinked(ear, triangles) {
         ear = next;
 
         if (ear === stop) {
-            // if we can't find valid ears anymore, split remaining polygon into two
-            splitEarcut(ear, triangles);
+            // if we can't find any more ears, try filtering points and cutting again
+            if (!secondPass) earcutLinked(ear, triangles, true);
+            // if this didn't work, try splitting the remaining polygon into two
+            else splitEarcut(ear, triangles);
             break;
         }
     }
@@ -135,11 +140,6 @@ function isEar(ear) {
 
 function splitEarcut(start, triangles) {
     // find a valid diagonal that divides the polygon into two
-
-    start = filterPoints(start);
-    if (!start) return;
-
-    // iterate through all potential diagonals
     var a = start;
     do {
         var b = a.next.next;
@@ -170,7 +170,12 @@ function eliminateHoles(points, outerNode) {
     queue.sort(compareX);
 
     // process holes from left to right
-    for (i = 0; i < queue.length; i++) eliminateHole(queue[i], outerNode);
+    for (i = 0; i < queue.length; i++) {
+        eliminateHole(queue[i], outerNode);
+        outerNode = filterPoints(outerNode);
+    }
+
+    return outerNode;
 }
 
 function eliminateHole(holeNode, outerNode) {
