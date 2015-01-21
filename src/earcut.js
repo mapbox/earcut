@@ -79,7 +79,7 @@ function earcutLinked(ear, triangles) {
             continue;
         }
 
-        ear = ear.next;
+        ear = next;
 
         if (ear === stop) {
             // if we can't find valid ears anymore, split remaining polygon into two
@@ -118,6 +118,8 @@ function isEar(ear) {
         px = node.p[0];
         py = node.p[1];
 
+        node = node.next;
+
         s = cay * px + acx * py - acd;
         if (s >= 0) {
             t = aby * px + bax * py + abd;
@@ -126,7 +128,6 @@ function isEar(ear) {
                 if ((k >= 0) && ((s && t) || (s && k) || (t && k))) return false;
             }
         }
-        node = node.next;
     }
 
     return true;
@@ -173,25 +174,73 @@ function eliminateHoles(points, outerNode) {
 }
 
 function eliminateHole(holeNode, outerNode) {
-    var queue = [];
+    outerNode = findHoleBridge(holeNode, outerNode);
+    if (outerNode) splitPolygon(holeNode, outerNode);
+}
 
-    var node = outerNode;
+function findHoleBridge(holeNode, outerNode) {
+    var node = outerNode,
+        p = holeNode.p,
+        qMax = -Infinity,
+        aNode, bNode, mNode, a, b;
     do {
-        if (node.p[0] <= holeNode.p[0]) queue.push({node: node, dist: sqrDist(node.p, holeNode.p)});
+        a = node.p;
+        b = node.next.p;
+        if (p[1] <= a[1] && p[1] >= b[1]) {
+            var qx = a[0] + (p[1] - a[1]) * (b[0] - a[0]) / (b[1] - a[1]);
+            if (qx <= p[0] && qx > qMax) {
+                qMax = qx;
+                aNode = node;
+                bNode = node.next;
+            }
+        }
         node = node.next;
     } while (node !== outerNode);
 
-    queue.sort(compareDist);
+    mNode = aNode.p[0] < bNode.p[0] ? aNode : bNode;
 
-    // look for bridges between inner and outer ring, from shortest to longest
-    for (var i = 0; i < queue.length; i++) {
-        node = queue[i].node;
+    var ax = p[0], bx = mNode.p[0], cx = qMax,
+        ay = p[1], by = mNode.p[1], cy = p[1],
 
-        if (!intersectsPolygon(node, node.p, holeNode.p, true) && locallyInside(node, holeNode)) {
-            splitPolygon(holeNode, node);
-            return;
+        abd = ax * by - ay * bx,
+        acd = ax * cy - ay * cx,
+        cbd = cx * by - cy * bx,
+        cay = cy - ay,
+        acx = ax - cx,
+        aby = ay - by,
+        bax = bx - ax,
+        A = abd - acd - cbd,
+        sign = A <= 0 ? -1 : 1,
+        stop = mNode,
+        tanMin = Infinity,
+        mx, my, amx, s, t, k, tan;
+
+    node = mNode.next;
+
+    while (node !== stop) {
+
+        mx = node.p[0];
+        my = node.p[1];
+        amx = ax - mx;
+
+        if (amx >= 0) {
+            s = (cay * mx + acx * my - acd) * sign;
+            t = (aby * mx + bax * my + abd) * sign;
+            k = A * sign - s - t;
+
+            if (s >= 0 && t >= 0 && k >= 0) {
+                tan = Math.abs(ay - my) / amx; // tangential
+                if (tan < tanMin && locallyInside(node, holeNode)) {
+                    mNode = node;
+                    tanMin = tan;
+                }
+            }
         }
+
+        node = node.next;
     }
+
+    return mNode;
 }
 
 function getLeftmost(start) {
@@ -270,16 +319,6 @@ function middleInside(start, a, b) {
     } while (node !== start);
 
     return inside;
-}
-
-function sqrDist(a, b) {
-    var dx = a[0] - b[0],
-        dy = a[1] - b[1];
-    return dx * dx + dy * dy;
-}
-
-function compareDist(a, b) {
-    return a.dist - b.dist;
 }
 
 function compareX(a, b) {
