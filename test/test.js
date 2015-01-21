@@ -22,7 +22,7 @@ function areaTest(filename, expectedDeviation) {
             area = 0;
 
         for (var i = 0; i < triangles.length; i += 3) {
-            area += ringArea([triangles[i], triangles[i + 1], triangles[i + 2]]);
+            area += triangleArea(triangles[i], triangles[i + 1], triangles[i + 2]);
         }
 
         var deviation = expectedArea === 0 && area === 0 ? 0 : Math.abs(area - expectedArea) / expectedArea;
@@ -38,12 +38,16 @@ function formatPercent(num) {
     return (Math.round(1e8 * num) / 1e6) + '%';
 }
 
+function triangleArea(a, b, c) {
+    return Math.abs((a[0] - c[0]) * (b[1] - a[1]) - (a[0] - b[0]) * (c[1] - a[1])) / 2;
+}
+
 function ringArea(points) {
     var sum = 0;
     for (var i = 0, len = points.length, j = len - 1; i < len; j = i++) {
         sum += (points[i][0] - points[j][0]) * (points[i][1] + points[j][1]);
     }
-    return Math.abs(sum);
+    return Math.abs(sum) / 2;
 }
 
 function polygonArea(rings) {
