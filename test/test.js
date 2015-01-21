@@ -9,7 +9,9 @@ areaTest('water2');
 areaTest('water3');
 areaTest('water4');
 areaTest('water-huge', 0.0012);
+areaTest('water-huge2', 0.0023);
 areaTest('degenerate');
+areaTest('bad-hole', 0.05);
 
 function areaTest(filename, expectedDeviation) {
     expectedDeviation = expectedDeviation || 0.000001;

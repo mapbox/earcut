@@ -200,6 +200,8 @@ function findHoleBridge(holeNode, outerNode) {
         node = node.next;
     } while (node !== outerNode);
 
+    if (!mNode) return null;
+
     var bx = mNode.p[0],
         by = mNode.p[1],
         pbd = px * by - py * bx,
@@ -222,7 +224,7 @@ function findHoleBridge(holeNode, outerNode) {
         my = node.p[1];
         amx = px - mx;
 
-        if (amx >= 0) {
+        if (amx >= 0 && mx >= bx) {
             s = (cpy * mx + pcx * my - pcd) * sign;
             if (s >= 0) {
                 t = (pby * mx + bpx * my + pbd) * sign;
@@ -272,22 +274,19 @@ function equals(p1, p2) {
 }
 
 // check if two segments intersect
-function intersects(p1, q1, p2, q2, touches) {
-    var o1 = orient(p1, q1, p2),
-        o2 = orient(p1, q1, q2),
-        o3 = orient(p2, q2, p1),
-        o4 = orient(p2, q2, q1);
-    return (!touches || o1 && o2 && o3 && o4) && o1 !== o2 && o3 !== o4;
+function intersects(p1, q1, p2, q2) {
+    return orient(p1, q1, p2) !== orient(p1, q1, q2) &&
+           orient(p2, q2, p1) !== orient(p2, q2, q1);
 }
 
 // check if a polygon diagonal intersects any polygon segments
-function intersectsPolygon(start, a, b, touches) {
+function intersectsPolygon(start, a, b) {
     var node = start;
     do {
         var p1 = node.p,
             p2 = node.next.p;
 
-        if (p1 !== a && p2 !== a && p1 !== b && p2 !== b && intersects(p1, p2, a, b, touches)) return true;
+        if (p1 !== a && p2 !== a && p1 !== b && p2 !== b && intersects(p1, p2, a, b)) return true;
 
         node = node.next;
     } while (node !== start);
