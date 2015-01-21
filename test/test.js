@@ -2,15 +2,16 @@ var test = require('tape'),
     earcut = require('../src/earcut'),
     fs = require('fs');
 
-areaTest('building', 1e-6);
-areaTest('dude', 1e-6);
-areaTest('water', 0.0011);
-areaTest('water2', 0.0002);
-areaTest('water3', 1e-6);
-areaTest('water4', 1e-6);
-areaTest('water-huge', 0.001);
+areaTest('building');
+areaTest('dude');
+areaTest('water', 0.0009);
+areaTest('water2');
+areaTest('water3');
+areaTest('water4');
+areaTest('water-huge', 0.0007);
 
 function areaTest(filename, expectedDeviation) {
+    expectedDeviation = expectedDeviation || 0.000001;
     test(filename, function (t) {
         var data = JSON.parse(fs.readFileSync(__dirname + '/fixtures/' + filename + '.json'));
         var triangles = earcut(data);

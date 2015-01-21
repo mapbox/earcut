@@ -119,16 +119,13 @@ function isEar(ear) {
         node = node.next;
 
         s = cay * px + acx * py - acd;
-        if (s < 0) continue;
-        t = aby * px + bax * py + abd;
-        if (t < 0) continue;
-        k = A - s - t;
-        if (k < 0) continue;
-
-        if (s > 0 && t > 0 && k > 0) return false;
-        if (t === 0 && s && k && (a[0] === b[0] || a[1] === b[1])) return false;
-        if (k === 0 && s && t && (b[0] === c[0] || b[1] === c[1])) return false;
-        if (s === 0 && t && k && (a[0] === c[0] || a[1] === c[1])) return false;
+        if (s >= 0) {
+            t = aby * px + bax * py + abd;
+            if (t >= 0) {
+                k = A - s - t;
+                if ((k >= 0) && ((s && t) || (s && k) || (t && k))) return false;
+            }
+        }
     }
     return true;
 }
