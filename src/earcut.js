@@ -181,39 +181,38 @@ function eliminateHole(holeNode, outerNode) {
 function findHoleBridge(holeNode, outerNode) {
     var node = outerNode,
         p = holeNode.p,
+        px = p[0],
+        py = p[1],
         qMax = -Infinity,
-        aNode, bNode, mNode, a, b;
+        mNode, a, b;
+
     do {
         a = node.p;
         b = node.next.p;
-        if (p[1] <= a[1] && p[1] >= b[1]) {
-            var qx = a[0] + (p[1] - a[1]) * (b[0] - a[0]) / (b[1] - a[1]);
-            if (qx <= p[0] && qx > qMax) {
+
+        if (py <= a[1] && py >= b[1]) {
+            var qx = a[0] + (py - a[1]) * (b[0] - a[0]) / (b[1] - a[1]);
+            if (qx <= px && qx > qMax) {
                 qMax = qx;
-                aNode = node;
-                bNode = node.next;
+                mNode = a[0] < b[0] ? node : node.next;
             }
         }
         node = node.next;
     } while (node !== outerNode);
 
-    mNode = aNode.p[0] < bNode.p[0] ? aNode : bNode;
-
-    var ax = p[0], bx = mNode.p[0], cx = qMax,
-        ay = p[1], by = mNode.p[1], cy = p[1],
-
-        abd = ax * by - ay * bx,
-        acd = ax * cy - ay * cx,
-        cbd = cx * by - cy * bx,
-        cay = cy - ay,
-        acx = ax - cx,
-        aby = ay - by,
-        bax = bx - ax,
-        A = abd - acd - cbd,
+    var bx = mNode.p[0],
+        by = mNode.p[1],
+        pbd = px * by - py * bx,
+        pcd = px * py - py * qMax,
+        cpy = py - py,
+        pcx = px - qMax,
+        pby = py - by,
+        bpx = bx - px,
+        A = pbd - pcd - (qMax * by - py * bx),
         sign = A <= 0 ? -1 : 1,
         stop = mNode,
         tanMin = Infinity,
-        mx, my, amx, s, t, k, tan;
+        mx, my, amx, s, t, tan;
 
     node = mNode.next;
 
@@ -221,18 +220,19 @@ function findHoleBridge(holeNode, outerNode) {
 
         mx = node.p[0];
         my = node.p[1];
-        amx = ax - mx;
+        amx = px - mx;
 
         if (amx >= 0) {
-            s = (cay * mx + acx * my - acd) * sign;
-            t = (aby * mx + bax * my + abd) * sign;
-            k = A * sign - s - t;
+            s = (cpy * mx + pcx * my - pcd) * sign;
+            if (s >= 0) {
+                t = (pby * mx + bpx * my + pbd) * sign;
 
-            if (s >= 0 && t >= 0 && k >= 0) {
-                tan = Math.abs(ay - my) / amx; // tangential
-                if (tan < tanMin && locallyInside(node, holeNode)) {
-                    mNode = node;
-                    tanMin = tan;
+                if (t >= 0 && A * sign - s - t >= 0) {
+                    tan = Math.abs(py - my) / amx; // tangential
+                    if (tan < tanMin && locallyInside(node, holeNode)) {
+                        mNode = node;
+                        tanMin = tan;
+                    }
                 }
             }
         }

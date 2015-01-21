@@ -4,11 +4,11 @@ var test = require('tape'),
 
 areaTest('building');
 areaTest('dude');
-areaTest('water', 0.0009);
+areaTest('water', 0.0021);
 areaTest('water2');
 areaTest('water3');
 areaTest('water4');
-areaTest('water-huge', 0.0007);
+areaTest('water-huge', 0.0012);
 areaTest('degenerate');
 
 function areaTest(filename, expectedDeviation) {
