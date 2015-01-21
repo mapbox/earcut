@@ -1,6 +1,6 @@
 'use strict';
 
-if (typeof module !== 'undefined') module.exports = earcut;
+module.exports = earcut;
 
 function earcut(points) {
 

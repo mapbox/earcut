@@ -9,20 +9,27 @@ areaTest('water2');
 areaTest('water3');
 areaTest('water4');
 areaTest('water-huge', 0.0007);
+areaTest('degenerate');
 
 function areaTest(filename, expectedDeviation) {
     expectedDeviation = expectedDeviation || 0.000001;
+
     test(filename, function (t) {
-        var data = JSON.parse(fs.readFileSync(__dirname + '/fixtures/' + filename + '.json'));
-        var triangles = earcut(data);
-        var area = 0;
+
+        var data = JSON.parse(fs.readFileSync(__dirname + '/fixtures/' + filename + '.json')),
+            triangles = earcut(data),
+            expectedArea = polygonArea(data),
+            area = 0;
+
         for (var i = 0; i < triangles.length; i += 3) {
             area += ringArea([triangles[i], triangles[i + 1], triangles[i + 2]]);
         }
-        var expectedArea = polygonArea(data);
-        var deviation = Math.abs(area - expectedArea) / expectedArea;
+
+        var deviation = expectedArea === 0 && area === 0 ? 0 : Math.abs(area - expectedArea) / expectedArea;
+
         t.ok(deviation < expectedDeviation,
             'deviation ' + formatPercent(deviation) + ' is less than ' + formatPercent(expectedDeviation));
+
         t.end();
     });
 }

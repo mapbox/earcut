@@ -7,12 +7,16 @@
     "test": "jshint src test/test.js && tape test/test.js",
     "watch": "watchify -v -d src/earcut.js -s earcut -o dist/earcut.dev.js",
     "build-dev": "mkdirp dist && browserify -d src/earcut.js -s earcut > dist/earcut.dev.js",
-    "build-min": "mkdirp dist && browserify src/earcut.js -s earcut | uglifyjs -c warnings=false -m > dist/earcut.min.js"
+    "build-min": "mkdirp dist && browserify src/earcut.js -s earcut | uglifyjs -c warnings=false -m > dist/earcut.min.js",
+    "cov": "istanbul cover test/*.js",
+    "coveralls": "istanbul cover test/*.js && coveralls < ./coverage/lcov.info"
   },
   "author": "Vladimir Agafonkin",
   "license": "ISC",
   "devDependencies": {
     "browserify": "^8.1.1",
+    "coveralls": "^2.11.2",
+    "istanbul": "^0.3.5",
     "jshint": "^2.5.11",
     "mkdirp": "^0.5.0",
     "tape": "^3.4.0",
