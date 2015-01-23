@@ -4,23 +4,27 @@ module.exports = earcut;
 
 function earcut(points) {
 
-    var outerNode = linkedList(points[0], true);
+    var outerNode = linkedList(points[0], true),
+        node, minX, minY, maxX, maxY, x, y,
+        len = 0;
 
-    var node = outerNode.next,
-        minX, minY, maxX, maxY,
-        x, y;
+    for (var i = 0; i < points.length; i++) len += points[i].length;
 
-    minX = maxX = node.p[0];
-    minY = maxY = node.p[1];
-    do {
-        x = node.p[0];
-        y = node.p[1];
-        if (x < minX) minX = x;
-        if (y < minY) minY = y;
-        if (x > maxX) maxX = x;
-        if (y > maxY) maxY = y;
-        node = node.next;
-    } while (node !== outerNode);
+    // if there are lots of points, we'll use z-order curve hash later; calculate polygon bbox
+    if (len > 300) {
+        node = outerNode.next;
+        minX = maxX = node.p[0];
+        minY = maxY = node.p[1];
+        do {
+            x = node.p[0];
+            y = node.p[1];
+            if (x < minX) minX = x;
+            if (y < minY) minY = y;
+            if (x > maxX) maxX = x;
+            if (y > maxY) maxY = y;
+            node = node.next;
+        } while (node !== outerNode);
+    }
 
     if (points.length > 1) outerNode = eliminateHoles(points, outerNode);
 
@@ -78,7 +82,7 @@ function earcutLinked(ear, triangles, minX, minY, maxX, maxY, secondPass) {
     ear = filterPoints(ear);
     if (!ear) return;
 
-    if (!secondPass) indexCurve(ear, minX, minY, maxX, maxY);
+    if (!secondPass && minX !== undefined) indexCurve(ear, minX, minY, maxX, maxY);
 
     var stop = ear,
         prev, next;
@@ -136,53 +140,79 @@ function isEar(ear, minX, minY, maxX, maxY) {
         bax = bx - ax,
         p, px, py, s, t, k, node;
 
-    var minX2 = ax < bx ? (ax < cx ? ax : cx) : (bx < cx ? bx : cx),
-        minY2 = ay < by ? (ay < cy ? ay : cy) : (by < cy ? by : cy),
-        maxX2 = ax > bx ? (ax > cx ? ax : cx) : (bx > cx ? bx : cx),
-        maxY2 = ay > by ? (ay > cy ? ay : cy) : (by > cy ? by : cy),
-        minZ = zOrder(minX2, minY2, minX, minY, maxX, maxY),
-        maxZ = zOrder(maxX2, maxY2, minX, minY, maxX, maxY);
+    // if we use z-order curve hashing, iterate through the curve
+    if (minX !== undefined) {
 
-    node = ear.nextZ;
+        // triangle bbox; min & max are calculated like this for speed
+        var minTX = ax < bx ? (ax < cx ? ax : cx) : (bx < cx ? bx : cx),
+            minTY = ay < by ? (ay < cy ? ay : cy) : (by < cy ? by : cy),
+            maxTX = ax > bx ? (ax > cx ? ax : cx) : (bx > cx ? bx : cx),
+            maxTY = ay > by ? (ay > cy ? ay : cy) : (by > cy ? by : cy),
 
-    while (node && node.z <= maxZ) {
+            // z-order range for the current triangle bbox;
+            minZ = zOrder(minTX, minTY, minX, minY, maxX, maxY),
+            maxZ = zOrder(maxTX, maxTY, minX, minY, maxX, maxY);
 
-        p = node.p;
-        node = node.nextZ;
+        // first look for points inside the triangle in increasing z-order
+        node = ear.nextZ;
 
-        if (p === a || p === c) continue;
+        while (node && node.z <= maxZ) {
+            p = node.p;
+            node = node.nextZ;
+            if (p === a || p === c) continue;
 
-        px = p[0];
-        py = p[1];
+            px = p[0];
+            py = p[1];
 
-        s = cay * px + acx * py - acd;
-        if (s >= 0) {
-            t = aby * px + bax * py + abd;
-            if (t >= 0) {
-                k = A - s - t;
-                if ((k >= 0) && ((s && t) || (s && k) || (t && k))) return false;
+            s = cay * px + acx * py - acd;
+            if (s >= 0) {
+                t = aby * px + bax * py + abd;
+                if (t >= 0) {
+                    k = A - s - t;
+                    if ((k >= 0) && ((s && t) || (s && k) || (t && k))) return false;
+                }
             }
         }
-    }
 
-    node = ear.prevZ;
+        // then look for points in decreasing z-order
+        node = ear.prevZ;
 
-    while (node && node.z >= minZ) {
+        while (node && node.z >= minZ) {
+            p = node.p;
+            node = node.prevZ;
+            if (p === a || p === c) continue;
 
-        p = node.p;
-        node = node.prevZ;
+            px = p[0];
+            py = p[1];
 
-        if (p === a || p === c) continue;
+            s = cay * px + acx * py - acd;
+            if (s >= 0) {
+                t = aby * px + bax * py + abd;
+                if (t >= 0) {
+                    k = A - s - t;
+                    if ((k >= 0) && ((s && t) || (s && k) || (t && k))) return false;
+                }
+            }
+        }
 
-        px = p[0];
-        py = p[1];
+    // if we don't use z-order curve hash, simply iterate through all other points
+    } else {
+        node = ear.next.next;
 
-        s = cay * px + acx * py - acd;
-        if (s >= 0) {
-            t = aby * px + bax * py + abd;
-            if (t >= 0) {
-                k = A - s - t;
-                if ((k >= 0) && ((s && t) || (s && k) || (t && k))) return false;
+        while (node !== ear.prev) {
+            p = node.p;
+            node = node.next;
+
+            px = p[0];
+            py = p[1];
+
+            s = cay * px + acx * py - acd;
+            if (s >= 0) {
+                t = aby * px + bax * py + abd;
+                if (t >= 0) {
+                    k = A - s - t;
+                    if ((k >= 0) && ((s && t) || (s && k) || (t && k))) return false;
+                }
             }
         }
     }
