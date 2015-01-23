@@ -14,6 +14,40 @@ function earcut(points) {
     return triangles;
 }
 
+function indexCurve(start) {
+    var node = start,
+        curve = [];
+    do {
+        node.z = zOrder(node.p[0] + 128, node.p[1] + 128);
+        curve.push(node);
+
+        node = node.next;
+    } while (node !== start);
+
+    curve.sort(compareZ);
+
+    curve[0].prevZ = null;
+    for (var i = 0; i < curve.length - 1; i++) {
+        curve[i].nextZ = curve[i + 1];
+        curve[i + 1].prevZ = curve[i];
+    }
+    curve[curve.length - 1].nextZ = null;
+}
+
+function zOrder(x, y) {
+    x = (x | (x << 8)) & 0x00FF00FF;
+    x = (x | (x << 4)) & 0x0F0F0F0F;
+    x = (x | (x << 2)) & 0x33333333;
+    x = (x | (x << 1)) & 0x55555555;
+
+    y = (y | (y << 8)) & 0x00FF00FF;
+    y = (y | (y << 4)) & 0x0F0F0F0F;
+    y = (y | (y << 2)) & 0x33333333;
+    y = (y | (y << 1)) & 0x55555555;
+
+    return x | (y << 1);
+}
+
 // create a circular doubly linked list from polygon points in the specified winding order
 function linkedList(points, clockwise) {
     var sum = 0,
@@ -62,6 +96,8 @@ function earcutLinked(ear, triangles, secondPass) {
     ear = filterPoints(ear);
     if (!ear) return;
 
+    if (!secondPass) indexCurve(ear);
+
     var stop = ear,
         prev, next;
 
@@ -94,6 +130,8 @@ function earcutLinked(ear, triangles, secondPass) {
     }
 }
 
+var count = 0;
+
 function isEar(ear) {
 
     var a = ear.prev.p,
@@ -108,22 +146,59 @@ function isEar(ear) {
         cbd = cx * by - cy * bx,
         A = abd - acd - cbd;
 
+    // drawPoly([[a, b, c]], 'red');
+
     if (A <= 0) return false; // reflex, can't be an ear
 
-    var node = ear.next.next,
+    var node = ear.nextZ,
         cay = cy - ay,
         acx = ax - cx,
         aby = ay - by,
         bax = bx - ax,
-        px, py, s, t, k;
+        minX = ax < bx ? (ax < cx ? ax : cx) : (bx < cx ? bx : cx),
+        minY = ay < by ? (ay < cy ? ay : cy) : (by < cy ? by : cy),
+        minZ = zOrder(minX + 128, minY + 128),
+        maxX = ax > bx ? (ax > cx ? ax : cx) : (bx > cx ? bx : cx),
+        maxY = ay > by ? (ay > cy ? ay : cy) : (by > cy ? by : cy),
+        maxZ = zOrder(maxX + 128, maxY + 128),
+        p, px, py, s, t, k;
 
     // make sure we don't have other points inside the potential ear
-    while (node !== ear.prev) {
+    while (node && node.z <= maxZ) {
 
+        p = node.p;
         px = node.p[0];
         py = node.p[1];
 
-        node = node.next;
+        node = node.nextZ;
+
+        if (p === a || p === c) continue;
+
+        count++;
+
+        s = cay * px + acx * py - acd;
+        if (s >= 0) {
+            t = aby * px + bax * py + abd;
+            if (t >= 0) {
+                k = A - s - t;
+                if ((k >= 0) && ((s && t) || (s && k) || (t && k))) return false;
+            }
+        }
+    }
+
+    node = ear.prevZ;
+
+    while (node && node.z >= minZ) {
+
+        p = node.p;
+        px = node.p[0];
+        py = node.p[1];
+
+        node = node.prevZ;
+
+        if (p === a || p === c) continue;
+
+        count++;
 
         s = cay * px + acx * py - acd;
         if (s >= 0) {
@@ -149,8 +224,8 @@ function splitEarcut(start, triangles) {
                 var c = splitPolygon(a, b);
 
                 // run earcut on each half
-                earcutLinked(a, triangles);
-                earcutLinked(c, triangles);
+                earcutLinked(a, triangles, false);
+                earcutLinked(c, triangles, false);
                 return;
             }
             b = b.next;
@@ -329,10 +404,14 @@ function compareX(a, b) {
     return a.p[0] - b.p[0];
 }
 
+function compareZ(a, b) {
+    return a.z - b.z;
+}
+
 // split the polygon vertices circular doubly-linked linked list into two
 function splitPolygon(a, b) {
-    var a2 = {p: a.p, prev: null, next: null},
-        b2 = {p: b.p, prev: null, next: null},
+    var a2 = {p: a.p, prev: null, next: null, z: null, prevZ: null, nextZ: null},
+        b2 = {p: b.p, prev: null, next: null, z: null, prevZ: null, nextZ: null},
         an = a.next,
         bp = b.prev;
 
@@ -355,7 +434,10 @@ function insertNode(point, last) {
     var node = {
         p: point,
         prev: null,
-        next: null
+        next: null,
+        z: null,
+        prevZ: null,
+        nextZ: null
     };
 
     if (!last) {
