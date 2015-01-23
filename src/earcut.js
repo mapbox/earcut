@@ -235,6 +235,7 @@ function eliminateHole(holeNode, outerNode) {
     if (outerNode) splitPolygon(holeNode, outerNode);
 }
 
+// David Eberly's algorithm for finding a bridge between hole and outer polygon
 function findHoleBridge(holeNode, outerNode) {
     var node = outerNode,
         p = holeNode.p,
@@ -243,6 +244,8 @@ function findHoleBridge(holeNode, outerNode) {
         qMax = -Infinity,
         mNode, a, b;
 
+    // find a segment intersected by a ray from the hole's leftmost point to the left;
+    // segment's endpoint with lesser x will be potential connection point
     do {
         a = node.p;
         b = node.next.p;
@@ -258,6 +261,10 @@ function findHoleBridge(holeNode, outerNode) {
     } while (node !== outerNode);
 
     if (!mNode) return null;
+
+    // look for points strictly inside the triangle of hole point, segment intersection and endpoint;
+    // if there are no points found, we have a valid connection;
+    // otherwise choose the point of the minimum angle with the ray as connection point
 
     var bx = mNode.p[0],
         by = mNode.p[1],
@@ -322,7 +329,9 @@ function indexCurve(start, minX, minY, maxX, maxY) {
     curve[curve.length - 1].nextZ = null;
 }
 
+// z-order of a point given coords and bbox
 function zOrder(x, y, minX, minY, maxX, maxY) {
+    // coords are transformed into (0..1000) integer range
     x = 1000 * (x - minX) / (maxX - minX);
     x = (x | (x << 8)) & 0x00FF00FF;
     x = (x | (x << 4)) & 0x0F0F0F0F;
