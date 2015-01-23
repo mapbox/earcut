@@ -6,17 +6,7 @@ function earcut(points) {
 
     var outerNode = linkedList(points[0], true);
 
-    if (points.length > 1) outerNode = eliminateHoles(points, outerNode);
-
-    var triangles = [];
-    if (outerNode) earcutLinked(outerNode, triangles);
-
-    return triangles;
-}
-
-function indexCurve(start) {
-    var node = start,
-        curve = [],
+    var node = outerNode,
         minX = Infinity,
         minY = Infinity,
         maxX = -Infinity,
@@ -32,12 +22,23 @@ function indexCurve(start) {
         if (y > maxY) maxY = y;
 
         node = node.next;
-    } while (node !== start);
+    } while (node !== outerNode);
+
+    if (points.length > 1) outerNode = eliminateHoles(points, outerNode);
+
+    var triangles = [];
+    if (outerNode) earcutLinked(outerNode, triangles, false, minX, minY, maxX, maxY);
+
+    return triangles;
+}
+
+function indexCurve(start, minX, minY, maxX, maxY) {
+    var node = start,
+        curve = [],
+        x, y;
 
     do {
-        x = node.zx = Math.floor(1000 * (node.p[0] - minX) / (maxX - minX));
-        y = node.zy = Math.floor(1000 * (node.p[1] - minY) / (maxY - minY));
-        node.z = zOrder(x, y);
+        node.z = node.z || zOrder(node.p[0], node.p[1], minX, minY, maxX, maxY);
         curve.push(node);
 
         node = node.next;
@@ -53,12 +54,14 @@ function indexCurve(start) {
     curve[curve.length - 1].nextZ = null;
 }
 
-function zOrder(x, y) {
+function zOrder(x, y, minX, minY, maxX, maxY) {
+    x = 1000 * (x - minX) / (maxX - minX);
     x = (x | (x << 8)) & 0x00FF00FF;
     x = (x | (x << 4)) & 0x0F0F0F0F;
     x = (x | (x << 2)) & 0x33333333;
     x = (x | (x << 1)) & 0x55555555;
 
+    y = 1000 * (y - minY) / (maxY - minY);
     y = (y | (y << 8)) & 0x00FF00FF;
     y = (y | (y << 4)) & 0x0F0F0F0F;
     y = (y | (y << 2)) & 0x33333333;
@@ -111,11 +114,11 @@ function filterPoints(start) {
     return start;
 }
 
-function earcutLinked(ear, triangles, secondPass) {
+function earcutLinked(ear, triangles, secondPass, minX, minY, maxX, maxY) {
     ear = filterPoints(ear);
     if (!ear) return;
 
-    if (!secondPass) indexCurve(ear);
+    if (!secondPass) indexCurve(ear, minX, minY, maxX, maxY);
 
     var stop = ear,
         prev, next;
@@ -125,7 +128,7 @@ function earcutLinked(ear, triangles, secondPass) {
         prev = ear.prev;
         next = ear.next;
 
-        if (isEar(ear)) {
+        if (isEar(ear, minX, minY, maxX, maxY)) {
             triangles.push(prev.p, ear.p, next.p);
 
             next.prev = prev;
@@ -141,9 +144,9 @@ function earcutLinked(ear, triangles, secondPass) {
 
         if (ear === stop) {
             // if we can't find any more ears, try filtering points and cutting again
-            if (!secondPass) earcutLinked(ear, triangles, true);
+            if (!secondPass) earcutLinked(ear, triangles, true, minX, minY, maxX, maxY);
             // if this didn't work, try splitting the remaining polygon into two
-            else splitEarcut(ear, triangles);
+            else splitEarcut(ear, triangles, minX, minY, maxX, maxY);
             break;
         }
     }
@@ -151,7 +154,7 @@ function earcutLinked(ear, triangles, secondPass) {
 
 var count = 0;
 
-function isEar(ear) {
+function isEar(ear, minX, minY, maxX, maxY) {
 
     var a = ear.prev.p,
         b = ear.p,
@@ -159,9 +162,6 @@ function isEar(ear) {
 
         ax = a[0], bx = b[0], cx = c[0],
         ay = a[1], by = b[1], cy = c[1],
-
-        azx = ear.prev.zx, bzx = ear.zx, czx = ear.next.zx,
-        azy = ear.prev.zy, bzy = ear.zy, czy = ear.next.zy,
 
         abd = ax * by - ay * bx,
         acd = ax * cy - ay * cx,
@@ -172,31 +172,34 @@ function isEar(ear) {
 
     if (A <= 0) return false; // reflex, can't be an ear
 
-    var node = ear.nextZ,
-        cay = cy - ay,
+    // now make sure we don't have other points inside the potential ear
+
+    var cay = cy - ay,
         acx = ax - cx,
         aby = ay - by,
         bax = bx - ax,
-        minX = azx < bzx ? (azx < czx ? azx : czx) : (bzx < czx ? bzx : czx),
-        minY = azy < bzy ? (azy < czy ? azy : czy) : (bzy < czy ? bzy : czy),
-        maxX = azx > bzx ? (azx > czx ? azx : czx) : (bzx > czx ? bzx : czx),
-        maxY = azy > bzy ? (azy > czy ? azy : czy) : (bzy > czy ? bzy : czy),
-        minZ = zOrder(minX, minY),
-        maxZ = zOrder(maxX, maxY),
-        p, px, py, s, t, k;
+        p, px, py, s, t, k, node;
 
-    // make sure we don't have other points inside the potential ear
+    var minX2 = ax < bx ? (ax < cx ? ax : cx) : (bx < cx ? bx : cx),
+        minY2 = ay < by ? (ay < cy ? ay : cy) : (by < cy ? by : cy),
+        maxX2 = ax > bx ? (ax > cx ? ax : cx) : (bx > cx ? bx : cx),
+        maxY2 = ay > by ? (ay > cy ? ay : cy) : (by > cy ? by : cy),
+        minZ = zOrder(minX2, minY2, minX, minY, maxX, maxY),
+        maxZ = zOrder(maxX2, maxY2, minX, minY, maxX, maxY);
+
+    node = ear.nextZ;
+
     while (node && node.z <= maxZ) {
 
         p = node.p;
-        px = node.p[0];
-        py = node.p[1];
-
         node = node.nextZ;
 
         if (p === a || p === c) continue;
 
         count++;
+
+        px = p[0];
+        py = p[1];
 
         s = cay * px + acx * py - acd;
         if (s >= 0) {
@@ -213,14 +216,14 @@ function isEar(ear) {
     while (node && node.z >= minZ) {
 
         p = node.p;
-        px = node.p[0];
-        py = node.p[1];
-
         node = node.prevZ;
 
         if (p === a || p === c) continue;
 
         count++;
+
+        px = p[0];
+        py = p[1];
 
         s = cay * px + acx * py - acd;
         if (s >= 0) {
@@ -235,7 +238,7 @@ function isEar(ear) {
     return true;
 }
 
-function splitEarcut(start, triangles) {
+function splitEarcut(start, triangles, minX, minY, maxX, maxY) {
     // find a valid diagonal that divides the polygon into two
     var a = start;
     do {
@@ -246,8 +249,8 @@ function splitEarcut(start, triangles) {
                 var c = splitPolygon(a, b);
 
                 // run earcut on each half
-                earcutLinked(a, triangles, false);
-                earcutLinked(c, triangles, false);
+                earcutLinked(a, triangles, false, minX, minY, maxX, maxY);
+                earcutLinked(c, triangles, false, minX, minY, maxX, maxY);
                 return;
             }
             b = b.next;
@@ -474,8 +477,6 @@ function Node(p) {
     this.next = null;
 
     this.z = null;
-    this.zx = null;
-    this.zy = null;
     this.prevZ = null;
     this.nextZ = null;
 }
