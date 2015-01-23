@@ -6,13 +6,12 @@ function earcut(points) {
 
     var outerNode = linkedList(points[0], true);
 
-    var node = outerNode,
-        minX = Infinity,
-        minY = Infinity,
-        maxX = -Infinity,
-        maxY = -Infinity,
+    var node = outerNode.next,
+        minX, minY, maxX, maxY,
         x, y;
 
+    minX = maxX = node.p[0];
+    minY = maxY = node.p[1];
     do {
         x = node.p[0];
         y = node.p[1];
@@ -20,54 +19,15 @@ function earcut(points) {
         if (y < minY) minY = y;
         if (x > maxX) maxX = x;
         if (y > maxY) maxY = y;
-
         node = node.next;
     } while (node !== outerNode);
 
     if (points.length > 1) outerNode = eliminateHoles(points, outerNode);
 
     var triangles = [];
-    if (outerNode) earcutLinked(outerNode, triangles, false, minX, minY, maxX, maxY);
+    if (outerNode) earcutLinked(outerNode, triangles, minX, minY, maxX, maxY);
 
     return triangles;
-}
-
-function indexCurve(start, minX, minY, maxX, maxY) {
-    var node = start,
-        curve = [],
-        x, y;
-
-    do {
-        node.z = node.z || zOrder(node.p[0], node.p[1], minX, minY, maxX, maxY);
-        curve.push(node);
-
-        node = node.next;
-    } while (node !== start);
-
-    curve.sort(compareZ);
-
-    curve[0].prevZ = null;
-    for (var i = 0; i < curve.length - 1; i++) {
-        curve[i].nextZ = curve[i + 1];
-        curve[i + 1].prevZ = curve[i];
-    }
-    curve[curve.length - 1].nextZ = null;
-}
-
-function zOrder(x, y, minX, minY, maxX, maxY) {
-    x = 1000 * (x - minX) / (maxX - minX);
-    x = (x | (x << 8)) & 0x00FF00FF;
-    x = (x | (x << 4)) & 0x0F0F0F0F;
-    x = (x | (x << 2)) & 0x33333333;
-    x = (x | (x << 1)) & 0x55555555;
-
-    y = 1000 * (y - minY) / (maxY - minY);
-    y = (y | (y << 8)) & 0x00FF00FF;
-    y = (y | (y << 4)) & 0x0F0F0F0F;
-    y = (y | (y << 2)) & 0x33333333;
-    y = (y | (y << 1)) & 0x55555555;
-
-    return x | (y << 1);
 }
 
 // create a circular doubly linked list from polygon points in the specified winding order
@@ -114,7 +74,7 @@ function filterPoints(start) {
     return start;
 }
 
-function earcutLinked(ear, triangles, secondPass, minX, minY, maxX, maxY) {
+function earcutLinked(ear, triangles, minX, minY, maxX, maxY, secondPass) {
     ear = filterPoints(ear);
     if (!ear) return;
 
@@ -144,15 +104,13 @@ function earcutLinked(ear, triangles, secondPass, minX, minY, maxX, maxY) {
 
         if (ear === stop) {
             // if we can't find any more ears, try filtering points and cutting again
-            if (!secondPass) earcutLinked(ear, triangles, true, minX, minY, maxX, maxY);
+            if (!secondPass) earcutLinked(ear, triangles, minX, minY, maxX, maxY, true);
             // if this didn't work, try splitting the remaining polygon into two
             else splitEarcut(ear, triangles, minX, minY, maxX, maxY);
             break;
         }
     }
 }
-
-var count = 0;
 
 function isEar(ear, minX, minY, maxX, maxY) {
 
@@ -167,8 +125,6 @@ function isEar(ear, minX, minY, maxX, maxY) {
         acd = ax * cy - ay * cx,
         cbd = cx * by - cy * bx,
         A = abd - acd - cbd;
-
-    // drawPoly([[a, b, c]], 'red');
 
     if (A <= 0) return false; // reflex, can't be an ear
 
@@ -196,8 +152,6 @@ function isEar(ear, minX, minY, maxX, maxY) {
 
         if (p === a || p === c) continue;
 
-        count++;
-
         px = p[0];
         py = p[1];
 
@@ -219,8 +173,6 @@ function isEar(ear, minX, minY, maxX, maxY) {
         node = node.prevZ;
 
         if (p === a || p === c) continue;
-
-        count++;
 
         px = p[0];
         py = p[1];
@@ -249,8 +201,8 @@ function splitEarcut(start, triangles, minX, minY, maxX, maxY) {
                 var c = splitPolygon(a, b);
 
                 // run earcut on each half
-                earcutLinked(a, triangles, false, minX, minY, maxX, maxY);
-                earcutLinked(c, triangles, false, minX, minY, maxX, maxY);
+                earcutLinked(a, triangles, minX, minY, maxX, maxY);
+                earcutLinked(c, triangles, minX, minY, maxX, maxY);
                 return;
             }
             b = b.next;
@@ -348,6 +300,42 @@ function findHoleBridge(holeNode, outerNode) {
     }
 
     return mNode;
+}
+
+function indexCurve(start, minX, minY, maxX, maxY) {
+    var node = start,
+        curve = [];
+
+    do {
+        node.z = node.z || zOrder(node.p[0], node.p[1], minX, minY, maxX, maxY);
+        curve.push(node);
+        node = node.next;
+    } while (node !== start);
+
+    curve.sort(compareZ);
+
+    curve[0].prevZ = null;
+    for (var i = 0; i < curve.length - 1; i++) {
+        curve[i].nextZ = curve[i + 1];
+        curve[i + 1].prevZ = curve[i];
+    }
+    curve[curve.length - 1].nextZ = null;
+}
+
+function zOrder(x, y, minX, minY, maxX, maxY) {
+    x = 1000 * (x - minX) / (maxX - minX);
+    x = (x | (x << 8)) & 0x00FF00FF;
+    x = (x | (x << 4)) & 0x0F0F0F0F;
+    x = (x | (x << 2)) & 0x33333333;
+    x = (x | (x << 1)) & 0x55555555;
+
+    y = 1000 * (y - minY) / (maxY - minY);
+    y = (y | (y << 8)) & 0x00FF00FF;
+    y = (y | (y << 4)) & 0x0F0F0F0F;
+    y = (y | (y << 2)) & 0x33333333;
+    y = (y | (y << 1)) & 0x55555555;
+
+    return x | (y << 1);
 }
 
 function getLeftmost(start) {
