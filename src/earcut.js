@@ -16,9 +16,28 @@ function earcut(points) {
 
 function indexCurve(start) {
     var node = start,
-        curve = [];
+        curve = [],
+        minX = Infinity,
+        minY = Infinity,
+        maxX = -Infinity,
+        maxY = -Infinity,
+        x, y;
+
     do {
-        node.z = zOrder(node.p[0] + 128, node.p[1] + 128);
+        x = node.p[0];
+        y = node.p[1];
+        if (x < minX) minX = x;
+        if (y < minY) minY = y;
+        if (x > maxX) maxX = x;
+        if (y > maxY) maxY = y;
+
+        node = node.next;
+    } while (node !== start);
+
+    do {
+        x = node.zx = Math.floor(1000 * (node.p[0] - minX) / (maxX - minX));
+        y = node.zy = Math.floor(1000 * (node.p[1] - minY) / (maxY - minY));
+        node.z = zOrder(x, y);
         curve.push(node);
 
         node = node.next;
@@ -141,6 +160,9 @@ function isEar(ear) {
         ax = a[0], bx = b[0], cx = c[0],
         ay = a[1], by = b[1], cy = c[1],
 
+        azx = ear.prev.zx, bzx = ear.zx, czx = ear.next.zx,
+        azy = ear.prev.zy, bzy = ear.zy, czy = ear.next.zy,
+
         abd = ax * by - ay * bx,
         acd = ax * cy - ay * cx,
         cbd = cx * by - cy * bx,
@@ -155,12 +177,12 @@ function isEar(ear) {
         acx = ax - cx,
         aby = ay - by,
         bax = bx - ax,
-        minX = ax < bx ? (ax < cx ? ax : cx) : (bx < cx ? bx : cx),
-        minY = ay < by ? (ay < cy ? ay : cy) : (by < cy ? by : cy),
-        minZ = zOrder(minX + 128, minY + 128),
-        maxX = ax > bx ? (ax > cx ? ax : cx) : (bx > cx ? bx : cx),
-        maxY = ay > by ? (ay > cy ? ay : cy) : (by > cy ? by : cy),
-        maxZ = zOrder(maxX + 128, maxY + 128),
+        minX = azx < bzx ? (azx < czx ? azx : czx) : (bzx < czx ? bzx : czx),
+        minY = azy < bzy ? (azy < czy ? azy : czy) : (bzy < czy ? bzy : czy),
+        maxX = azx > bzx ? (azx > czx ? azx : czx) : (bzx > czx ? bzx : czx),
+        maxY = azy > bzy ? (azy > czy ? azy : czy) : (bzy > czy ? bzy : czy),
+        minZ = zOrder(minX, minY),
+        maxZ = zOrder(maxX, maxY),
         p, px, py, s, t, k;
 
     // make sure we don't have other points inside the potential ear
@@ -410,8 +432,8 @@ function compareZ(a, b) {
 
 // split the polygon vertices circular doubly-linked linked list into two
 function splitPolygon(a, b) {
-    var a2 = {p: a.p, prev: null, next: null, z: null, prevZ: null, nextZ: null},
-        b2 = {p: b.p, prev: null, next: null, z: null, prevZ: null, nextZ: null},
+    var a2 = new Node(a.p),
+        b2 = new Node(b.p),
         an = a.next,
         bp = b.prev;
 
@@ -431,14 +453,7 @@ function splitPolygon(a, b) {
 }
 
 function insertNode(point, last) {
-    var node = {
-        p: point,
-        prev: null,
-        next: null,
-        z: null,
-        prevZ: null,
-        nextZ: null
-    };
+    var node = new Node(point);
 
     if (!last) {
         node.prev = node;
@@ -451,4 +466,16 @@ function insertNode(point, last) {
         last.next = node;
     }
     return node;
+}
+
+function Node(p) {
+    this.p = p;
+    this.prev = null;
+    this.next = null;
+
+    this.z = null;
+    this.zx = null;
+    this.zy = null;
+    this.prevZ = null;
+    this.nextZ = null;
 }
