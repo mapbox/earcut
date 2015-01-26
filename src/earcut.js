@@ -4,7 +4,7 @@ module.exports = earcut;
 
 function earcut(points) {
 
-    var outerNode = linkedList(points[0], true),
+    var outerNode = filterPoints(linkedList(points[0], true)),
         node, minX, minY, maxX, maxY, x, y, size,
         len = 0,
         threshold = 80;
@@ -12,7 +12,7 @@ function earcut(points) {
     for (var i = 0; len < threshold && i < points.length; i++) len += points[i].length;
 
     // if the shape is not too simple, we'll use z-order curve hash later; calculate polygon bbox
-    if (len >= threshold) {
+    if (outerNode && len >= threshold) {
         node = outerNode.next;
         minX = maxX = node.p[0];
         minY = maxY = node.p[1];
@@ -33,7 +33,7 @@ function earcut(points) {
     if (points.length > 1) outerNode = eliminateHoles(points, outerNode);
 
     var triangles = [];
-    if (outerNode) earcutLinked(outerNode, triangles, minX, minY, size);
+    earcutLinked(outerNode, triangles, minX, minY, size);
 
     return triangles;
 }
@@ -61,8 +61,10 @@ function linkedList(points, clockwise) {
     return last;
 }
 
-function filterPoints(start) {
-    // eliminate colinear or duplicate points
+// eliminate colinear or duplicate points
+function filterPoints(start, end) {
+    end = end || start;
+
     var node = start,
         again;
     do {
@@ -76,7 +78,7 @@ function filterPoints(start) {
             if (node.prevZ) node.prevZ.nextZ = node.nextZ;
             if (node.nextZ) node.nextZ.prevZ = node.prevZ;
 
-            node = start = node.prev;
+            node = end = node.prev;
 
             if (node === node.next) return null;
             again = true;
@@ -84,15 +86,13 @@ function filterPoints(start) {
         } else {
             node = node.next;
         }
-    } while (again || node !== start);
+    } while (again || node !== end);
 
-    return start;
+    return end;
 }
 
 function earcutLinked(ear, triangles, minX, minY, size, secondPass) {
-    ear = filterPoints(ear);
     if (!ear) return;
-
     if (!secondPass && minX !== undefined) indexCurve(ear, minX, minY, size);
 
     var stop = ear,
@@ -122,9 +122,12 @@ function earcutLinked(ear, triangles, minX, minY, size, secondPass) {
 
         if (ear === stop) {
             // if we can't find any more ears, try filtering points and cutting again
-            if (!secondPass) earcutLinked(ear, triangles, minX, minY, size, true);
+            if (!secondPass) {
+                earcutLinked(filterPoints(ear), triangles, minX, minY, size, true);
+
             // if this didn't work, try splitting the remaining polygon into two
-            else splitEarcut(ear, triangles, minX, minY, size);
+            } else splitEarcut(ear, triangles, minX, minY, size);
+
             break;
         }
     }
@@ -244,6 +247,9 @@ function splitEarcut(start, triangles, minX, minY, size) {
                 // split the polygon in two by the diagonal
                 var c = splitPolygon(a, b);
 
+                a = filterPoints(a.prev, a.next);
+                c = filterPoints(c.prev, c.next);
+
                 // run earcut on each half
                 earcutLinked(a, triangles, minX, minY, size);
                 earcutLinked(c, triangles, minX, minY, size);
@@ -268,7 +274,7 @@ function eliminateHoles(points, outerNode) {
     // process holes from left to right
     for (i = 0; i < queue.length; i++) {
         eliminateHole(queue[i], outerNode);
-        outerNode = filterPoints(outerNode);
+        outerNode = filterPoints(outerNode.prev, outerNode.next);
     }
 
     return outerNode;
@@ -276,7 +282,10 @@ function eliminateHoles(points, outerNode) {
 
 function eliminateHole(holeNode, outerNode) {
     outerNode = findHoleBridge(holeNode, outerNode);
-    if (outerNode) splitPolygon(holeNode, outerNode);
+    if (outerNode) {
+        var b = splitPolygon(outerNode, holeNode);
+        filterPoints(b.prev, b.next);
+    }
 }
 
 // David Eberly's algorithm for finding a bridge between hole and outer polygon
@@ -547,7 +556,7 @@ function splitPolygon(a, b) {
     bp.next = b2;
     b2.prev = bp;
 
-    return a2;
+    return b2;
 }
 
 function insertNode(point, last) {
