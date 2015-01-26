@@ -4,12 +4,36 @@ module.exports = earcut;
 
 function earcut(points) {
 
-    var outerNode = linkedList(points[0], true);
+    var outerNode = linkedList(points[0], true),
+        node, minX, minY, maxX, maxY, x, y, size,
+        len = 0,
+        threshold = 80;
+
+    for (var i = 0; len < threshold && i < points.length; i++) len += points[i].length;
+
+    // if the shape is not too simple, we'll use z-order curve hash later; calculate polygon bbox
+    if (len >= threshold) {
+        node = outerNode.next;
+        minX = maxX = node.p[0];
+        minY = maxY = node.p[1];
+        do {
+            x = node.p[0];
+            y = node.p[1];
+            if (x < minX) minX = x;
+            if (y < minY) minY = y;
+            if (x > maxX) maxX = x;
+            if (y > maxY) maxY = y;
+            node = node.next;
+        } while (node !== outerNode);
+
+        // minX, minY and size are later used to transform coords into integers for z-order calculation
+        size = Math.max(maxX - minX, maxY - minY);
+    }
 
     if (points.length > 1) outerNode = eliminateHoles(points, outerNode);
 
     var triangles = [];
-    if (outerNode) earcutLinked(outerNode, triangles);
+    if (outerNode) earcutLinked(outerNode, triangles, minX, minY, size);
 
     return triangles;
 }
@@ -43,10 +67,17 @@ function filterPoints(start) {
         again;
     do {
         again = false;
+
         if (equals(node.p, node.next.p) || orient(node.prev.p, node.p, node.next.p) === 0) {
+
             node.prev.next = node.next;
             node.next.prev = node.prev;
+
+            if (node.prevZ) node.prevZ.nextZ = node.nextZ;
+            if (node.nextZ) node.nextZ.prevZ = node.prevZ;
+
             node = start = node.prev;
+
             if (node === node.next) return null;
             again = true;
 
@@ -58,9 +89,11 @@ function filterPoints(start) {
     return start;
 }
 
-function earcutLinked(ear, triangles, secondPass) {
+function earcutLinked(ear, triangles, minX, minY, size, secondPass) {
     ear = filterPoints(ear);
     if (!ear) return;
+
+    if (!secondPass && minX !== undefined) indexCurve(ear, minX, minY, size);
 
     var stop = ear,
         prev, next;
@@ -70,11 +103,14 @@ function earcutLinked(ear, triangles, secondPass) {
         prev = ear.prev;
         next = ear.next;
 
-        if (isEar(ear)) {
+        if (isEar(ear, minX, minY, size)) {
             triangles.push(prev.p, ear.p, next.p);
 
             next.prev = prev;
             prev.next = next;
+
+            if (ear.prevZ) ear.prevZ.nextZ = ear.nextZ;
+            if (ear.nextZ) ear.nextZ.prevZ = ear.prevZ;
 
             ear = next.next;
             stop = next.next;
@@ -86,15 +122,15 @@ function earcutLinked(ear, triangles, secondPass) {
 
         if (ear === stop) {
             // if we can't find any more ears, try filtering points and cutting again
-            if (!secondPass) earcutLinked(ear, triangles, true);
+            if (!secondPass) earcutLinked(ear, triangles, minX, minY, size, true);
             // if this didn't work, try splitting the remaining polygon into two
-            else splitEarcut(ear, triangles);
+            else splitEarcut(ear, triangles, minX, minY, size);
             break;
         }
     }
 }
 
-function isEar(ear) {
+function isEar(ear, minX, minY, size) {
 
     var a = ear.prev.p,
         b = ear.p,
@@ -110,27 +146,87 @@ function isEar(ear) {
 
     if (A <= 0) return false; // reflex, can't be an ear
 
-    var node = ear.next.next,
-        cay = cy - ay,
+    // now make sure we don't have other points inside the potential ear
+
+    var cay = cy - ay,
         acx = ax - cx,
         aby = ay - by,
         bax = bx - ax,
-        px, py, s, t, k;
+        p, px, py, s, t, k, node;
 
-    // make sure we don't have other points inside the potential ear
-    while (node !== ear.prev) {
+    // if we use z-order curve hashing, iterate through the curve
+    if (minX !== undefined) {
 
-        px = node.p[0];
-        py = node.p[1];
+        // triangle bbox; min & max are calculated like this for speed
+        var minTX = ax < bx ? (ax < cx ? ax : cx) : (bx < cx ? bx : cx),
+            minTY = ay < by ? (ay < cy ? ay : cy) : (by < cy ? by : cy),
+            maxTX = ax > bx ? (ax > cx ? ax : cx) : (bx > cx ? bx : cx),
+            maxTY = ay > by ? (ay > cy ? ay : cy) : (by > cy ? by : cy),
 
-        node = node.next;
+            // z-order range for the current triangle bbox;
+            minZ = zOrder(minTX, minTY, minX, minY, size),
+            maxZ = zOrder(maxTX, maxTY, minX, minY, size);
 
-        s = cay * px + acx * py - acd;
-        if (s >= 0) {
-            t = aby * px + bax * py + abd;
-            if (t >= 0) {
-                k = A - s - t;
-                if ((k >= 0) && ((s && t) || (s && k) || (t && k))) return false;
+        // first look for points inside the triangle in increasing z-order
+        node = ear.nextZ;
+
+        while (node && node.z <= maxZ) {
+            p = node.p;
+            node = node.nextZ;
+            if (p === a || p === c) continue;
+
+            px = p[0];
+            py = p[1];
+
+            s = cay * px + acx * py - acd;
+            if (s >= 0) {
+                t = aby * px + bax * py + abd;
+                if (t >= 0) {
+                    k = A - s - t;
+                    if ((k >= 0) && ((s && t) || (s && k) || (t && k))) return false;
+                }
+            }
+        }
+
+        // then look for points in decreasing z-order
+        node = ear.prevZ;
+
+        while (node && node.z >= minZ) {
+            p = node.p;
+            node = node.prevZ;
+            if (p === a || p === c) continue;
+
+            px = p[0];
+            py = p[1];
+
+            s = cay * px + acx * py - acd;
+            if (s >= 0) {
+                t = aby * px + bax * py + abd;
+                if (t >= 0) {
+                    k = A - s - t;
+                    if ((k >= 0) && ((s && t) || (s && k) || (t && k))) return false;
+                }
+            }
+        }
+
+    // if we don't use z-order curve hash, simply iterate through all other points
+    } else {
+        node = ear.next.next;
+
+        while (node !== ear.prev) {
+            p = node.p;
+            node = node.next;
+
+            px = p[0];
+            py = p[1];
+
+            s = cay * px + acx * py - acd;
+            if (s >= 0) {
+                t = aby * px + bax * py + abd;
+                if (t >= 0) {
+                    k = A - s - t;
+                    if ((k >= 0) && ((s && t) || (s && k) || (t && k))) return false;
+                }
             }
         }
     }
@@ -138,7 +234,7 @@ function isEar(ear) {
     return true;
 }
 
-function splitEarcut(start, triangles) {
+function splitEarcut(start, triangles, minX, minY, size) {
     // find a valid diagonal that divides the polygon into two
     var a = start;
     do {
@@ -149,8 +245,8 @@ function splitEarcut(start, triangles) {
                 var c = splitPolygon(a, b);
 
                 // run earcut on each half
-                earcutLinked(a, triangles);
-                earcutLinked(c, triangles);
+                earcutLinked(a, triangles, minX, minY, size);
+                earcutLinked(c, triangles, minX, minY, size);
                 return;
             }
             b = b.next;
@@ -183,6 +279,7 @@ function eliminateHole(holeNode, outerNode) {
     if (outerNode) splitPolygon(holeNode, outerNode);
 }
 
+// David Eberly's algorithm for finding a bridge between hole and outer polygon
 function findHoleBridge(holeNode, outerNode) {
     var node = outerNode,
         p = holeNode.p,
@@ -191,6 +288,8 @@ function findHoleBridge(holeNode, outerNode) {
         qMax = -Infinity,
         mNode, a, b;
 
+    // find a segment intersected by a ray from the hole's leftmost point to the left;
+    // segment's endpoint with lesser x will be potential connection point
     do {
         a = node.p;
         b = node.next.p;
@@ -206,6 +305,10 @@ function findHoleBridge(holeNode, outerNode) {
     } while (node !== outerNode);
 
     if (!mNode) return null;
+
+    // look for points strictly inside the triangle of hole point, segment intersection and endpoint;
+    // if there are no points found, we have a valid connection;
+    // otherwise choose the point of the minimum angle with the ray as connection point
 
     var bx = mNode.p[0],
         by = mNode.p[1],
@@ -248,6 +351,102 @@ function findHoleBridge(holeNode, outerNode) {
     }
 
     return mNode;
+}
+
+function indexCurve(start, minX, minY, size) {
+    var node = start;
+
+    do {
+        node.z = node.z || zOrder(node.p[0], node.p[1], minX, minY, size);
+        node.prevZ = node.prev;
+        node.nextZ = node.next;
+        node = node.next;
+    } while (node !== start);
+
+    node.prevZ.nextZ = null;
+    node.prevZ = null;
+
+    sortLinked(node);
+}
+
+// Simon Tatham's linked list merge sort algorithm
+// http://www.chiark.greenend.org.uk/~sgtatham/algorithms/listsort.html
+function sortLinked(list) {
+    var i, p, q, e, tail, numMerges, pSize, qSize,
+        inSize = 1;
+
+    while (true) {
+        p = list;
+        list = null;
+        tail = null;
+        numMerges = 0;
+
+        while (p) {
+            numMerges++;
+            q = p;
+            pSize = 0;
+            for (i = 0; i < inSize; i++) {
+                pSize++;
+                q = q.nextZ;
+                if (!q) break;
+            }
+
+            qSize = inSize;
+
+            while (pSize > 0 || (qSize > 0 && q)) {
+
+                if (pSize === 0) {
+                    e = q;
+                    q = q.nextZ;
+                    qSize--;
+                } else if (qSize === 0 || !q) {
+                    e = p;
+                    p = p.nextZ;
+                    pSize--;
+                } else if (p.z <= q.z) {
+                    e = p;
+                    p = p.nextZ;
+                    pSize--;
+                } else {
+                    e = q;
+                    q = q.nextZ;
+                    qSize--;
+                }
+
+                if (tail) tail.nextZ = e;
+                else list = e;
+
+                e.prevZ = tail;
+                tail = e;
+            }
+
+            p = q;
+        }
+
+        tail.nextZ = null;
+
+        if (numMerges <= 1) return list;
+
+        inSize *= 2;
+    }
+}
+
+// z-order of a point given coords and bbox
+function zOrder(x, y, minX, minY, size) {
+    // coords are transformed into (0..1000) integer range
+    x = 1000 * (x - minX) / size;
+    x = (x | (x << 8)) & 0x00FF00FF;
+    x = (x | (x << 4)) & 0x0F0F0F0F;
+    x = (x | (x << 2)) & 0x33333333;
+    x = (x | (x << 1)) & 0x55555555;
+
+    y = 1000 * (y - minY) / size;
+    y = (y | (y << 8)) & 0x00FF00FF;
+    y = (y | (y << 4)) & 0x0F0F0F0F;
+    y = (y | (y << 2)) & 0x33333333;
+    y = (y | (y << 1)) & 0x55555555;
+
+    return x | (y << 1);
 }
 
 function getLeftmost(start) {
@@ -331,8 +530,8 @@ function compareX(a, b) {
 
 // split the polygon vertices circular doubly-linked linked list into two
 function splitPolygon(a, b) {
-    var a2 = {p: a.p, prev: null, next: null},
-        b2 = {p: b.p, prev: null, next: null},
+    var a2 = new Node(a.p),
+        b2 = new Node(b.p),
         an = a.next,
         bp = b.prev;
 
@@ -352,11 +551,7 @@ function splitPolygon(a, b) {
 }
 
 function insertNode(point, last) {
-    var node = {
-        p: point,
-        prev: null,
-        next: null
-    };
+    var node = new Node(point);
 
     if (!last) {
         node.prev = node;
@@ -369,4 +564,14 @@ function insertNode(point, last) {
         last.next = node;
     }
     return node;
+}
+
+function Node(p) {
+    this.p = p;
+    this.prev = null;
+    this.next = null;
+
+    this.z = null;
+    this.prevZ = null;
+    this.nextZ = null;
 }
