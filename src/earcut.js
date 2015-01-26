@@ -6,12 +6,13 @@ function earcut(points) {
 
     var outerNode = linkedList(points[0], true),
         node, minX, minY, maxX, maxY, x, y, size,
-        len = 0;
+        len = 0,
+        threshold = 80;
 
-    for (var i = 0; i < points.length; i++) len += points[i].length;
+    for (var i = 0; len < threshold && i < points.length; i++) len += points[i].length;
 
-    // if there are lots of points, we'll use z-order curve hash later; calculate polygon bbox
-    if (len > 200) {
+    // if the shape is not too simple, we'll use z-order curve hash later; calculate polygon bbox
+    if (len >= threshold) {
         node = outerNode.next;
         minX = maxX = node.p[0];
         minY = maxY = node.p[1];
@@ -353,23 +354,81 @@ function findHoleBridge(holeNode, outerNode) {
 }
 
 function indexCurve(start, minX, minY, size) {
-    var node = start,
-        curve = [];
+    var node = start;
 
     do {
         node.z = node.z || zOrder(node.p[0], node.p[1], minX, minY, size);
-        curve.push(node);
+        node.prevZ = node.prev;
+        node.nextZ = node.next;
         node = node.next;
     } while (node !== start);
 
-    curve.sort(compareZ);
+    node.prevZ.nextZ = null;
+    node.prevZ = null;
 
-    curve[0].prevZ = null;
-    for (var i = 0; i < curve.length - 1; i++) {
-        curve[i].nextZ = curve[i + 1];
-        curve[i + 1].prevZ = curve[i];
+    sortLinked(node);
+}
+
+// Simon Tatham's linked list merge sort algorithm
+// http://www.chiark.greenend.org.uk/~sgtatham/algorithms/listsort.html
+function sortLinked(list) {
+    var i, p, q, e, tail, numMerges, pSize, qSize,
+        inSize = 1;
+
+    while (true) {
+        p = list;
+        list = null;
+        tail = null;
+        numMerges = 0;
+
+        while (p) {
+            numMerges++;
+            q = p;
+            pSize = 0;
+            for (i = 0; i < inSize; i++) {
+                pSize++;
+                q = q.nextZ;
+                if (!q) break;
+            }
+
+            qSize = inSize;
+
+            while (pSize > 0 || (qSize > 0 && q)) {
+
+                if (pSize === 0) {
+                    e = q;
+                    q = q.nextZ;
+                    qSize--;
+                } else if (qSize === 0 || !q) {
+                    e = p;
+                    p = p.nextZ;
+                    pSize--;
+                } else if (p.z <= q.z) {
+                    e = p;
+                    p = p.nextZ;
+                    pSize--;
+                } else {
+                    e = q;
+                    q = q.nextZ;
+                    qSize--;
+                }
+
+                if (tail) tail.nextZ = e;
+                else list = e;
+
+                e.prevZ = tail;
+                tail = e;
+            }
+
+            p = q;
+        }
+
+        tail.nextZ = null;
+
+        if (numMerges <= 1) return list;
+
+        inSize *= 2;
     }
-    curve[curve.length - 1].nextZ = null;
 }
 
 // z-order of a point given coords and bbox
@@ -467,10 +526,6 @@ function middleInside(start, a, b) {
 
 function compareX(a, b) {
     return a.p[0] - b.p[0];
-}
-
-function compareZ(a, b) {
-    return a.z - b.z;
 }
 
 // split the polygon vertices circular doubly-linked linked list into two
