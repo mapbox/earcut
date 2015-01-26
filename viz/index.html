@@ -60,9 +60,15 @@
 
         console.time('earcut');
         // for (var i = 0; i < 1000; i++) {
-        var triangles = earcut(testPoints);
+        var result = earcut(testPoints);
         // }
         console.timeEnd('earcut');
+
+        var triangles = [];
+        for (var i = 0; i < result.indices.length; i++) {
+        	var index = result.indices[i];
+        	triangles.push([result.vertices[index], result.vertices[index + 1]]);
+        }
 
         ctx.lineJoin = 'round';
 

@@ -32,10 +32,10 @@ function earcut(points) {
 
     if (points.length > 1) outerNode = eliminateHoles(points, outerNode);
 
-    var triangles = [];
-    if (outerNode) earcutLinked(outerNode, triangles, minX, minY, size);
+    var result = {vertices: [], indices: []};
+    if (outerNode) earcutLinked(outerNode, result, minX, minY, size);
 
-    return triangles;
+    return result;
 }
 
 // create a circular doubly linked list from polygon points in the specified winding order
@@ -89,7 +89,7 @@ function filterPoints(start) {
     return start;
 }
 
-function earcutLinked(ear, triangles, minX, minY, size, secondPass) {
+function earcutLinked(ear, result, minX, minY, size, secondPass) {
     ear = filterPoints(ear);
     if (!ear) return;
 
@@ -104,7 +104,9 @@ function earcutLinked(ear, triangles, minX, minY, size, secondPass) {
         next = ear.next;
 
         if (isEar(ear, minX, minY, size)) {
-            triangles.push(prev.p, ear.p, next.p);
+            addVertex(result, prev);
+            addVertex(result, ear);
+            addVertex(result, next);
 
             next.prev = prev;
             prev.next = next;
@@ -122,12 +124,23 @@ function earcutLinked(ear, triangles, minX, minY, size, secondPass) {
 
         if (ear === stop) {
             // if we can't find any more ears, try filtering points and cutting again
-            if (!secondPass) earcutLinked(ear, triangles, minX, minY, size, true);
+            if (!secondPass) earcutLinked(ear, result, minX, minY, size, true);
             // if this didn't work, try splitting the remaining polygon into two
-            else splitEarcut(ear, triangles, minX, minY, size);
+            else splitEarcut(ear, result, minX, minY, size);
             break;
         }
     }
+}
+
+function addVertex(result, node) {
+    node = node.source || node;
+    var i = node.index;
+    if (i === null) {
+        var vertices = result.vertices;
+        node.index = i = vertices.length;
+        vertices.push(node.p[0], node.p[1]);
+    }
+    result.indices.push(i);
 }
 
 function isEar(ear, minX, minY, size) {
@@ -234,7 +247,7 @@ function isEar(ear, minX, minY, size) {
     return true;
 }
 
-function splitEarcut(start, triangles, minX, minY, size) {
+function splitEarcut(start, result, minX, minY, size) {
     // find a valid diagonal that divides the polygon into two
     var a = start;
     do {
@@ -245,8 +258,8 @@ function splitEarcut(start, triangles, minX, minY, size) {
                 var c = splitPolygon(a, b);
 
                 // run earcut on each half
-                earcutLinked(a, triangles, minX, minY, size);
-                earcutLinked(c, triangles, minX, minY, size);
+                earcutLinked(a, result, minX, minY, size);
+                earcutLinked(c, result, minX, minY, size);
                 return;
             }
             b = b.next;
@@ -535,6 +548,9 @@ function splitPolygon(a, b) {
         an = a.next,
         bp = b.prev;
 
+    a2.source = a;
+    b2.source = b;
+
     a.next = b;
     b.prev = a;
 
@@ -574,4 +590,7 @@ function Node(p) {
     this.z = null;
     this.prevZ = null;
     this.nextZ = null;
+
+    this.source = null;
+    this.index = null;
 }
