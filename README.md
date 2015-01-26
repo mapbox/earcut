@@ -1,12 +1,14 @@
 ## Earcut
 
-The fastest and smallest JavaScript polygon triangulation library. 1.7KB gzipped.
+The fastest and smallest JavaScript polygon triangulation library. 2.3KB gzipped.
 
 [![Build Status](https://travis-ci.org/mapbox/earcut.svg?branch=master)](https://travis-ci.org/mapbox/earcut)
 [![Coverage Status](https://coveralls.io/repos/mapbox/earcut/badge.svg?branch=master)](https://coveralls.io/r/mapbox/earcut?branch=master)
 
-The library implements an ear slicing algorithm which is extended to handle holes, twisted polygons,
-degeneracies and self-intersections in a way that doesn't _guarantee_ correctness of triangulation,
+The library implements a modified ear slicing algorithm,
+optimized by [z-order curve](http://en.wikipedia.org/wiki/Z-order_curve) hashing
+and extended to handle holes, twisted polygons, degeneracies and self-intersections
+in a way that doesn't _guarantee_ correctness of triangulation,
 but attempts to always produce acceptable results for practical data like geographical shapes.
 
 It's based on ideas from
@@ -23,10 +25,11 @@ Some benchmarks:
 
 (ops/sec)         | pts  | earcut    | libtess  | poly2tri | pnltri
 ------------------| ---- | --------- | -------- | -------- | ---------
-OSM building      | 15   | _603,533_ | _28,124_ | _28,131_ | _210,320_
-dude shape        | 94   | _28,620_  | _5,904_  | _3,544_  | _12,916_
-holed dude shape  | 104  | _13,913_  | _5,204_  | _3,205_  | _2,232_
-complex OSM water | 2523 | _45.13_   | _64.73_  | failure  | failure
+OSM building      | 15   | _580,351_ | _27,832_ | _28,151_ | _216,352_
+dude shape        | 94   | _29,848_  | _6,194_  | _3,575_  | _13,027_
+holed dude shape  | 104  | _18,688_  | _5,428_  | _3,378_  | _2,264_
+complex OSM water | 2523 | _232_     | _63.72_  | failure  | failure
+huge OSM water    | 5667 | _30.82_   | _23.73_  | failure  | failure
 
 Earcut may be slow for huge complex shapes,
 but when it comes to triangulating lots of shapes with relatively low number of vertices on average
@@ -71,6 +74,11 @@ npm test
 ![](https://cloud.githubusercontent.com/assets/25395/5778431/e8ec0c10-9da3-11e4-8d4e-a2ced6a7d2b7.png)
 
 #### Changelog
+
+##### 1.2.0 (Jan 26)
+
+- Significantly improved performance on polygons with high number of vertices
+  by using z-order curve hashing for vertice lookup.
 
 ##### 1.1.0 (Jan 21)
 
