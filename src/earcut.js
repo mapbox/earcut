@@ -5,14 +5,17 @@ module.exports = earcut;
 function earcut(points) {
 
     var outerNode = filterPoints(linkedList(points[0], true)),
-        node, minX, minY, maxX, maxY, x, y, size,
-        len = 0,
+        triangles = [];
+
+    if (!outerNode) return triangles;
+
+    var node, minX, minY, maxX, maxY, x, y, size, i,
         threshold = 80;
 
-    for (var i = 0; len < threshold && i < points.length; i++) len += points[i].length;
+    for (i = 0; threshold >= 0 && i < points.length; i++) threshold -= points[i].length;
 
     // if the shape is not too simple, we'll use z-order curve hash later; calculate polygon bbox
-    if (outerNode && len >= threshold) {
+    if (threshold < 0) {
         node = outerNode.next;
         minX = maxX = node.p[0];
         minY = maxY = node.p[1];
@@ -32,7 +35,6 @@ function earcut(points) {
 
     if (points.length > 1) outerNode = eliminateHoles(points, outerNode);
 
-    var triangles = [];
     earcutLinked(outerNode, triangles, minX, minY, size);
 
     return triangles;
@@ -42,12 +44,12 @@ function earcut(points) {
 function linkedList(points, clockwise) {
     var sum = 0,
         len = points.length,
-        i, j, last;
+        i, j, p1, p2, last;
 
     // calculate original winding order of a polygon ring
     for (i = 0, j = len - 1; i < len; j = i++) {
-        var p1 = points[i],
-            p2 = points[j];
+        p1 = points[i];
+        p2 = points[j];
         sum += (p2[0] - p1[0]) * (p1[1] + p2[1]);
     }
 
@@ -247,8 +249,8 @@ function splitEarcut(start, triangles, minX, minY, size) {
                 // split the polygon in two by the diagonal
                 var c = splitPolygon(a, b);
 
-                a = filterPoints(a.prev, a.next);
-                c = filterPoints(c.prev, c.next);
+                a = filterPoints(a, a.next);
+                c = filterPoints(c, c.next);
 
                 // run earcut on each half
                 earcutLinked(a, triangles, minX, minY, size);
@@ -274,7 +276,7 @@ function eliminateHoles(points, outerNode) {
     // process holes from left to right
     for (i = 0; i < queue.length; i++) {
         eliminateHole(queue[i], outerNode);
-        outerNode = filterPoints(outerNode.prev, outerNode.next);
+        outerNode = filterPoints(outerNode, outerNode.next);
     }
 
     return outerNode;
@@ -284,7 +286,7 @@ function eliminateHole(holeNode, outerNode) {
     outerNode = findHoleBridge(holeNode, outerNode);
     if (outerNode) {
         var b = splitPolygon(outerNode, holeNode);
-        filterPoints(b.prev, b.next);
+        filterPoints(b, b.next);
     }
 }
 
