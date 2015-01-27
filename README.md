@@ -1,6 +1,6 @@
 ## Earcut
 
-The fastest and smallest JavaScript polygon triangulation library. 2.3KB gzipped.
+The fastest and smallest JavaScript polygon triangulation library. 2.5KB gzipped.
 
 [![Build Status](https://travis-ci.org/mapbox/earcut.svg?branch=master)](https://travis-ci.org/mapbox/earcut)
 [![Coverage Status](https://coveralls.io/repos/mapbox/earcut/badge.svg?branch=master)](https://coveralls.io/r/mapbox/earcut?branch=master)
@@ -31,22 +31,20 @@ holed dude shape  | 104  | _18,688_  | _5,428_  | _3,378_  | _2,264_
 complex OSM water | 2523 | _445_     | _63.72_  | failure  | failure
 huge OSM water    | 5667 | _80.09_   | _23.73_  | failure  | failure
 
-Earcut may be slow for huge complex shapes,
-but when it comes to triangulating lots of shapes with relatively low number of vertices on average
-([the use case](https://github.com/mapbox/mapbox-gl-js) earcut was created for), it's much faster.
+The original use case it was created for is [Mapbox GL](https://www.mapbox.com/mapbox-gl), WebGL-based interactive maps.
 
-If you want a library that is more likely to produce correct triangulation even on very bad data,
-[libtess.js](https://github.com/brendankenny/libtess.js) is certainly the best choice.
+If you want to get correct triangulation even on very bad data with lots of self-intersections
+and earcut is not precise enough, take a look at [libtess.js](https://github.com/brendankenny/libtess.js).
 
 #### Usage
 
 ```js
 // input should be an array of rings, where the first is outer ring and others are holes;
 // each ring is an array of points, where each point is of the `[x, y]` form
-var points = [[[10, 0], [0, 50], [60, 60], [70, 10]]];
+var points = [[[10,0],[0,50],[60,60],[70,10]]];
 
-var trianglePoints = earcut(points);
-// returns an array of points where each group of three forms a triangle
+var trianglePoints = earcut(points); // [[0,50],[10,0],[70,10], [70,10],[60,60],[0,50]]
+// each group of three points in the resulting array forms a triangle
 ```
 
 #### Install
