@@ -28,8 +28,8 @@ Some benchmarks:
 OSM building      | 15   | _580,351_ | _27,832_ | _28,151_ | _216,352_
 dude shape        | 94   | _29,848_  | _6,194_  | _3,575_  | _13,027_
 holed dude shape  | 104  | _18,688_  | _5,428_  | _3,378_  | _2,264_
-complex OSM water | 2523 | _271_     | _63.72_  | failure  | failure
-huge OSM water    | 5667 | _30.82_   | _23.73_  | failure  | failure
+complex OSM water | 2523 | _445_     | _63.72_  | failure  | failure
+huge OSM water    | 5667 | _80.09_   | _23.73_  | failure  | failure
 
 Earcut may be slow for huge complex shapes,
 but when it comes to triangulating lots of shapes with relatively low number of vertices on average
@@ -75,12 +75,18 @@ npm test
 
 #### Changelog
 
-##### 1.2.0 (Jan 26)
+##### 1.2.2 (Jan 27, 2015)
+
+- Significantly improved performance for polygons with self-intersections
+  (e.g. big OSM water polygons are now handled 2-3x faster)
+
+##### 1.2.1 (Jan 26, 2015)
 
 - Significantly improved performance on polygons with high number of vertices
   by using z-order curve hashing for vertice lookup.
+- Slightly improved overall performance with better point filtering.
 
-##### 1.1.0 (Jan 21)
+##### 1.1.0 (Jan 21, 2015)
 
 - Improved performance on polygons with holes by switching from Held to Eberly hole elimination algorithm
 - More robustness fixes and tests

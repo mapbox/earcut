@@ -93,9 +93,9 @@ function filterPoints(start, end) {
     return end;
 }
 
-function earcutLinked(ear, triangles, minX, minY, size, secondPass) {
+function earcutLinked(ear, triangles, minX, minY, size, pass) {
     if (!ear) return;
-    if (!secondPass && minX !== undefined) indexCurve(ear, minX, minY, size);
+    if (!pass && minX !== undefined) indexCurve(ear, minX, minY, size);
 
     var stop = ear,
         prev, next;
@@ -124,12 +124,18 @@ function earcutLinked(ear, triangles, minX, minY, size, secondPass) {
 
         if (ear === stop) {
             // if we can't find any more ears, try filtering points and cutting again
-            if (!secondPass) {
-                earcutLinked(filterPoints(ear), triangles, minX, minY, size, true);
+            if (!pass) {
+                earcutLinked(filterPoints(ear), triangles, minX, minY, size, 1);
+
+            // if this didn't work, try curing all small self-intersections locally
+            } else if (pass === 1) {
+                ear = cureLocalIntersections(ear, triangles);
+                earcutLinked(ear, triangles, minX, minY, size, 2);
 
             // if this didn't work, try splitting the remaining polygon into two
-            } else splitEarcut(ear, triangles, minX, minY, size);
-
+            } else if (pass === 2) {
+                splitEarcut(ear, triangles, minX, minY, size);
+            }
             break;
         }
     }
@@ -237,6 +243,33 @@ function isEar(ear, minX, minY, size) {
     }
 
     return true;
+}
+
+function cureLocalIntersections(start, triangles) {
+    var node = start;
+    do {
+        var a = node.prev,
+            b = node.next.next;
+
+        if (intersects(a.p, node.p, node.next.p, b.p) && locallyInside(a, b) && locallyInside(b, a)) {
+
+            triangles.push(a.p, node.p, b.p);
+
+            a.next = b;
+            b.prev = a;
+
+            var az = node.prevZ,
+                bz = node.nextZ && node.nextZ.nextZ;
+
+            if (az) az.nextZ = bz;
+            if (bz) bz.prevZ = az;
+
+            node = start = b;
+        }
+        node = node.next;
+    } while (node !== start);
+
+    return node;
 }
 
 function splitEarcut(start, triangles, minX, minY, size) {
