@@ -39,13 +39,14 @@ and earcut is not precise enough, take a look at [libtess.js](https://github.com
 #### Usage
 
 ```js
-// input should be an array of rings, where the first is outer ring and others are holes;
-// each ring is an array of points, where each point is of the `[x, y]` form
-var points = [[[10,0],[0,50],[60,60],[70,10]]];
-
-var trianglePoints = earcut(points); // [[0,50],[10,0],[70,10], [70,10],[60,60],[0,50]]
-// each group of three points in the resulting array forms a triangle
+var triangles = earcut([[[10,0],[0,50],[60,60],[70,10]]]);
+// [[0,50],[10,0],[70,10], [70,10],[60,60],[0,50]]
 ```
+
+Input should be an array of rings, where the first is outer ring and others are holes;
+each ring is an array of points, where each point is of the `[x, y]` form.
+
+Each group of three points in the resulting array forms a triangle.
 
 #### Install
 
