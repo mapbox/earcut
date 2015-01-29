@@ -1,6 +1,9 @@
+'use strict';
+
 var test = require('tape'),
     earcut = require('../src/earcut'),
-    fs = require('fs');
+    fs = require('fs'),
+    path = require('path');
 
 areaTest('building');
 areaTest('dude');
@@ -20,7 +23,7 @@ function areaTest(filename, expectedDeviation) {
 
     test(filename, function (t) {
 
-        var data = JSON.parse(fs.readFileSync(__dirname + '/fixtures/' + filename + '.json')),
+        var data = JSON.parse(fs.readFileSync(path.join(__dirname, '/fixtures/' + filename + '.json'))),
             triangles = earcut(data),
             expectedArea = polygonArea(data),
             area = 0;

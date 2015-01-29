@@ -4,7 +4,7 @@
   "description": "The fastest and smallest JavaScript polygon triangulation library for your WebGL apps",
   "main": "src/earcut.js",
   "scripts": {
-    "test": "jshint src test/test.js && tape test/test.js",
+    "test": "eslint src test/test.js && tape test/test.js",
     "watch": "watchify -v -d src/earcut.js -s earcut -o dist/earcut.dev.js",
     "build-dev": "mkdirp dist && browserify -d src/earcut.js -s earcut > dist/earcut.dev.js",
     "build-min": "mkdirp dist && browserify src/earcut.js -s earcut | uglifyjs -c warnings=false -m > dist/earcut.min.js",
@@ -16,17 +16,48 @@
   "devDependencies": {
     "browserify": "^8.1.1",
     "coveralls": "^2.11.2",
+    "eslint": "^0.13.0",
     "istanbul": "^0.3.5",
-    "jshint": "^2.5.11",
     "mkdirp": "^0.5.0",
     "tape": "^3.4.0",
     "uglifyjs": "^2.3.6",
     "watchify": "^2.2.1"
   },
-  "jshintConfig": {
-    "node": true,
-    "unused": true,
-    "undef": true,
-    "eqeqeq": true
+  "eslintConfig": {
+    "rules": {
+      "no-use-before-define": [
+        2,
+        "nofunc"
+      ],
+      "camelcase": 2,
+      "space-after-function-name": 2,
+      "space-in-parens": 2,
+      "space-before-blocks": 2,
+      "space-after-keywords": 2,
+      "comma-style": 2,
+      "no-lonely-if": 2,
+      "no-else-return": 2,
+      "new-cap": 2,
+      "no-empty": 2,
+      "no-new": 2,
+      "key-spacing": 2,
+      "no-multi-spaces": 2,
+      "space-in-brackets": 2,
+      "quotes": [
+        2,
+        "single"
+      ],
+      "curly": 0,
+      "no-constant-condition": 0
+    },
+    "env": {
+      "node": true,
+      "browser": true
+    },
+    "globals": {
+      "Map": true,
+      "Buffer": true,
+      "Worker": true
+    }
   }
 }
