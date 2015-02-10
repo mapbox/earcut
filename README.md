@@ -21,15 +21,15 @@ The aim of this project is to create a JS triangulation library
 that is **fast enough for real-time triangulation in the browser**,
 sacrificing triangulation quality for raw speed and simplicity,
 while being robust enough to handle most practical datasets without crashing or producing garbage.
-Some benchmarks:
+Some benchmarks using Node 0.12:
 
 (ops/sec)         | pts  | earcut    | libtess  | poly2tri | pnltri
 ------------------| ---- | --------- | -------- | -------- | ---------
-OSM building      | 15   | _580,351_ | _27,832_ | _28,151_ | _216,352_
-dude shape        | 94   | _29,848_  | _6,194_  | _3,575_  | _13,027_
-holed dude shape  | 104  | _18,688_  | _5,428_  | _3,378_  | _2,264_
-complex OSM water | 2523 | _445_     | _63.72_  | failure  | failure
-huge OSM water    | 5667 | _80.09_   | _23.73_  | failure  | failure
+OSM building      | 15   | _688,671_ | _50,640_ | _61,501_ | _122,966_
+dude shape        | 94   | _34,806_  | _10,339_ | _8,784_  | _11,172_
+holed dude shape  | 104  | _19,553_  | _8,883_  | _7,494_  | _2,130_
+complex OSM water | 2523 | _537_     | _77.54_  | failure  | failure
+huge OSM water    | 5667 | _97.79_   | _29.30_  | failure  | failure
 
 The original use case it was created for is [Mapbox GL](https://www.mapbox.com/mapbox-gl), WebGL-based interactive maps.
 
@@ -73,6 +73,10 @@ npm test
 ![](https://cloud.githubusercontent.com/assets/25395/5778431/e8ec0c10-9da3-11e4-8d4e-a2ced6a7d2b7.png)
 
 #### Changelog
+
+##### 1.2.3 (Feb 10, 2015)
+
+- Improved performance (especially on recent v8) by avoiding `Array` `push` with multiple arguments.
 
 ##### 1.2.2 (Jan 27, 2015)
 
