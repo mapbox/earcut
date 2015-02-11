@@ -20,7 +20,7 @@
     "istanbul": "^0.3.5",
     "mkdirp": "^0.5.0",
     "tape": "^3.4.0",
-    "uglifyjs": "^2.3.6",
+    "uglify-js": "^2.4.16",
     "watchify": "^2.2.1"
   },
   "eslintConfig": {
