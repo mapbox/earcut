@@ -43,6 +43,7 @@
       "key-spacing": 2,
       "no-multi-spaces": 2,
       "space-in-brackets": 2,
+      "brace-style": 2,
       "quotes": [
         2,
         "single"

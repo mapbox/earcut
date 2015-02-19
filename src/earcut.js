@@ -134,15 +134,18 @@ function earcutLinked(ear, triangles, minX, minY, size, pass) {
         // if we looped through the whole remaining polygon and can't find any more ears
         if (ear === stop) {
             // try filtering points and slicing again
-            if (!pass) earcutLinked(filterPoints(ear), triangles, minX, minY, size, 1);
+            if (!pass) {
+                earcutLinked(filterPoints(ear), triangles, minX, minY, size, 1);
 
             // if this didn't work, try curing all small self-intersections locally
-            else if (pass === 1) {
+            } else if (pass === 1) {
                 ear = cureLocalIntersections(ear, triangles);
                 earcutLinked(ear, triangles, minX, minY, size, 2);
 
             // as a last resort, try splitting the remaining polygon into two
-            } else if (pass === 2) splitEarcut(ear, triangles, minX, minY, size);
+            } else if (pass === 2) {
+                splitEarcut(ear, triangles, minX, minY, size);
+            }
 
             break;
         }
