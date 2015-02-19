@@ -2,10 +2,10 @@
 
 module.exports = earcut;
 
-function earcut(points) {
+function earcut(points, returnIndices) {
 
     var outerNode = filterPoints(linkedList(points[0], true)),
-        triangles = [];
+        triangles = returnIndices ? {vertices: [], indices: []} : [];
 
     if (!outerNode) return triangles;
 
@@ -98,6 +98,8 @@ function filterPoints(start, end) {
 function earcutLinked(ear, triangles, minX, minY, size, pass) {
     if (!ear) return;
 
+    var indexed = !!triangles.vertices;
+
     // interlink polygon nodes in z-order
     if (!pass && minX !== undefined) indexCurve(ear, minX, minY, size);
 
@@ -111,9 +113,15 @@ function earcutLinked(ear, triangles, minX, minY, size, pass) {
 
         if (isEar(ear, minX, minY, size)) {
             // cut off the triangle
-            triangles.push(prev.p);
-            triangles.push(ear.p);
-            triangles.push(next.p);
+            if (indexed) {
+                addIndexedVertex(triangles, prev);
+                addIndexedVertex(triangles, ear);
+                addIndexedVertex(triangles, next);
+            } else {
+                triangles.push(prev.p);
+                triangles.push(ear.p);
+                triangles.push(next.p);
+            }
 
             // remove ear node
             next.prev = prev;
@@ -150,6 +158,18 @@ function earcutLinked(ear, triangles, minX, minY, size, pass) {
             break;
         }
     }
+}
+
+function addIndexedVertex(triangles, node) {
+    if (node.source) node = node.source;
+
+    var i = node.index;
+    if (i === null) {
+        var vertices = triangles.vertices;
+        node.index = i = vertices.length;
+        vertices.push(node.p[0], node.p[1]);
+    }
+    triangles.indices.push(i);
 }
 
 // check whether a polygon node forms a valid ear with adjacent nodes
@@ -260,6 +280,8 @@ function isEar(ear, minX, minY, size) {
 
 // go through all polygon nodes and cure small local self-intersections
 function cureLocalIntersections(start, triangles) {
+    var indexed = !!triangles.vertices;
+
     var node = start;
     do {
         var a = node.prev,
@@ -268,9 +290,15 @@ function cureLocalIntersections(start, triangles) {
         // a self-intersection where edge (v[i-1],v[i]) intersects (v[i+1],v[i+2])
         if (intersects(a.p, node.p, node.next.p, b.p) && locallyInside(a, b) && locallyInside(b, a)) {
 
-            triangles.push(a.p);
-            triangles.push(node.p);
-            triangles.push(b.p);
+            if (indexed) {
+                addIndexedVertex(triangles, a);
+                addIndexedVertex(triangles, node);
+                addIndexedVertex(triangles, b);
+            } else {
+                triangles.push(a.p);
+                triangles.push(node.p);
+                triangles.push(b.p);
+            }
 
             // remove two nodes involved
             a.next = b;
@@ -606,6 +634,9 @@ function splitPolygon(a, b) {
         an = a.next,
         bp = b.prev;
 
+    a2.source = a;
+    b2.source = b;
+
     a.next = b;
     b.prev = a;
 
@@ -652,4 +683,8 @@ function Node(p) {
     // previous and next nodes in z-order
     this.prevZ = null;
     this.nextZ = null;
+
+    // used for indexed output
+    this.source = null;
+    this.index = null;
 }
