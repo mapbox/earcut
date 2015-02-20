@@ -1,8 +1,8 @@
 // TypeScript type definitions to use for reference when porting Earcut to other languages
 
-declare module "earcut" {
+declare module 'earcut' {
 
-    interface Point extends Array<Number> {0: number; 1: number}
+    interface Point extends Array<number> {}
     interface Ring extends Array<Point> {}
     interface Polygon extends Array<Ring> {}
 
@@ -26,7 +26,7 @@ declare module "earcut" {
     function filterPoints(start: Node): Node;
     function filterPoints(start: Node, end: Node): Node;
 
-    function earcutLinked(ear: Node, triangles: Triangles);
+    function earcutLinked(ear: Node, triangles: Triangles): void;
     function earcutLinked(ear: Node, triangles: Triangles,
         minX: number, minY: number, size: number, pass: number): void;
 
@@ -39,8 +39,8 @@ declare module "earcut" {
     function splitEarcut(start: Node, triangles: Triangles, minX: number, minY: number, size: number): void;
 
     function eliminateHoles(points: Polygon, outerNode: Node): Node;
-    function eliminateHole(holeNode: Node, outerNode: Node);
-    function findHoleBridge(holeNode: Node, outerNode: Node);
+    function eliminateHole(holeNode: Node, outerNode: Node): void;
+    function findHoleBridge(holeNode: Node, outerNode: Node): void;
 
     function indexCurve(start: Node, minX: number, minY: number, size: number): void;
     function sortLinked(list: Node): void;
