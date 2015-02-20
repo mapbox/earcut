@@ -15,6 +15,8 @@ declare module "earcut" {
         z: number;
         prevZ: Node;
         nextZ: Node;
+
+        new(p: Point): Node;
     }
 
     function earcut(points: Polygon): Triangles;
@@ -25,22 +27,23 @@ declare module "earcut" {
     function filterPoints(start: Node, end: Node): Node;
 
     function earcutLinked(ear: Node, triangles: Triangles);
-    function earcutLinked(ear: Node, triangles: Triangles, minX: number, minY: number, size: number, pass: number);
+    function earcutLinked(ear: Node, triangles: Triangles,
+        minX: number, minY: number, size: number, pass: number): void;
 
     function isEar(ear: Node): boolean;
     function isEar(ear: Node, minX: number, minY: number, size: number): boolean;
 
     function cureLocalIntersections(start: Node, triangles: Triangles): Node;
 
-    function splitEarcut(start: Node, triangles: Triangles);
-    function splitEarcut(start: Node, triangles: Triangles, minX: number, minY: number, size: number);
+    function splitEarcut(start: Node, triangles: Triangles): void;
+    function splitEarcut(start: Node, triangles: Triangles, minX: number, minY: number, size: number): void;
 
     function eliminateHoles(points: Polygon, outerNode: Node): Node;
     function eliminateHole(holeNode: Node, outerNode: Node);
     function findHoleBridge(holeNode: Node, outerNode: Node);
 
-    function indexCurve(start: Node, minX: number, minY: number, size: number);
-    function sortLinked(list: Node);
+    function indexCurve(start: Node, minX: number, minY: number, size: number): void;
+    function sortLinked(list: Node): void;
     function zOrder(x: number, y: number, minX: number, minY: number, size: number): number;
 
     function getLeftmost(start: Node): Node;
