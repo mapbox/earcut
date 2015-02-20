@@ -1,16 +1,12 @@
-
 // TypeScript type definitions to use for reference when porting Earcut to other languages
 
 declare module "earcut" {
-    export earcut.earcut;
-}
 
-declare module earcut {
-    interface Point extends [number, number];
-    interface Ring extends Array<Point>;
-    interface Polygon extends Array<Ring>;
+    interface Point extends Array<Number> {0: number; 1: number}
+    interface Ring extends Array<Point> {}
+    interface Polygon extends Array<Ring> {}
 
-    interface Triangles extends Array<number>;
+    interface Triangles extends Array<Point> {}
 
     interface Node {
         p: Point;
@@ -19,7 +15,7 @@ declare module earcut {
         z: number;
         prevZ: Node;
         nextZ: Node;
-    };
+    }
 
     function earcut(points: Polygon): Triangles;
 
@@ -60,4 +56,6 @@ declare module earcut {
 
     function splitPolygon(a: Node, b: Node): Node;
     function insertNode(point: Point, last: Node): Node;
+
+    export = earcut;
 }
