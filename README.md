@@ -83,9 +83,10 @@ npm test
 
 ![](https://cloud.githubusercontent.com/assets/25395/5778431/e8ec0c10-9da3-11e4-8d4e-a2ced6a7d2b7.png)
 
-#### Ports
+#### Ports to other languages
 
 - [mapbox/earcut.hpp](https://github.com/mapbox/earcut.hpp) (C++11)
+- [Cawfree/earcut-j](https://github.com/Cawfree/earcut-j) (Java)
 
 #### Changelog
 
