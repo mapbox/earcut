@@ -56,7 +56,7 @@ by passing `true` as a second argument to `earcut`
 
 ```js
 var triangles = earcut([[[10,0],[0,50],[60,60],[70,10]]], true);
-// {vertices: [0,50,10,0,70,10,60,60], indices: [1,0,2, 3,2,1]}
+// {vertices: [0,50, 10,0, 70,10, 60,60], indices: [1,0,2, 3,2,1]}
 ```
 
 #### Install
