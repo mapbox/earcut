@@ -8,6 +8,7 @@ var test = require('tape'),
 areaTest('building');
 areaTest('dude');
 areaTest('water', 0.0019);
+areaTest('water', 0.0019, true);
 areaTest('water2');
 areaTest('water3');
 areaTest('water3b');
@@ -18,18 +19,30 @@ areaTest('degenerate');
 areaTest('bad-hole', 0.0420);
 areaTest('empty-square');
 
-function areaTest(filename, expectedDeviation) {
+function areaTest(filename, expectedDeviation, indexed) {
     expectedDeviation = expectedDeviation || 0.000001;
 
     test(filename, function (t) {
 
         var data = JSON.parse(fs.readFileSync(path.join(__dirname, '/fixtures/' + filename + '.json'))),
-            triangles = earcut(data),
+            triangles = earcut(data, indexed),
+            vertices = triangles.vertices,
+            indices = triangles.indices,
             expectedArea = polygonArea(data),
-            area = 0;
+            area = 0,
+            i;
 
-        for (var i = 0; i < triangles.length; i += 3) {
-            area += triangleArea(triangles[i], triangles[i + 1], triangles[i + 2]);
+        if (vertices) {
+            for (i = 0; i < indices.length; i += 3) {
+                area += triangleArea(
+                    [vertices[indices[i]], vertices[indices[i] + 1]],
+                    [vertices[indices[i + 1]], vertices[indices[i + 1] + 1]],
+                    [vertices[indices[i + 2]], vertices[indices[i + 2] + 1]]);
+            }
+        } else {
+            for (i = 0; i < triangles.length; i += 3) {
+                area += triangleArea(triangles[i], triangles[i + 1], triangles[i + 2]);
+            }
         }
 
         var deviation = expectedArea === 0 && area === 0 ? 0 : Math.abs(area - expectedArea) / expectedArea;

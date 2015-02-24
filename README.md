@@ -5,11 +5,13 @@ The fastest and smallest JavaScript polygon triangulation library. 2.5KB gzipped
 [![Build Status](https://travis-ci.org/mapbox/earcut.svg?branch=master)](https://travis-ci.org/mapbox/earcut)
 [![Coverage Status](https://coveralls.io/repos/mapbox/earcut/badge.svg?branch=master)](https://coveralls.io/r/mapbox/earcut?branch=master)
 
+#### The algorithm
+
 The library implements a modified ear slicing algorithm,
 optimized by [z-order curve](http://en.wikipedia.org/wiki/Z-order_curve) hashing
 and extended to handle holes, twisted polygons, degeneracies and self-intersections
 in a way that doesn't _guarantee_ correctness of triangulation,
-but attempts to always produce acceptable results for practical data like geographical shapes.
+but attempts to always produce acceptable results for practical data.
 
 It's based on ideas from
 [FIST: Fast Industrial-Strength Triangulation of Polygons](http://www.cosy.sbg.ac.at/~held/projects/triang/triang.html) by Martin Held
@@ -44,9 +46,18 @@ var triangles = earcut([[[10,0],[0,50],[60,60],[70,10]]]);
 ```
 
 Input should be an array of rings, where the first is outer ring and others are holes;
-each ring is an array of points, where each point is of the `[x, y]` form.
+each ring is an array of points, where each point is of the `[x, y]` or `[x, y, z]` form.
 
 Each group of three points in the resulting array forms a triangle.
+
+Alternatively, you can get triangulation results in the form of flat indices and vertices arrays
+by passing `true` as a second argument to `earcut`
+(convenient for uploading resulting data directly to WebGL as buffers):
+
+```js
+var triangles = earcut([[[10,0],[0,50],[60,60],[70,10]]], true);
+// {vertices: [0,50, 10,0, 70,10, 60,60], indices: [1,0,2, 3,2,1]}
+```
 
 #### Install
 
