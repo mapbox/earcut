@@ -65,7 +65,7 @@ function linkedList(points, clockwise) {
 
 // eliminate colinear or duplicate points
 function filterPoints(start, end) {
-    end = end || start;
+    if (!end) end = start;
 
     var node = start,
         again;
@@ -98,7 +98,7 @@ function filterPoints(start, end) {
 function earcutLinked(ear, triangles, minX, minY, size, pass) {
     if (!ear) return;
 
-    var indexed = !!triangles.vertices;
+    var indexed = triangles.vertices !== undefined;
 
     // interlink polygon nodes in z-order
     if (!pass && minX !== undefined) indexCurve(ear, minX, minY, size);
@@ -454,7 +454,7 @@ function indexCurve(start, minX, minY, size) {
     var node = start;
 
     do {
-        node.z = node.z || zOrder(node.p[0], node.p[1], minX, minY, size);
+        if (node.z === null) node.z = zOrder(node.p[0], node.p[1], minX, minY, size);
         node.prevZ = node.prev;
         node.nextZ = node.next;
         node = node.next;
