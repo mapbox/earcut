@@ -50,9 +50,9 @@ each ring is an array of points, where each point is of the `[x, y]` or `[x, y, 
 
 Each group of three points in the resulting array forms a triangle.
 
-Alternatively, you can get triangulation results in the form of flat indices and vertices arrays
+Alternatively, you can get triangulation results in the form of flat index and vertex arrays
 by passing `true` as a second argument to `earcut`
-(convenient for uploading resulting data directly to WebGL as buffers):
+(convenient for uploading results directly to WebGL as buffers):
 
 ```js
 var triangles = earcut([[[10,0],[0,50],[60,60],[70,10]]], true);
@@ -83,7 +83,15 @@ npm test
 
 ![](https://cloud.githubusercontent.com/assets/25395/5778431/e8ec0c10-9da3-11e4-8d4e-a2ced6a7d2b7.png)
 
+#### Ports
+
+- [mapbox/earcut.hpp](https://github.com/mapbox/earcut.hpp) (C++11)
+
 #### Changelog
+
+##### 1.3.0 (Feb 24, 2015)
+
+- Added a second argument to `earcut` that switches output format to flat vertex and index arrays if set to `true`.
 
 ##### 1.2.3 (Feb 10, 2015)
 
