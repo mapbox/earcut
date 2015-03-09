@@ -166,7 +166,7 @@ function addIndexedVertex(triangles, node) {
     var i = node.index;
     if (i === null) {
         var vertices = triangles.vertices;
-        node.index = i = vertices.length;
+        node.index = i = vertices.length / ((node.p.length > 2) ? 3 : 2);
         vertices.push(node.p[0]);
         vertices.push(node.p[1]);
         if (node.p.length > 2) vertices.push(node.p[2]);

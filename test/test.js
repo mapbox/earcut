@@ -30,14 +30,17 @@ function areaTest(filename, expectedDeviation, indexed) {
             indices = triangles.indices,
             expectedArea = polygonArea(data),
             area = 0,
-            i;
+			i,
+			dim,
+            idx;
 
         if (vertices) {
+		    dim = data[0][0].length;
             for (i = 0; i < indices.length; i += 3) {
                 area += triangleArea(
-                    [vertices[indices[i]], vertices[indices[i] + 1]],
-                    [vertices[indices[i + 1]], vertices[indices[i + 1] + 1]],
-                    [vertices[indices[i + 2]], vertices[indices[i + 2] + 1]]);
+                    [vertices[dim * indices[i]], vertices[dim * indices[i] + 1]],
+                    [vertices[dim * indices[i + 1]], vertices[dim * indices[i + 1] + 1]],
+                    [vertices[dim * indices[i + 2]], vertices[dim * indices[i + 2] + 1]]);
             }
         } else {
             for (i = 0; i < triangles.length; i += 3) {
