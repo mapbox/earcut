@@ -77,3 +77,17 @@ function polygonArea(rings) {
     }
     return sum;
 }
+
+function indicesCreationTest(filename) {
+    test(filename, function (t) {
+        var data = JSON.parse(fs.readFileSync(path.join(__dirname, '/fixtures/' + filename + '.json'))),
+            created = earcut(data.input, true);
+
+        t.ok(JSON.stringify(created.vertices) === JSON.stringify(data.expected.vertices), 'created vertices [' + created.vertices + '] are as expected: [' + data.expected.vertices + ']');
+        t.ok(JSON.stringify(created.indices) === JSON.stringify(data.expected.indices), 'created indices [' + created.indices + '] are as expected: [' + data.expected.indices + ']');
+        t.end();
+    });
+}
+
+indicesCreationTest('indices-2d');
+indicesCreationTest('indices-3d');
