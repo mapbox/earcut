@@ -165,12 +165,11 @@ function addIndexedVertex(triangles, node) {
 
     var i = node.index;
     if (i === null) {
-        var dim = (node.p.length > 2) ? 3 : 2;
+        var dim = node.p.length;
         var vertices = triangles.vertices;
         node.index = i = vertices.length / dim;
-        vertices.push(node.p[0]);
-        vertices.push(node.p[1]);
-        if (dim > 2) vertices.push(node.p[2]);
+
+        for (var d = 0; d < dim; d++) vertices.push(node.p[d]);
     }
     triangles.indices.push(i);
 }

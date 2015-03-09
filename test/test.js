@@ -19,6 +19,9 @@ areaTest('degenerate');
 areaTest('bad-hole', 0.0420);
 areaTest('empty-square');
 
+indicesCreationTest('indices-2d');
+indicesCreationTest('indices-3d');
+
 function areaTest(filename, expectedDeviation, indexed) {
     expectedDeviation = expectedDeviation || 0.000001;
 
@@ -90,6 +93,3 @@ function indicesCreationTest(filename) {
         t.end();
     });
 }
-
-indicesCreationTest('indices-2d');
-indicesCreationTest('indices-3d');

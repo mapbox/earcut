@@ -90,6 +90,10 @@ npm test
 
 #### Changelog
 
+##### 1.4.0 (Mar 9, 2015)
+
+- Fixed indexed output to produce indices not multiplied by dimension and work with any number of dimensions.
+
 ##### 1.3.0 (Feb 24, 2015)
 
 - Added a second argument to `earcut` that switches output format to flat vertex and index arrays if set to `true`.
