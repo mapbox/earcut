@@ -22,6 +22,8 @@ areaTest('empty-square');
 indicesCreationTest('indices-2d');
 indicesCreationTest('indices-3d');
 
+appendToIndicesTest('indices-append');
+
 function areaTest(filename, expectedDeviation, indexed) {
     expectedDeviation = expectedDeviation || 0.000001;
 
@@ -90,6 +92,20 @@ function indicesCreationTest(filename) {
 
         t.ok(JSON.stringify(created.vertices) === JSON.stringify(data.expected.vertices), 'created vertices [' + created.vertices + '] are as expected: [' + data.expected.vertices + ']');
         t.ok(JSON.stringify(created.indices) === JSON.stringify(data.expected.indices), 'created indices [' + created.indices + '] are as expected: [' + data.expected.indices + ']');
+        t.end();
+    });
+}
+
+function appendToIndicesTest(filename) {
+    test(filename, function (t) {
+        var data = JSON.parse(fs.readFileSync(path.join(__dirname, '/fixtures/' + filename + '.json')));
+
+        var triangles = {vertices: [ ], indices: [ ]};
+        earcut(data.input1, triangles);
+        earcut(data.input2, triangles);
+
+        t.ok(JSON.stringify(triangles.vertices) === JSON.stringify(data.expected.vertices), 'created vertices [' + triangles.vertices + '] are as expected: [' + data.expected.vertices + ']');
+        t.ok(JSON.stringify(triangles.indices) === JSON.stringify(data.expected.indices), 'created indices [' + triangles.indices + '] are as expected: [' + data.expected.indices + ']');
         t.end();
     });
 }
