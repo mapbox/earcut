@@ -2,14 +2,10 @@
 
 module.exports = earcut;
 
-function earcut(points, returnIndices) {
+function earcut(points, returnIndices, inOutTriangles) {
 
     var outerNode = filterPoints(linkedList(points[0], true)),
-        triangles = returnIndices ? returnIndices : [];
-
-    if (returnIndices && (!returnIndices.vertices || !returnIndices.indices)) {
-        triangles = {vertices: [], indices: []};
-    }
+        triangles = returnIndices ? (inOutTriangles || {vertices: [], indices: []}) : [];
 
     if (!outerNode) return triangles;
 
