@@ -51,9 +51,10 @@ var result = earcut(testPoints, true);
 console.timeEnd('earcut');
 
 var triangles = [];
+var dim = testPoints[0][0].length;
 for (var i = 0; i < result.indices.length; i++) {
     var index = result.indices[i];
-    triangles.push([result.vertices[index], result.vertices[index + 1]]);
+    triangles.push([result.vertices[index * dim], result.vertices[index * dim + 1]]);
 }
 
 ctx.lineJoin = 'round';
