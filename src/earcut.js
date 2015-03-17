@@ -290,8 +290,7 @@ function cureLocalIntersections(start, triangles) {
             b = node.next.next;
 
         // a self-intersection where edge (v[i-1],v[i]) intersects (v[i+1],v[i+2])
-        if (intersects(a.p, node.p, node.next.p, b.p) &&
-                locallyInside(a, b) && locallyInside(b, a) && !equals(a.p, b.p)) {
+        if (a.p !== b.p && intersects(a.p, node.p, node.next.p, b.p) && locallyInside(a, b) && locallyInside(b, a)) {
 
             if (indexed) {
                 addIndexedVertex(triangles, a);
