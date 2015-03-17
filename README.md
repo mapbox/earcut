@@ -90,6 +90,10 @@ npm test
 
 #### Changelog
 
+##### 1.4.1 (Mar 17, 2015)
+
+- Fixed a rare edge case that led to incomplete triangulation.
+
 ##### 1.4.0 (Mar 9, 2015)
 
 - Fixed indexed output to produce indices not multiplied by dimension and work with any number of dimensions.

@@ -18,6 +18,7 @@ areaTest('water-huge2', 0.0020);
 areaTest('degenerate');
 areaTest('bad-hole', 0.0420);
 areaTest('empty-square');
+areaTest('issue16');
 
 indicesCreationTest('indices-2d');
 indicesCreationTest('indices-3d');
