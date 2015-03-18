@@ -90,6 +90,10 @@ npm test
 
 #### Changelog
 
+##### 1.4.2 (Mar 18, 2015)
+
+- Fixed another rare edge case with a tiny hole in a huge polygon.
+
 ##### 1.4.1 (Mar 17, 2015)
 
 - Fixed a rare edge case that led to incomplete triangulation.

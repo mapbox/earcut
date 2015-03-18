@@ -327,7 +327,7 @@ function splitEarcut(start, triangles, minX, minY, size) {
     do {
         var b = a.next.next;
         while (b !== a.prev) {
-            if (isValidDiagonal(a, b)) {
+            if (a.p !== b.p && isValidDiagonal(a, b)) {
                 // split the polygon in two by the diagonal
                 var c = splitPolygon(a, b);
 
