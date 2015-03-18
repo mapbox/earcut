@@ -472,7 +472,7 @@ function sortLinked(list) {
     var i, p, q, e, tail, numMerges, pSize, qSize,
         inSize = 1;
 
-    while (true) {
+    do {
         p = list;
         list = null;
         tail = null;
@@ -521,11 +521,11 @@ function sortLinked(list) {
         }
 
         tail.nextZ = null;
-
-        if (numMerges <= 1) return list;
-
         inSize *= 2;
-    }
+
+    } while (numMerges > 1);
+
+    return list;
 }
 
 // z-order of a point given coords and size of the data bounding box
