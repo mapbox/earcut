@@ -25,7 +25,7 @@ indicesCreationTest('indices-2d');
 indicesCreationTest('indices-3d');
 
 function areaTest(filename, expectedDeviation, indexed) {
-    expectedDeviation = expectedDeviation || 0.000001;
+    expectedDeviation = expectedDeviation || 1e-14;
 
     test(filename, function (t) {
 
