@@ -56,7 +56,20 @@ by passing `true` as a second argument to `earcut`
 
 ```js
 var triangles = earcut([[[10,0],[0,50],[60,60],[70,10]]], true);
-// {vertices: [0,50, 10,0, 70,10, 60,60], indices: [1,0,2, 3,2,1]}
+// triangles => {vertices: [0,50, 10,0, 70,10, 60,60], indices: [0,1,2, 2,3,0]}
+```
+
+Or you can append the vertices and indices to existing buffers by passing in an additional
+object containing entries for `vertices` and `indices`, e.g.:
+
+```js
+var triangles = {vertices: [], indices: []};
+earcut([[[10,0],[0,50],[60,60],[70,10]]], true, triangles); // append to triangles obj
+earcut([[[110,100],[100,150],[160,160],[170,110]]], true, triangles); // append to triangles obj
+// triangles => {
+//     vertices: [0,50, 10,0, 70,10, 60,60, 100,150, 110,100, 170,110, 160,160],
+//     indices: [0,1,2, 2,3,0, 4,5,6, 6,7,4]
+// }
 ```
 
 #### Install

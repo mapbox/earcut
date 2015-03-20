@@ -12,6 +12,7 @@
     "coveralls": "istanbul cover test/*.js && coveralls < ./coverage/lcov.info"
   },
   "author": "Vladimir Agafonkin",
+  "repository": "https://github.com/mapbox/earcut",
   "license": "ISC",
   "devDependencies": {
     "browserify": "^9.0.3",
