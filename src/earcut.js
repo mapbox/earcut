@@ -2,45 +2,42 @@
 
 module.exports = earcut;
 
-function earcut(points, returnIndices) {
+function earcut(data) {
 
-    var outerNode = linkedList(points[0], true),
-        triangles = returnIndices ? {vertices: [], indices: []} : [];
+    var outerNode = linkedList(data, true),
+        triangles = [];
 
     if (!outerNode) return triangles;
 
-    earcutLinked(outerNode, triangles);
+    earcutLinked(outerNode, triangles, data);
 
     return triangles;
 }
 
 // create a circular doubly linked list from polygon points in the specified winding order
-function linkedList(points, clockwise) {
+function linkedList(data, clockwise) {
     var sum = 0,
-        len = points.length,
-        i, j, p1, p2, last;
+        len = data.length,
+        i, j, last;
 
     // calculate original winding order of a polygon ring
-    for (i = 0, j = len - 1; i < len; j = i++) {
-        p1 = points[i];
-        p2 = points[j];
-        sum += (p2[0] - p1[0]) * (p1[1] + p2[1]);
+    for (i = 0, j = len - 2; i < len; i += 2) {
+        sum += (data[i] - data[j]) * (data[i + 1] + data[j + 1]);
+        j = i;
     }
 
     // link points into circular doubly-linked list in the specified winding order
-    if (clockwise === (sum > 0)) {
-        for (i = 0; i < len; i++) last = insertNode(points[i], last);
+    if (clockwise !== (sum > 0)) {
+        for (i = 0; i < len; i += 2) last = insertNode(i, last);
     } else {
-        for (i = len - 1; i >= 0; i--) last = insertNode(points[i], last);
+        for (i = len - 2; i >= 0; i -= 2) last = insertNode(i, last);
     }
 
     return last;
 }
 
 // main ear slicing loop which triangulates a polygon (given as a linked list)
-function earcutLinked(ear, triangles) {
-
-    var indexed = triangles.vertices !== undefined;
+function earcutLinked(ear, triangles, data) {
 
     var stop = ear,
         prev, next;
@@ -50,17 +47,11 @@ function earcutLinked(ear, triangles) {
         prev = ear.prev;
         next = ear.next;
 
-        if (isEar(ear)) {
+        if (isEar(ear, data)) {
             // cut off the triangle
-            if (indexed) {
-                addIndexedVertex(triangles, prev);
-                addIndexedVertex(triangles, ear);
-                addIndexedVertex(triangles, next);
-            } else {
-                triangles.push(prev.p);
-                triangles.push(ear.p);
-                triangles.push(next.p);
-            }
+            triangles.push(prev.i);
+            triangles.push(ear.i);
+            triangles.push(next.i);
 
             // remove ear node
             next.prev = prev;
@@ -82,27 +73,15 @@ function earcutLinked(ear, triangles) {
     }
 }
 
-function addIndexedVertex(triangles, node) {
-    var i = node.index;
-    if (i === null) {
-        var dim = node.p.length;
-        var vertices = triangles.vertices;
-        node.index = i = vertices.length / dim;
-
-        for (var d = 0; d < dim; d++) vertices.push(node.p[d]);
-    }
-    triangles.indices.push(i);
-}
-
 // check whether a polygon node forms a valid ear with adjacent nodes
-function isEar(ear) {
+function isEar(ear, data) {
 
-    var a = ear.prev.p,
-        b = ear.p,
-        c = ear.next.p,
+    var a = ear.prev.i,
+        b = ear.i,
+        c = ear.next.i,
 
-        ax = a[0], bx = b[0], cx = c[0],
-        ay = a[1], by = b[1], cy = c[1],
+        ax = data[a], bx = data[b], cx = data[c],
+        ay = data[a + 1], by = data[b + 1], cy = data[c + 1],
 
         abd = ax * by - ay * bx,
         acd = ax * cy - ay * cx,
@@ -123,11 +102,11 @@ function isEar(ear) {
     node = ear.next.next;
 
     while (node !== ear.prev) {
-        p = node.p;
+        p = node.i;
         node = node.next;
 
-        px = p[0];
-        py = p[1];
+        px = data[p];
+        py = data[p + 1];
 
         s = cay * px + acx * py - acd;
         if (s >= 0) {
@@ -143,8 +122,8 @@ function isEar(ear) {
 }
 
 // create a node and optionally link it with previous one (in a circular doubly linked list)
-function insertNode(point, last) {
-    var node = new Node(point);
+function insertNode(i, last) {
+    var node = new Node(i);
 
     if (!last) {
         node.prev = node;
@@ -159,14 +138,11 @@ function insertNode(point, last) {
     return node;
 }
 
-function Node(p) {
+function Node(i) {
     // vertex coordinates
-    this.p = p;
+    this.i = i;
 
     // previous and next vertice nodes in a polygon ring
     this.prev = null;
     this.next = null;
-
-    // used for indexed output
-    this.index = null;
 }
