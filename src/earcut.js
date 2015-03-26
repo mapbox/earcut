@@ -6,15 +6,15 @@ function earcut(data, holeIndices, dim) {
 
     dim = dim || 2;
 
-    var outerLen = holeIndices ? holeIndices[0] : data.length,
+    var outerLen = holeIndices && holeIndices.length ? holeIndices[0] : data.length,
         outerNode = filterPoints(data, linkedList(data, 0, outerLen, dim, true)),
         triangles = [];
 
     if (!outerNode) return triangles;
 
-    var node, minX, minY, maxX, maxY, x, y, size;
+    var minX, minY, maxX, maxY, x, y, size;
 
-    if (holeIndices) outerNode = eliminateHoles(data, holeIndices, outerNode, dim);
+    if (holeIndices && holeIndices.length) outerNode = eliminateHoles(data, holeIndices, outerNode, dim);
 
     // if the shape is not too simple, we'll use z-order curve hash later; calculate polygon bbox
     if (data.length > 80 * dim) {
@@ -34,7 +34,7 @@ function earcut(data, holeIndices, dim) {
         size = Math.max(maxX - minX, maxY - minY);
     }
 
-    earcutLinked(data, outerNode, triangles, minX, minY, size);
+    earcutLinked(data, outerNode, triangles, dim, minX, minY, size);
 
     return triangles;
 }
@@ -92,7 +92,7 @@ function filterPoints(data, start, end) {
 }
 
 // main ear slicing loop which triangulates a polygon (given as a linked list)
-function earcutLinked(data, ear, triangles, minX, minY, size, pass) {
+function earcutLinked(data, ear, triangles, dim, minX, minY, size, pass) {
     if (!ear) return;
 
     // interlink polygon nodes in z-order
@@ -108,9 +108,9 @@ function earcutLinked(data, ear, triangles, minX, minY, size, pass) {
 
         if (isEar(data, ear, minX, minY, size)) {
             // cut off the triangle
-            triangles.push(prev.i);
-            triangles.push(ear.i);
-            triangles.push(next.i);
+            triangles.push(prev.i / dim);
+            triangles.push(ear.i / dim);
+            triangles.push(next.i / dim);
 
             // remove ear node
             next.prev = prev;
@@ -132,16 +132,16 @@ function earcutLinked(data, ear, triangles, minX, minY, size, pass) {
         if (ear === stop) {
             // try filtering points and slicing again
             if (!pass) {
-                earcutLinked(data, filterPoints(data, ear), triangles, minX, minY, size, 1);
+                earcutLinked(data, filterPoints(data, ear), triangles, dim, minX, minY, size, 1);
 
             // if this didn't work, try curing all small self-intersections locally
             } else if (pass === 1) {
-                ear = cureLocalIntersections(data, ear, triangles);
-                earcutLinked(data, ear, triangles, minX, minY, size, 2);
+                ear = cureLocalIntersections(data, ear, triangles, dim);
+                earcutLinked(data, ear, triangles, dim, minX, minY, size, 2);
 
             // as a last resort, try splitting the remaining polygon into two
             } else if (pass === 2) {
-                splitEarcut(data, ear, triangles, minX, minY, size);
+                splitEarcut(data, ear, triangles, dim, minX, minY, size);
             }
 
             break;
@@ -257,7 +257,7 @@ function isEar(data, ear, minX, minY, size) {
 }
 
 // go through all polygon nodes and cure small local self-intersections
-function cureLocalIntersections(data, start, triangles) {
+function cureLocalIntersections(data, start, triangles, dim) {
     var node = start;
     do {
         var a = node.prev,
@@ -267,9 +267,9 @@ function cureLocalIntersections(data, start, triangles) {
         if (a.i !== b.i && intersects(data, a.i, node.i, node.next.i, b.i) &&
                 locallyInside(data, a, b) && locallyInside(data, b, a)) {
 
-            triangles.push(a.i);
-            triangles.push(node.i);
-            triangles.push(b.i);
+            triangles.push(a.i / dim);
+            triangles.push(node.i / dim);
+            triangles.push(b.i / dim);
 
             // remove two nodes involved
             a.next = b;
@@ -290,7 +290,7 @@ function cureLocalIntersections(data, start, triangles) {
 }
 
 // try splitting polygon into two and triangulate them independently
-function splitEarcut(data, start, triangles, minX, minY, size) {
+function splitEarcut(data, start, triangles, dim, minX, minY, size) {
     // look for a valid diagonal that divides the polygon into two
     var a = start;
     do {
@@ -305,8 +305,8 @@ function splitEarcut(data, start, triangles, minX, minY, size) {
                 c = filterPoints(data, c, c.next);
 
                 // run earcut on each half
-                earcutLinked(data, a, triangles, minX, minY, size);
-                earcutLinked(data, c, triangles, minX, minY, size);
+                earcutLinked(data, a, triangles, dim, minX, minY, size);
+                earcutLinked(data, c, triangles, dim, minX, minY, size);
                 return;
             }
             b = b.next;

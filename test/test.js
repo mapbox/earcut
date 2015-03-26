@@ -8,7 +8,7 @@ var test = require('tape'),
 areaTest('building');
 areaTest('dude');
 areaTest('water', 0.0019);
-areaTest('water', 0.0019, true);
+areaTest('water', 0.0019);
 areaTest('water2');
 areaTest('water3');
 areaTest('water3b');
@@ -21,35 +21,29 @@ areaTest('empty-square');
 areaTest('issue16');
 areaTest('issue17');
 
-indicesCreationTest('indices-2d');
-indicesCreationTest('indices-3d');
+// indicesCreationTest('indices-2d');
+// indicesCreationTest('indices-3d');
 
-function areaTest(filename, expectedDeviation, indexed) {
+function areaTest(filename, expectedDeviation) {
     expectedDeviation = expectedDeviation || 1e-14;
 
     test(filename, function (t) {
 
-        var data = JSON.parse(fs.readFileSync(path.join(__dirname, '/fixtures/' + filename + '.json'))),
-            triangles = earcut(data, indexed),
-            vertices = triangles.vertices,
-            indices = triangles.indices,
-            expectedArea = polygonArea(data),
-            area = 0,
-            i,
-            dim;
+        console.log(filename);
 
-        if (vertices) {
-            dim = data[0][0].length;
-            for (i = 0; i < indices.length; i += 3) {
-                area += triangleArea(
-                    [vertices[dim * indices[i]], vertices[dim * indices[i] + 1]],
-                    [vertices[dim * indices[i + 1]], vertices[dim * indices[i + 1] + 1]],
-                    [vertices[dim * indices[i + 2]], vertices[dim * indices[i + 2] + 1]]);
-            }
-        } else {
-            for (i = 0; i < triangles.length; i += 3) {
-                area += triangleArea(triangles[i], triangles[i + 1], triangles[i + 2]);
-            }
+        var data = JSON.parse(fs.readFileSync(path.join(__dirname, '/fixtures/' + filename + '.json'))),
+            result = flattenedEarcut(data),
+            vertices = result.vertices,
+            indices = result.indices,
+            dim = result.dim,
+            expectedArea = polygonArea(data),
+            area = 0;
+
+        for (var i = 0; i < indices.length; i += 3) {
+            area += triangleArea(
+                [vertices[dim * indices[i]], vertices[dim * indices[i] + 1]],
+                [vertices[dim * indices[i + 1]], vertices[dim * indices[i + 1] + 1]],
+                [vertices[dim * indices[i + 2]], vertices[dim * indices[i + 2] + 1]]);
         }
 
         var deviation = expectedArea === 0 && area === 0 ? 0 : Math.abs(area - expectedArea) / expectedArea;
@@ -59,6 +53,31 @@ function areaTest(filename, expectedDeviation, indexed) {
 
         t.end();
     });
+}
+
+function flattenedEarcut(data) {
+    var flat = [],
+        holes = [],
+        dim = data[0][0].length,
+        holeIndex = 0;
+
+    for (var i = 0; i < data.length; i++) {
+        for (var j = 0; j < data[i].length; j++) {
+            for (var d = 0; d < dim; d++) {
+                flat.push(data[i][j][d]);
+            }
+        }
+        if (i > 0) {
+            holeIndex += data[i - 1].length;
+            holes.push(holeIndex * dim);
+        }
+    }
+
+    return {
+        vertices: flat,
+        indices: earcut(flat, holes, dim),
+        dim: dim
+    };
 }
 
 function formatPercent(num) {
@@ -85,13 +104,13 @@ function polygonArea(rings) {
     return sum;
 }
 
-function indicesCreationTest(filename) {
-    test(filename, function (t) {
-        var data = JSON.parse(fs.readFileSync(path.join(__dirname, '/fixtures/' + filename + '.json'))),
-            created = earcut(data.input, true);
+// function indicesCreationTest(filename) {
+//     test(filename, function (t) {
+//         var data = JSON.parse(fs.readFileSync(path.join(__dirname, '/fixtures/' + filename + '.json'))),
+//             created = earcut(data.input, true);
 
-        t.ok(JSON.stringify(created.vertices) === JSON.stringify(data.expected.vertices), 'created vertices [' + created.vertices + '] are as expected: [' + data.expected.vertices + ']');
-        t.ok(JSON.stringify(created.indices) === JSON.stringify(data.expected.indices), 'created indices [' + created.indices + '] are as expected: [' + data.expected.indices + ']');
-        t.end();
-    });
-}
+//         t.ok(JSON.stringify(created.vertices) === JSON.stringify(data.expected.vertices), 'created vertices [' + created.vertices + '] are as expected: [' + data.expected.vertices + ']');
+//         t.ok(JSON.stringify(created.indices) === JSON.stringify(data.expected.indices), 'created indices [' + created.indices + '] are as expected: [' + data.expected.indices + ']');
+//         t.end();
+//     });
+// }
