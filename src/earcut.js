@@ -6,7 +6,8 @@ function earcut(data, holeIndices, dim) {
 
     dim = dim || 2;
 
-    var outerLen = holeIndices && holeIndices.length ? holeIndices[0] : data.length,
+    var hasHoles = holeIndices && holeIndices.length,
+        outerLen = hasHoles ? holeIndices[0] * dim : data.length,
         outerNode = filterPoints(data, linkedList(data, 0, outerLen, dim, true)),
         triangles = [];
 
@@ -14,7 +15,7 @@ function earcut(data, holeIndices, dim) {
 
     var minX, minY, maxX, maxY, x, y, size;
 
-    if (holeIndices && holeIndices.length) outerNode = eliminateHoles(data, holeIndices, outerNode, dim);
+    if (hasHoles) outerNode = eliminateHoles(data, holeIndices, outerNode, dim);
 
     // if the shape is not too simple, we'll use z-order curve hash later; calculate polygon bbox
     if (data.length > 80 * dim) {
@@ -321,8 +322,8 @@ function eliminateHoles(data, holeIndices, outerNode, dim) {
         i, len, start, end, list;
 
     for (i = 0, len = holeIndices.length; i < len; i++) {
-        start = holeIndices[i];
-        end = i < len - 1 ? holeIndices[i + 1] : data.length;
+        start = holeIndices[i] * dim;
+        end = i < len - 1 ? holeIndices[i + 1] * dim : data.length;
         list = filterPoints(data, linkedList(data, start, end, dim, false));
         if (list) queue.push(getLeftmost(data, list));
     }
@@ -380,8 +381,8 @@ function findHoleBridge(data, holeNode, outerNode) {
     // if there are no points found, we have a valid connection;
     // otherwise choose the point of the minimum angle with the ray as connection point
 
-    var bx = data[mNode],
-        by = data[mNode + 1],
+    var bx = data[mNode.i],
+        by = data[mNode.i + 1],
         pbd = px * by - py * bx,
         pcd = px * py - py * qMax,
         cpy = py - py,
@@ -536,7 +537,7 @@ function getLeftmost(data, start) {
 function isValidDiagonal(data, a, b) {
     return !intersectsPolygon(data, a, a.i, b.i) &&
            locallyInside(data, a, b) && locallyInside(data, b, a) &&
-           middleInside(data, a, a.p, b.p);
+           middleInside(data, a, a.i, b.i);
 }
 
 // winding order of triangle formed by 3 given points

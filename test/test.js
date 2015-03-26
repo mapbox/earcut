@@ -21,6 +21,18 @@ areaTest('empty-square');
 areaTest('issue16');
 areaTest('issue17');
 
+test('indices-2d', function (t) {
+    var indices = earcut([10, 0, 0, 50, 60, 60, 70, 10]);
+    t.same(indices, [1, 0, 3, 3, 2, 1]);
+    t.end();
+});
+
+test('indices-3d', function (t) {
+    var indices = earcut([10, 0, 0, 0, 50, 0, 60, 60, 0, 70, 10, 0], null, 3);
+    t.same(indices, [1, 0, 3, 3, 2, 1]);
+    t.end();
+});
+
 // indicesCreationTest('indices-2d');
 // indicesCreationTest('indices-3d');
 
@@ -32,10 +44,11 @@ function areaTest(filename, expectedDeviation) {
         console.log(filename);
 
         var data = JSON.parse(fs.readFileSync(path.join(__dirname, '/fixtures/' + filename + '.json'))),
-            result = flattenedEarcut(data),
-            vertices = result.vertices,
-            indices = result.indices,
-            dim = result.dim,
+            data2 = flattenData(data),
+            vertices = data2.vertices,
+            holes = data2.holes,
+            dim = data2.dim,
+            indices = earcut(vertices, holes, dim),
             expectedArea = polygonArea(data),
             area = 0;
 
@@ -55,7 +68,7 @@ function areaTest(filename, expectedDeviation) {
     });
 }
 
-function flattenedEarcut(data) {
+function flattenData(data) {
     var flat = [],
         holes = [],
         dim = data[0][0].length,
@@ -69,13 +82,13 @@ function flattenedEarcut(data) {
         }
         if (i > 0) {
             holeIndex += data[i - 1].length;
-            holes.push(holeIndex * dim);
+            holes.push(holeIndex);
         }
     }
 
     return {
         vertices: flat,
-        indices: earcut(flat, holes, dim),
+        holes: holes,
         dim: dim
     };
 }
