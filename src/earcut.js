@@ -7,33 +7,32 @@ function earcut(data, holeIndices, dim) {
     dim = dim || 2;
 
     var outerLen = holeIndices ? holeIndices[0] : data.length,
-        outerNode = filterPoints(data, linkedList(data, 0, outerLen, true)),
+        outerNode = filterPoints(data, linkedList(data, 0, outerLen, dim, true)),
         triangles = [];
 
     if (!outerNode) return triangles;
 
-    var node, minX, minY, maxX, maxY, x, y, size, i;
+    var node, minX, minY, maxX, maxY, x, y, size;
+
+    if (holeIndices) outerNode = eliminateHoles(data, holeIndices, outerNode, dim);
 
     // if the shape is not too simple, we'll use z-order curve hash later; calculate polygon bbox
     if (data.length > 80 * dim) {
-        node = outerNode.next;
-        minX = maxX = data[node.i];
-        minY = maxY = data[node.i + 1];
-        do {
-            x = data[node.i];
-            y = data[node.i + 1];
+        minX = maxX = data[0];
+        minY = maxY = data[1];
+
+        for (var i = dim; i < outerLen; i += dim) {
+            x = data[i];
+            y = data[i + 1];
             if (x < minX) minX = x;
             if (y < minY) minY = y;
             if (x > maxX) maxX = x;
             if (y > maxY) maxY = y;
-            node = node.next;
-        } while (node !== outerNode);
+        }
 
         // minX, minY and size are later used to transform coords into integers for z-order calculation
         size = Math.max(maxX - minX, maxY - minY);
     }
-
-    if (holeIndices) outerNode = eliminateHoles(data, holeIndices, outerNode);
 
     earcutLinked(data, outerNode, triangles, minX, minY, size);
 
@@ -41,21 +40,21 @@ function earcut(data, holeIndices, dim) {
 }
 
 // create a circular doubly linked list from polygon points in the specified winding order
-function linkedList(data, start, end, clockwise) {
+function linkedList(data, start, end, dim, clockwise) {
     var sum = 0,
         i, j, last;
 
     // calculate original winding order of a polygon ring
-    for (i = start, j = end - 2; i < end; i += 2) {
+    for (i = start, j = end - dim; i < end; i += dim) {
         sum += (data[j] - data[i]) * (data[i + 1] + data[j + 1]);
         j = i;
     }
 
     // link points into circular doubly-linked list in the specified winding order
     if (clockwise === (sum > 0)) {
-        for (i = start; i < end; i += 2) last = insertNode(i, last);
+        for (i = start; i < end; i += dim) last = insertNode(i, last);
     } else {
-        for (i = end - 2; i >= start; i -= 2) last = insertNode(i, last);
+        for (i = end - dim; i >= start; i -= dim) last = insertNode(i, last);
     }
 
     return last;
@@ -317,14 +316,14 @@ function splitEarcut(data, start, triangles, minX, minY, size) {
 }
 
 // link every hole into the outer loop, producing a single-ring polygon without holes
-function eliminateHoles(data, holeIndices, outerNode) {
+function eliminateHoles(data, holeIndices, outerNode, dim) {
     var queue = [],
         i, len, start, end, list;
 
     for (i = 0, len = holeIndices.length; i < len; i++) {
         start = holeIndices[i];
         end = i < len - 1 ? holeIndices[i + 1] : data.length;
-        list = filterPoints(data, linkedList(data, start, end, false));
+        list = filterPoints(data, linkedList(data, start, end, dim, false));
         if (list) queue.push(getLeftmost(data, list));
     }
 
@@ -410,7 +409,7 @@ function findHoleBridge(data, holeNode, outerNode) {
 
                 if (t >= 0 && A * sign - s - t >= 0) {
                     tan = Math.abs(py - my) / amx; // tangential
-                    if (tan < tanMin && locallyInside(node, holeNode)) {
+                    if (tan < tanMin && locallyInside(data, node, holeNode)) {
                         mNode = node;
                         tanMin = tan;
                     }
