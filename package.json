@@ -22,5 +22,9 @@
     "tape": "^3.5.0",
     "uglify-js": "^2.4.17",
     "watchify": "^2.4.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/mapbox/earcut.git"
   }
 }
