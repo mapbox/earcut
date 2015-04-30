@@ -41,26 +41,25 @@ and earcut is not precise enough, take a look at [libtess.js](https://github.com
 #### Usage
 
 ```js
-var triangles = earcut([10,0, 0,50, 60,60, 70,10]);
-// [1,0,3, 3,2,1]
+var triangles = earcut([10,0, 0,50, 60,60, 70,10]); // returns [1,0,3, 3,2,1]
 ```
 
 Signature: `earcut(coords[, holeIndices, numDimensions = 2])`.
 
-* `coords` is a flat array of vertice coordinates (e.g. `[x0,y0, x1,y1, x2,y2, ...]`).
-* `holeIndices` is an array of hole indices, if any
-  (e.g. `[5, 8]` for a 12-vertice input would mean one hole with vertices 5&ndash;7 and another with 8-11&ndash;).
+* `coords` is a flat array of vertice coordinates like `[x0,y0, x1,y1, x2,y2, ...]`.
+* `holeIndices` is an array of hole indices if any
+  (e.g. `[5, 8]` for a 12-vertice input would mean one hole with vertices 5&ndash;7 and another with 8&ndash;11).
 * `numDimensions` is the number of coordinates per vertice in the input array (`2` by default).
 
 Each group of three vertice indices in the resulting array forms a triangle.
 
 ```js
 // triangulating a polygon with a hole
-var triangles = earcut([0,0, 100,0, 100,100, 0,100,  20,20, 80,20, 80,80, 20,80], [4]);
+earcut([0,0, 100,0, 100,100, 0,100,  20,20, 80,20, 80,80, 20,80], [4]);
 // [3,0,4, 5,4,0, 3,4,7, 5,0,1, 2,3,7, 6,5,1, 2,7,6, 6,1,2]
 
 // triangulating a polygon with 3d coords
-var triangles = earcut([10,0,1, 0,50,2, 60,60,3, 70,10,4], null, 3);
+earcut([10,0,1, 0,50,2, 60,60,3, 70,10,4], null, 3);
 // [1,0,3, 3,2,1]
 ```
 
