@@ -14,14 +14,13 @@
   "author": "Vladimir Agafonkin",
   "license": "ISC",
   "devDependencies": {
-    "browserify": "^9.0.3",
+    "browserify": "^10.0.0",
     "coveralls": "^2.11.2",
-    "eslint": "^0.17.1",
-    "istanbul": "^0.3.8",
+    "eslint": "^0.20.0",
+    "istanbul": "^0.3.13",
     "mkdirp": "^0.5.0",
-    "tape": "^3.5.0",
-    "uglify-js": "^2.4.17",
-    "watchify": "^2.4.0"
+    "tape": "^4.0.0",
+    "uglify-js": "^2.4.20"
   },
   "repository": {
     "type": "git",
