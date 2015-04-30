@@ -44,17 +44,19 @@ if (devicePixelRatio > 1) {
     ctx.scale(2, 2);
 }
 
+var data = flattenData(testPoints);
+
 console.time('earcut');
 // for (var i = 0; i < 1000; i++) {
-var result = earcut(testPoints, true);
+var result = earcut(data.vertices, data.holes, data.dimensions);
 // }
 console.timeEnd('earcut');
 
 var triangles = [];
 var dim = testPoints[0][0].length;
-for (var i = 0; i < result.indices.length; i++) {
-    var index = result.indices[i];
-    triangles.push([result.vertices[index * dim], result.vertices[index * dim + 1]]);
+for (var i = 0; i < result.length; i++) {
+    var index = result[i];
+    triangles.push([data.vertices[index * dim], data.vertices[index * dim + 1]]);
 }
 
 ctx.lineJoin = 'round';
@@ -92,4 +94,22 @@ function drawPoly(rings, color, fill) {
     ctx.stroke();
 
     if (fill) ctx.fill('evenodd');
+}
+
+function flattenData(data) {
+    var dim = data[0][0].length,
+        result = {vertices: [], holes: [], dimensions: dim},
+        holeIndex = 0;
+
+    for (var i = 0; i < data.length; i++) {
+        for (var j = 0; j < data[i].length; j++) {
+            for (var d = 0; d < dim; d++) result.vertices.push(data[i][j][d]);
+        }
+        if (i > 0) {
+            holeIndex += data[i - 1].length;
+            result.holes.push(holeIndex);
+        }
+    }
+
+    return result;
 }
