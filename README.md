@@ -27,11 +27,11 @@ Some benchmarks using Node 0.12:
 
 (ops/sec)         | pts  | earcut    | libtess  | poly2tri | pnltri
 ------------------| ---- | --------- | -------- | -------- | ---------
-OSM building      | 15   | _688,671_ | _50,640_ | _61,501_ | _122,966_
-dude shape        | 94   | _34,806_  | _10,339_ | _8,784_  | _11,172_
-holed dude shape  | 104  | _19,553_  | _8,883_  | _7,494_  | _2,130_
-complex OSM water | 2523 | _537_     | _77.54_  | failure  | failure
-huge OSM water    | 5667 | _97.79_   | _29.30_  | failure  | failure
+OSM building      | 15   | _648,935_ | _50,640_ | _61,501_ | _122,966_
+dude shape        | 94   | _34,379_  | _10,339_ | _8,784_  | _11,172_
+holed dude shape  | 104  | _26,849_  | _8,883_  | _7,494_  | _2,130_
+complex OSM water | 2523 | _564_     | _77.54_  | failure  | failure
+huge OSM water    | 5667 | _116_     | _29.30_  | failure  | failure
 
 The original use case it was created for is [Mapbox GL](https://www.mapbox.com/mapbox-gl), WebGL-based interactive maps.
 
@@ -41,23 +41,31 @@ and earcut is not precise enough, take a look at [libtess.js](https://github.com
 #### Usage
 
 ```js
-var triangles = earcut([[[10,0],[0,50],[60,60],[70,10]]]);
-// [[0,50],[10,0],[70,10], [70,10],[60,60],[0,50]]
+var triangles = earcut([10,0, 0,50, 60,60, 70,10]);
+// [1,0,3, 3,2,1]
 ```
 
-Input should be an array of rings, where the first is outer ring and others are holes;
-each ring is an array of points, where each point is of the `[x, y]` or `[x, y, z]` form.
+Signature: `earcut(coords[, holeIndices, numDimensions = 2])`.
 
-Each group of three points in the resulting array forms a triangle.
+* `coords` is a flat array of vertice coordinates (e.g. `[x0,y0, x1,y1, x2,y2, ...]`).
+* `holeIndices` is an array of hole indices, if any
+  (e.g. `[5, 8]` for a 12-vertice input would mean one hole with vertices 5&ndash;7 and another with 8-11&ndash;).
+* `numDimensions` is the number of coordinates per vertice in the input array (`2` by default).
 
-Alternatively, you can get triangulation results in the form of flat index and vertex arrays
-by passing `true` as a second argument to `earcut`
-(convenient for uploading results directly to WebGL as buffers):
+Each group of three vertice indices in the resulting array forms a triangle.
 
 ```js
-var triangles = earcut([[[10,0],[0,50],[60,60],[70,10]]], true);
-// {vertices: [0,50, 10,0, 70,10, 60,60], indices: [1,0,2, 3,2,1]}
+// triangulating a polygon with a hole
+var triangles = earcut([0,0, 100,0, 100,100, 0,100,  20,20, 80,20, 80,80, 20,80], [4]);
+// [3,0,4, 5,4,0, 3,4,7, 5,0,1, 2,3,7, 6,5,1, 2,7,6, 6,1,2]
+
+// triangulating a polygon with 3d coords
+var triangles = earcut([10,0,1, 0,50,2, 60,60,3, 70,10,4], null, 3);
+// [1,0,3, 3,2,1]
 ```
+
+If your input is a multi-dimensional array (e.g. [GeoJSON Polygon](http://geojson.org/geojson-spec.html#polygon)),
+you can convert it to the format expected by Earcut with [a couple lines of codes](viz/viz.js#L99-L115).
 
 #### Install
 
@@ -89,6 +97,11 @@ npm test
 - [Cawfree/earcut-j](https://github.com/Cawfree/earcut-j) (Java)
 
 #### Changelog
+
+##### 2.0.0 (Apr 30, 2015)
+
+- **Breaking**: changed the API to accept a flat input array of vertices with hole indices and return triangle indices.
+  It makes the indexed output much faster than it was before (up to 30%) and improves memory footprint.
 
 ##### 1.4.2 (Mar 18, 2015)
 
