@@ -33,9 +33,6 @@ test('indices-3d', function (t) {
     t.end();
 });
 
-// indicesCreationTest('indices-2d');
-// indicesCreationTest('indices-3d');
-
 function areaTest(filename, expectedDeviation) {
     expectedDeviation = expectedDeviation || 1e-14;
 
@@ -47,7 +44,7 @@ function areaTest(filename, expectedDeviation) {
             data2 = flattenData(data),
             vertices = data2.vertices,
             holes = data2.holes,
-            dim = data2.dim,
+            dim = data2.dimensions,
             indices = earcut(vertices, holes, dim),
             expectedArea = polygonArea(data),
             area = 0;
@@ -69,28 +66,21 @@ function areaTest(filename, expectedDeviation) {
 }
 
 function flattenData(data) {
-    var flat = [],
-        holes = [],
-        dim = data[0][0].length,
+    var dim = data[0][0].length,
+        result = {vertices: [], holes: [], dimensions: dim},
         holeIndex = 0;
 
     for (var i = 0; i < data.length; i++) {
         for (var j = 0; j < data[i].length; j++) {
-            for (var d = 0; d < dim; d++) {
-                flat.push(data[i][j][d]);
-            }
+            for (var d = 0; d < dim; d++) result.vertices.push(data[i][j][d]);
         }
         if (i > 0) {
             holeIndex += data[i - 1].length;
-            holes.push(holeIndex);
+            result.holes.push(holeIndex);
         }
     }
 
-    return {
-        vertices: flat,
-        holes: holes,
-        dim: dim
-    };
+    return result;
 }
 
 function formatPercent(num) {
@@ -116,14 +106,3 @@ function polygonArea(rings) {
     }
     return sum;
 }
-
-// function indicesCreationTest(filename) {
-//     test(filename, function (t) {
-//         var data = JSON.parse(fs.readFileSync(path.join(__dirname, '/fixtures/' + filename + '.json'))),
-//             created = earcut(data.input, true);
-
-//         t.ok(JSON.stringify(created.vertices) === JSON.stringify(data.expected.vertices), 'created vertices [' + created.vertices + '] are as expected: [' + data.expected.vertices + ']');
-//         t.ok(JSON.stringify(created.indices) === JSON.stringify(data.expected.indices), 'created indices [' + created.indices + '] are as expected: [' + data.expected.indices + ']');
-//         t.end();
-//     });
-// }

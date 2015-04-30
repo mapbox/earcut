@@ -48,7 +48,7 @@ var data = flattenData(testPoints);
 
 console.time('earcut');
 // for (var i = 0; i < 1000; i++) {
-var result = earcut(data.vertices, data.holes, data.dim);
+var result = earcut(data.vertices, data.holes, data.dimensions);
 // }
 console.timeEnd('earcut');
 
@@ -97,26 +97,19 @@ function drawPoly(rings, color, fill) {
 }
 
 function flattenData(data) {
-    var flat = [],
-        holes = [],
-        dim = data[0][0].length,
+    var dim = data[0][0].length,
+        result = {vertices: [], holes: [], dimensions: dim},
         holeIndex = 0;
 
     for (var i = 0; i < data.length; i++) {
         for (var j = 0; j < data[i].length; j++) {
-            for (var d = 0; d < dim; d++) {
-                flat.push(data[i][j][d]);
-            }
+            for (var d = 0; d < dim; d++) result.vertices.push(data[i][j][d]);
         }
         if (i > 0) {
             holeIndex += data[i - 1].length;
-            holes.push(holeIndex);
+            result.holes.push(holeIndex);
         }
     }
 
-    return {
-        vertices: flat,
-        holes: holes,
-        dim: dim
-    };
+    return result;
 }
