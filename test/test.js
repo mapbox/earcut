@@ -8,7 +8,6 @@ var test = require('tape'),
 areaTest('building');
 areaTest('dude');
 areaTest('water', 0.0019);
-areaTest('water', 0.0019);
 areaTest('water2');
 areaTest('water3');
 areaTest('water3b');
