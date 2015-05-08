@@ -65,6 +65,8 @@ function linkedList(data, start, end, dim, clockwise) {
 function filterPoints(data, start, end) {
     if (!end) end = start;
 
+    if (start.next === start) return start;
+
     var node = start,
         again;
     do {
@@ -334,7 +336,7 @@ function eliminateHoles(data, holeIndices, outerNode, dim) {
 
     // process holes from left to right
     for (i = 0; i < queue.length; i++) {
-        eliminateHole(data, queue[i], outerNode);
+        eliminateHole(data, queue[i], outerNode, queue[i] === queue[i].next);
         outerNode = filterPoints(data, outerNode, outerNode.next);
     }
 
@@ -342,11 +344,11 @@ function eliminateHoles(data, holeIndices, outerNode, dim) {
 }
 
 // find a bridge between vertices that connects hole with an outer ring and and link it
-function eliminateHole(data, holeNode, outerNode) {
+function eliminateHole(data, holeNode, outerNode, isSteinerPoint) {
     outerNode = findHoleBridge(data, holeNode, outerNode);
     if (outerNode) {
         var b = splitPolygon(outerNode, holeNode);
-        filterPoints(data, b, b.next);
+        if (!isSteinerPoint) filterPoints(data, b, b.next);
     }
 }
 
