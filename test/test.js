@@ -5,20 +5,21 @@ var test = require('tape'),
     fs = require('fs'),
     path = require('path');
 
-areaTest('building');
-areaTest('dude');
-areaTest('water', 0.0019);
-areaTest('water2');
-areaTest('water3');
-areaTest('water3b');
-areaTest('water4');
-areaTest('water-huge', 0.0015);
-areaTest('water-huge2', 0.0020);
-areaTest('degenerate');
-areaTest('bad-hole', 0.0420);
-areaTest('empty-square');
-areaTest('issue16');
-areaTest('issue17');
+areaTest('building', 12);
+areaTest('dude', 106);
+areaTest('water', 2482, 0.0019);
+areaTest('water2', 1211);
+areaTest('water3', 197);
+areaTest('water3b', 25);
+areaTest('water4', 705);
+areaTest('water-huge', 5162, 0.0015);
+areaTest('water-huge2', 4456, 0.0020);
+areaTest('degenerate', 0);
+areaTest('bad-hole', 34, 0.0420);
+areaTest('empty-square', 0);
+areaTest('issue16', 12);
+areaTest('issue17', 11);
+areaTest('steiner', 9);
 
 test('indices-2d', function (t) {
     var indices = earcut([10, 0, 0, 50, 60, 60, 70, 10]);
@@ -32,12 +33,10 @@ test('indices-3d', function (t) {
     t.end();
 });
 
-function areaTest(filename, expectedDeviation) {
+function areaTest(filename, expectedTriangles, expectedDeviation) {
     expectedDeviation = expectedDeviation || 1e-14;
 
     test(filename, function (t) {
-
-        console.log(filename);
 
         var data = JSON.parse(fs.readFileSync(path.join(__dirname, '/fixtures/' + filename + '.json'))),
             data2 = flattenData(data),
@@ -59,6 +58,11 @@ function areaTest(filename, expectedDeviation) {
 
         t.ok(deviation < expectedDeviation,
             'deviation ' + formatPercent(deviation) + ' is less than ' + formatPercent(expectedDeviation));
+
+        if (expectedTriangles) {
+            t.ok(indices.length / 3 === expectedTriangles, (indices.length / 3) + ' triangles when expected ' +
+                expectedTriangles);
+        }
 
         t.end();
     });

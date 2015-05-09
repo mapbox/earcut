@@ -65,14 +65,12 @@ function linkedList(data, start, end, dim, clockwise) {
 function filterPoints(data, start, end) {
     if (!end) end = start;
 
-    if (start.next === start) return start;
-
     var node = start,
         again;
     do {
         again = false;
 
-        if (equals(data, node.i, node.next.i) || orient(data, node.prev.i, node.i, node.next.i) === 0) {
+        if (!node.steiner && (equals(data, node.i, node.next.i) || orient(data, node.prev.i, node.i, node.next.i) === 0)) {
 
             // remove node
             node.prev.next = node.next;
@@ -326,7 +324,9 @@ function eliminateHoles(data, holeIndices, outerNode, dim) {
     for (i = 0, len = holeIndices.length; i < len; i++) {
         start = holeIndices[i] * dim;
         end = i < len - 1 ? holeIndices[i + 1] * dim : data.length;
-        list = filterPoints(data, linkedList(data, start, end, dim, false));
+        list = linkedList(data, start, end, dim, false);
+        if (list === list.next) list.steiner = true;
+        list = filterPoints(data, list);
         if (list) queue.push(getLeftmost(data, list));
     }
 
@@ -336,7 +336,7 @@ function eliminateHoles(data, holeIndices, outerNode, dim) {
 
     // process holes from left to right
     for (i = 0; i < queue.length; i++) {
-        eliminateHole(data, queue[i], outerNode, queue[i] === queue[i].next);
+        eliminateHole(data, queue[i], outerNode);
         outerNode = filterPoints(data, outerNode, outerNode.next);
     }
 
@@ -344,11 +344,11 @@ function eliminateHoles(data, holeIndices, outerNode, dim) {
 }
 
 // find a bridge between vertices that connects hole with an outer ring and and link it
-function eliminateHole(data, holeNode, outerNode, isSteinerPoint) {
+function eliminateHole(data, holeNode, outerNode) {
     outerNode = findHoleBridge(data, holeNode, outerNode);
     if (outerNode) {
         var b = splitPolygon(outerNode, holeNode);
-        if (!isSteinerPoint) filterPoints(data, b, b.next);
+        filterPoints(data, b, b.next);
     }
 }
 
@@ -656,4 +656,7 @@ function Node(i) {
     // previous and next nodes in z-order
     this.prevZ = null;
     this.nextZ = null;
+
+    // indicates whether this is a steiner point
+    this.steiner = false;
 }
