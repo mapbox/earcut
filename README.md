@@ -25,13 +25,13 @@ sacrificing triangulation quality for raw speed and simplicity,
 while being robust enough to handle most practical datasets without crashing or producing garbage.
 Some benchmarks using Node 0.12:
 
-(ops/sec)         | pts  | earcut    | libtess  | poly2tri | pnltri
-------------------| ---- | --------- | -------- | -------- | ---------
-OSM building      | 15   | _648,935_ | _50,640_ | _61,501_ | _122,966_
-dude shape        | 94   | _34,379_  | _10,339_ | _8,784_  | _11,172_
-holed dude shape  | 104  | _26,849_  | _8,883_  | _7,494_  | _2,130_
-complex OSM water | 2523 | _564_     | _77.54_  | failure  | failure
-huge OSM water    | 5667 | _116_     | _29.30_  | failure  | failure
+(ops/sec)         | pts  | earcut    | libtess  | poly2tri | pnltri    | polyk
+------------------| ---- | --------- | -------- | -------- | --------- | ------
+OSM building      | 15   | _640,635_ | _50,640_ | _61,501_ | _122,966_ | _175,570_
+dude shape        | 94   | _34,379_  | _10,339_ | _8,784_  | _11,172_  | _13,557_
+holed dude shape  | 104  | _26,849_  | _8,883_  | _7,494_  | _2,130_   | n/a
+complex OSM water | 2523 | _564_     | _77.54_  | failure  | failure   | n/a
+huge OSM water    | 5667 | _116_     | _29.30_  | failure  | failure   | n/a
 
 The original use case it was created for is [Mapbox GL](https://www.mapbox.com/mapbox-gl), WebGL-based interactive maps.
 
@@ -66,6 +66,8 @@ earcut([10,0,1, 0,50,2, 60,60,3, 70,10,4], null, 3);
 If your input is a multi-dimensional array (e.g. [GeoJSON Polygon](http://geojson.org/geojson-spec.html#polygon)),
 you can convert it to the format expected by Earcut with [a couple lines of codes](viz/viz.js#L99-L115).
 
+If you pass a single vertice as a hole, Earcut treats it as a Steiner point.
+
 #### Install
 
 NPM and Browserify:
@@ -96,6 +98,10 @@ npm test
 - [Cawfree/earcut-j](https://github.com/Cawfree/earcut-j) (Java)
 
 #### Changelog
+
+##### 2.0.1 (May 11, 2015)
+
+- Added Steiner points support.
 
 ##### 2.0.0 (Apr 30, 2015)
 
