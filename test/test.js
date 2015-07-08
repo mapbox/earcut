@@ -20,6 +20,7 @@ areaTest('empty-square', 0);
 areaTest('issue16', 12);
 areaTest('issue17', 11);
 areaTest('steiner', 9);
+areaTest('issue29', 40);
 
 test('indices-2d', function (t) {
     var indices = earcut([10, 0, 0, 50, 60, 60, 70, 10]);

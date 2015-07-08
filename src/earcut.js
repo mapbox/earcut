@@ -537,7 +537,8 @@ function getLeftmost(data, start) {
 
 // check if a diagonal between two polygon nodes is valid (lies in polygon interior)
 function isValidDiagonal(data, a, b) {
-    return !intersectsPolygon(data, a, a.i, b.i) &&
+    return a.next.i !== b.i && a.prev.i !== b.i &&
+           !intersectsPolygon(data, a, a.i, b.i) &&
            locallyInside(data, a, b) && locallyInside(data, b, a) &&
            middleInside(data, a, a.i, b.i);
 }

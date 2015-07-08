@@ -99,6 +99,10 @@ npm test
 
 #### Changelog
 
+##### 2.0.2 (Jul 8, 2015)
+
+- Fixed one more rare race condition with a holed polygon.
+
 ##### 2.0.1 (May 11, 2015)
 
 - Added Steiner points support.
