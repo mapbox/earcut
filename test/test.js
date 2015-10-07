@@ -21,7 +21,9 @@ areaTest('issue16', 12);
 areaTest('issue17', 11);
 areaTest('steiner', 9);
 areaTest('issue29', 40);
-areaTest('self-touching', 0, 3.4e-14);
+areaTest('self-touching', 124, 3.4e-14);
+areaTest('outside-ring', 64);
+areaTest('simplified-us-border', 120);
 
 test('indices-2d', function (t) {
     var indices = earcut([10, 0, 0, 50, 60, 60, 70, 10]);
