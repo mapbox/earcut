@@ -99,6 +99,11 @@ npm test
 
 #### Changelog
 
+##### 2.0.3 (Oct 8, 2015)
+
+- Fixed yet another rare race conditions (multiple holes connected with colinear bridges).
+- Fixed crash on empty input.
+
 ##### 2.0.2 (Jul 8, 2015)
 
 - Fixed one more rare race condition with a holed polygon.
