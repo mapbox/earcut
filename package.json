@@ -1,6 +1,6 @@
 {
   "name": "earcut",
-  "version": "2.0.3",
+  "version": "2.0.4",
   "description": "The fastest and smallest JavaScript polygon triangulation library for your WebGL apps",
   "main": "src/earcut.js",
   "scripts": {
