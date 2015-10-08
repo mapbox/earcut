@@ -63,6 +63,7 @@ function linkedList(data, start, end, dim, clockwise) {
 
 // eliminate colinear or duplicate points
 function filterPoints(data, start, end) {
+    if (!start) return start;
     if (!end) end = start;
 
     var node = start,

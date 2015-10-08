@@ -37,6 +37,11 @@ test('indices-3d', function (t) {
     t.end();
 });
 
+test('empty', function (t) {
+    t.same(earcut([]), []);
+    t.end();
+});
+
 function areaTest(filename, expectedTriangles, expectedDeviation) {
     expectedDeviation = expectedDeviation || 1e-14;
 
