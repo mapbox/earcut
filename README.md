@@ -101,6 +101,10 @@ npm test
 
 #### Changelog
 
+##### 2.0.4 (Oct 8, 2015)
+
+- Fixed one more extremely rare race condition, lol!
+
 ##### 2.0.3 (Oct 8, 2015)
 
 - Fixed yet another rare race condition (multiple holes connected with colinear bridges).
