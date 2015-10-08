@@ -595,8 +595,8 @@ function middleInside(data, start, a, b) {
             p2 = node.next.i;
 
         if (((data[p1 + 1] > py) !== (data[p2 + 1] > py)) &&
-            (px < (data[p2] - data[p1]) * (py - data[p1 + 1]) / (data[p2 + 1] - data[p1 + 1]) + data[p1]))
-                inside = !inside;
+                (px < (data[p2] - data[p1]) * (py - data[p1 + 1]) / (data[p2 + 1] - data[p1 + 1]) + data[p1]))
+            inside = !inside;
 
         node = node.next;
     } while (node !== start);
