@@ -21,6 +21,7 @@ areaTest('issue16', 12);
 areaTest('issue17', 11);
 areaTest('steiner', 9);
 areaTest('issue29', 40);
+areaTest('issue34', 139);
 areaTest('self-touching', 124, 3.4e-14);
 areaTest('outside-ring', 64);
 areaTest('simplified-us-border', 120);

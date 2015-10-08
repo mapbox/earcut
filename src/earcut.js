@@ -413,7 +413,8 @@ function findHoleBridge(data, holeNode, outerNode) {
 
                 if (t >= 0 && A * sign - s - t >= 0) {
                     tan = Math.abs(py - my) / amx; // tangential
-                    if (tan < tanMin && locallyInside(data, node, holeNode)) {
+                    if ((tan < tanMin || (tan === tanMin && mx > bx)) &&
+                            locallyInside(data, node, holeNode)) {
                         mNode = node;
                         tanMin = tan;
                     }
