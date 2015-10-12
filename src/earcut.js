@@ -72,16 +72,8 @@ function filterPoints(data, start, end) {
         again = false;
 
         if (!node.steiner && (equals(data, node.i, node.next.i) || orient(data, node.prev.i, node.i, node.next.i) === 0)) {
-
-            // remove node
-            node.prev.next = node.next;
-            node.next.prev = node.prev;
-
-            if (node.prevZ) node.prevZ.nextZ = node.nextZ;
-            if (node.nextZ) node.nextZ.prevZ = node.prevZ;
-
+            removeNode(node);
             node = end = node.prev;
-
             if (node === node.next) return null;
             again = true;
 
@@ -114,12 +106,7 @@ function earcutLinked(data, ear, triangles, dim, minX, minY, size, pass) {
             triangles.push(ear.i / dim);
             triangles.push(next.i / dim);
 
-            // remove ear node
-            next.prev = prev;
-            prev.next = next;
-
-            if (ear.prevZ) ear.prevZ.nextZ = ear.nextZ;
-            if (ear.nextZ) ear.nextZ.prevZ = ear.prevZ;
+            removeNode(ear);
 
             // skipping the next vertice leads to less sliver triangles
             ear = next.next;
@@ -275,14 +262,8 @@ function cureLocalIntersections(data, start, triangles, dim) {
             triangles.push(b.i / dim);
 
             // remove two nodes involved
-            a.next = b;
-            b.prev = a;
-
-            var az = node.prevZ,
-                bz = node.nextZ && node.nextZ.nextZ;
-
-            if (az) az.nextZ = bz;
-            if (bz) bz.prevZ = az;
+            removeNode(node);
+            removeNode(node.next);
 
             node = start = b;
         }
@@ -644,6 +625,14 @@ function insertNode(i, last) {
         last.next = node;
     }
     return node;
+}
+
+function removeNode(node) {
+    node.next.prev = node.prev;
+    node.prev.next = node.next;
+
+    if (node.prevZ) node.prevZ.nextZ = node.nextZ;
+    if (node.nextZ) node.nextZ.prevZ = node.prevZ;
 }
 
 function Node(i) {
