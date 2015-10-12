@@ -101,6 +101,10 @@ npm test
 
 #### Changelog
 
+##### 2.0.5 (Oct 12, 2015)
+
+- Fixed a z-curve hashing bug that could lead to unexpected results in very rare cases involving shapes with lots of points.
+
 ##### 2.0.4 (Oct 8, 2015)
 
 - Fixed one more extremely rare race condition, lol!
