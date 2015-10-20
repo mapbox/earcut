@@ -149,21 +149,14 @@ function isEar(data, ear, minX, minY, size) {
         bx = data[b], by = data[b + 1],
         cx = data[c], cy = data[c + 1],
 
-        abd = ax * by - ay * bx,
-        acd = ax * cy - ay * cx,
-        cbd = cx * by - cy * bx,
-        A = abd - acd - cbd;
+        A = (bx - ax) * (cy - ay) - (cx - ax) * (by - ay);
 
     if (A <= 0) return false; // reflex, can't be an ear
 
     // now make sure we don't have other points inside the potential ear;
     // the code below is a bit verbose and repetitive but this is done for performance
 
-    var cay = cy - ay,
-        acx = ax - cx,
-        aby = ay - by,
-        bax = bx - ax,
-        i, px, py, s, t, k, node;
+    var i, node;
 
     // if we use z-order curve hashing, iterate through the curve
     if (minX !== undefined) {
@@ -183,20 +176,8 @@ function isEar(data, ear, minX, minY, size) {
 
         while (node && node.z <= maxZ) {
             i = node.i;
+            if (i !== a && i !== c && pointInTriangle(ax, ay, bx, by, cx, cy, data[i], data[i + 1])) return false;
             node = node.nextZ;
-            if (i === a || i === c) continue;
-
-            px = data[i];
-            py = data[i + 1];
-
-            s = cay * px + acx * py - acd;
-            if (s >= 0) {
-                t = aby * px + bax * py + abd;
-                if (t >= 0) {
-                    k = A - s - t;
-                    if ((k >= 0) && ((s && t) || (s && k) || (t && k))) return false;
-                }
-            }
         }
 
         // then look for points in decreasing z-order
@@ -204,20 +185,8 @@ function isEar(data, ear, minX, minY, size) {
 
         while (node && node.z >= minZ) {
             i = node.i;
+            if (i !== a && i !== c && pointInTriangle(ax, ay, bx, by, cx, cy, data[i], data[i + 1])) return false;
             node = node.prevZ;
-            if (i === a || i === c) continue;
-
-            px = data[i];
-            py = data[i + 1];
-
-            s = cay * px + acx * py - acd;
-            if (s >= 0) {
-                t = aby * px + bax * py + abd;
-                if (t >= 0) {
-                    k = A - s - t;
-                    if ((k >= 0) && ((s && t) || (s && k) || (t && k))) return false;
-                }
-            }
         }
 
     // if we don't use z-order curve hash, simply iterate through all other points
@@ -225,24 +194,21 @@ function isEar(data, ear, minX, minY, size) {
         node = ear.next.next;
 
         while (node !== ear.prev) {
-            i = node.i;
+            if (pointInTriangle(ax, ay, bx, by, cx, cy, data[node.i], data[node.i + 1])) return false;
             node = node.next;
-
-            px = data[i];
-            py = data[i + 1];
-
-            s = cay * px + acx * py - acd;
-            if (s >= 0) {
-                t = aby * px + bax * py + abd;
-                if (t >= 0) {
-                    k = A - s - t;
-                    if ((k >= 0) && ((s && t) || (s && k) || (t && k))) return false;
-                }
-            }
         }
     }
 
     return true;
+}
+
+function pointInTriangle(ax, ay, bx, by, cx, cy, px, py) {
+    var s = (cx - px) * (ay - py) - (ax - px) * (cy - py);
+    if (s < 0) return false;
+    var t = (ax - px) * (by - py) - (bx - px) * (ay - py);
+    if (t < 0) return false;
+    var k = (bx - px) * (cy - py) - (cx - px) * (by - py);
+    return (k >= 0) && ((s && t) || (s && k) || (t && k));
 }
 
 // go through all polygon nodes and cure small local self-intersections
