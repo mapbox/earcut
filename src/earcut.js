@@ -71,7 +71,7 @@ function filterPoints(data, start, end) {
     do {
         again = false;
 
-        if (!node.steiner && (equals(data, node.i, node.next.i) || orient(data, node.prev.i, node.i, node.next.i) === 0)) {
+        if (!node.steiner && (equals(data, node.i, node.next.i) || area(data, node.prev.i, node.i, node.next.i) === 0)) {
             removeNode(node);
             node = end = node.prev;
             if (node === node.next) return null;
@@ -143,15 +143,13 @@ function isEar(data, ear, minX, minY, size) {
 
     var a = ear.prev.i,
         b = ear.i,
-        c = ear.next.i,
+        c = ear.next.i;
 
-        ax = data[a], ay = data[a + 1],
+    if (area(data, a, b, c) >= 0) return false; // reflex, can't be an ear
+
+    var ax = data[a], ay = data[a + 1],
         bx = data[b], by = data[b + 1],
-        cx = data[c], cy = data[c + 1],
-
-        A = (bx - ax) * (cy - ay) - (cx - ax) * (by - ay);
-
-    if (A <= 0) return false; // reflex, can't be an ear
+        cx = data[c], cy = data[c + 1];
 
     // now make sure we don't have other points inside the potential ear;
     // the code below is a bit verbose and repetitive but this is done for performance
@@ -178,7 +176,7 @@ function isEar(data, ear, minX, minY, size) {
             i = node.i;
             if (node !== ear.prev && node !== ear.next &&
                 pointInTriangle(ax, ay, bx, by, cx, cy, data[i], data[i + 1]) &&
-                orient(data, node.prev.i, i, node.next.i) >= 0) return false;
+                area(data, node.prev.i, i, node.next.i) >= 0) return false;
             node = node.nextZ;
         }
 
@@ -189,7 +187,7 @@ function isEar(data, ear, minX, minY, size) {
             i = node.i;
             if (node !== ear.prev && node !== ear.next &&
                 pointInTriangle(ax, ay, bx, by, cx, cy, data[i], data[i + 1]) &&
-                orient(data, node.prev.i, i, node.next.i) >= 0) return false;
+                area(data, node.prev.i, i, node.next.i) >= 0) return false;
             node = node.prevZ;
         }
 
@@ -199,8 +197,8 @@ function isEar(data, ear, minX, minY, size) {
 
         while (node !== ear.prev) {
             i = node.i;
-            if (pointInTriangle(ax, ay, bx, by, cx, cy, data[node.i], data[node.i + 1]) &&
-                orient(data, node.prev.i, node.i, node.next.i) >= 0) return false;
+            if (pointInTriangle(ax, ay, bx, by, cx, cy, data[i], data[i + 1]) &&
+                area(data, node.prev.i, i, node.next.i) >= 0) return false;
             node = node.next;
         }
     }
@@ -216,9 +214,8 @@ function cureLocalIntersections(data, start, triangles, dim) {
             b = node.next.next;
 
         // a self-intersection where edge (v[i-1],v[i]) intersects (v[i+1],v[i+2])
-        if (a.i !== b.i && intersects(data, a.i, node.i, node.next.i, b.i) &&
-                locallyInside(data, a, b) && locallyInside(data, b, a) &&
-                orient(data, a.i, node.i, b.i) && orient(data, a.i, node.next.i, b.i)) {
+        if (intersects(data, a.i, node.i, node.next.i, b.i) &&
+                locallyInside(data, a, b) && locallyInside(data, b, a)) {
 
             triangles.push(a.i / dim);
             triangles.push(node.i / dim);
@@ -483,11 +480,9 @@ function isValidDiagonal(data, a, b) {
            middleInside(data, a, a.i, b.i);
 }
 
-// winding order of triangle formed by 3 given points
-function orient(data, p, q, r) {
-    var o = (data[q + 1] - data[p + 1]) * (data[r] - data[q]) - (data[q] - data[p]) * (data[r + 1] - data[q + 1]);
-    return o > 0 ? 1 :
-           o < 0 ? -1 : 0;
+// signed area of a triangle
+function area(data, p, q, r) {
+    return (data[q + 1] - data[p + 1]) * (data[r] - data[q]) - (data[q] - data[p]) * (data[r + 1] - data[q + 1]);
 }
 
 // check if two points are equal
@@ -497,8 +492,8 @@ function equals(data, p1, p2) {
 
 // check if two segments intersect
 function intersects(data, p1, q1, p2, q2) {
-    return orient(data, p1, q1, p2) !== orient(data, p1, q1, q2) &&
-           orient(data, p2, q2, p1) !== orient(data, p2, q2, q1);
+    return area(data, p1, q1, p2) > 0 !== area(data, p1, q1, q2) > 0 &&
+           area(data, p2, q2, p1) > 0 !== area(data, p2, q2, q1) > 0;
 }
 
 // check if a polygon diagonal intersects any polygon segments
@@ -518,9 +513,9 @@ function intersectsPolygon(data, start, a, b) {
 
 // check if a polygon diagonal is locally inside the polygon
 function locallyInside(data, a, b) {
-    return orient(data, a.prev.i, a.i, a.next.i) === -1 ?
-        orient(data, a.i, b.i, a.next.i) !== -1 && orient(data, a.i, a.prev.i, b.i) !== -1 :
-        orient(data, a.i, b.i, a.prev.i) === -1 || orient(data, a.i, a.next.i, b.i) === -1;
+    return area(data, a.prev.i, a.i, a.next.i) < 0 ?
+        area(data, a.i, b.i, a.next.i) >= 0 && area(data, a.i, a.prev.i, b.i) >= 0 :
+        area(data, a.i, b.i, a.prev.i) < 0 || area(data, a.i, a.next.i, b.i) < 0;
 }
 
 // check if the middle point of a polygon diagonal is inside the polygon
