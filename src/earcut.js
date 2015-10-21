@@ -100,7 +100,7 @@ function earcutLinked(ear, triangles, dim, minX, minY, size, pass) {
         prev = ear.prev;
         next = ear.next;
 
-        if (isEar(ear, minX, minY, size)) {
+        if (size ? isEarHashed(ear, minX, minY, size) : isEar(ear)) {
             // cut off the triangle
             triangles.push(prev.i / dim);
             triangles.push(ear.i / dim);
@@ -139,7 +139,7 @@ function earcutLinked(ear, triangles, dim, minX, minY, size, pass) {
 }
 
 // check whether a polygon node forms a valid ear with adjacent nodes
-function isEar(ear, minX, minY, size) {
+function isEar(ear) {
 
     var a = ear.prev,
         b = ear,
@@ -150,48 +150,53 @@ function isEar(ear, minX, minY, size) {
     // now make sure we don't have other points inside the potential ear;
     // the code below is a bit verbose and repetitive but this is done for performance
 
-    // if we use z-order curve hashing, iterate through the curve
-    if (size) {
+    var node = ear.next.next;
 
-        // triangle bbox; min & max are calculated like this for speed
-        var minTX = a.x < b.x ? (a.x < c.x ? a.x : c.x) : (b.x < c.x ? b.x : c.x),
-            minTY = a.y < b.y ? (a.y < c.y ? a.y : c.y) : (b.y < c.y ? b.y : c.y),
-            maxTX = a.x > b.x ? (a.x > c.x ? a.x : c.x) : (b.x > c.x ? b.x : c.x),
-            maxTY = a.y > b.y ? (a.y > c.y ? a.y : c.y) : (b.y > c.y ? b.y : c.y),
+    while (node !== ear.prev) {
+        if (pointInTriangle(a.x, a.y, b.x, b.y, c.x, c.y, node.x, node.y) &&
+            area(node.prev, node, node.next) >= 0) return false;
+        node = node.next;
+    }
 
-            // z-order range for the current triangle bbox;
-            minZ = zOrder(minTX, minTY, minX, minY, size),
-            maxZ = zOrder(maxTX, maxTY, minX, minY, size);
+    return true;
+}
 
-        // first look for points inside the triangle in increasing z-order
-        var node = ear.nextZ;
+function isEarHashed(ear, minX, minY, size) {
 
-        while (node && node.z <= maxZ) {
-            if (node !== ear.prev && node !== ear.next &&
-                pointInTriangle(a.x, a.y, b.x, b.y, c.x, c.y, node.x, node.y) &&
-                area(node.prev, node, node.next) >= 0) return false;
-            node = node.nextZ;
-        }
+    var a = ear.prev,
+        b = ear,
+        c = ear.next;
 
-        // then look for points in decreasing z-order
-        node = ear.prevZ;
+    if (area(a, b, c) >= 0) return false; // reflex, can't be an ear
 
-        while (node && node.z >= minZ) {
-            if (node !== ear.prev && node !== ear.next &&
-                pointInTriangle(a.x, a.y, b.x, b.y, c.x, c.y, node.x, node.y) &&
-                area(node.prev, node, node.next) >= 0) return false;
-            node = node.prevZ;
-        }
+    // triangle bbox; min & max are calculated like this for speed
+    var minTX = a.x < b.x ? (a.x < c.x ? a.x : c.x) : (b.x < c.x ? b.x : c.x),
+        minTY = a.y < b.y ? (a.y < c.y ? a.y : c.y) : (b.y < c.y ? b.y : c.y),
+        maxTX = a.x > b.x ? (a.x > c.x ? a.x : c.x) : (b.x > c.x ? b.x : c.x),
+        maxTY = a.y > b.y ? (a.y > c.y ? a.y : c.y) : (b.y > c.y ? b.y : c.y);
 
-    // if we don't use z-order curve hash, simply iterate through all other points
-    } else {
-        node = ear.next.next;
+    // z-order range for the current triangle bbox;
+    var minZ = zOrder(minTX, minTY, minX, minY, size),
+        maxZ = zOrder(maxTX, maxTY, minX, minY, size);
 
-        while (node !== ear.prev) {
-            if (pointInTriangle(a.x, a.y, b.x, b.y, c.x, c.y, node.x, node.y) &&
-                area(node.prev, node, node.next) >= 0) return false;
-            node = node.next;
-        }
+    // first look for points inside the triangle in increasing z-order
+    var node = ear.nextZ;
+
+    while (node && node.z <= maxZ) {
+        if (node !== ear.prev && node !== ear.next &&
+            pointInTriangle(a.x, a.y, b.x, b.y, c.x, c.y, node.x, node.y) &&
+            area(node.prev, node, node.next) >= 0) return false;
+        node = node.nextZ;
+    }
+
+    // then look for points in decreasing z-order
+    node = ear.prevZ;
+
+    while (node && node.z >= minZ) {
+        if (node !== ear.prev && node !== ear.next &&
+            pointInTriangle(a.x, a.y, b.x, b.y, c.x, c.y, node.x, node.y) &&
+            area(node.prev, node, node.next) >= 0) return false;
+        node = node.prevZ;
     }
 
     return true;
