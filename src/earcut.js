@@ -71,7 +71,7 @@ function filterPoints(data, start, end) {
     do {
         again = false;
 
-        if (!node.steiner && (equals(data, node.i, node.next.i) || orient(data, node.prev.i, node.i, node.next.i) === 0)) {
+        if (!node.steiner && (equals(data, node.i, node.next.i) || area(data, node.prev.i, node.i, node.next.i) === 0)) {
             removeNode(node);
             node = end = node.prev;
             if (node === node.next) return null;
@@ -143,27 +143,18 @@ function isEar(data, ear, minX, minY, size) {
 
     var a = ear.prev.i,
         b = ear.i,
-        c = ear.next.i,
+        c = ear.next.i;
 
-        ax = data[a], ay = data[a + 1],
+    if (area(data, a, b, c) >= 0) return false; // reflex, can't be an ear
+
+    var ax = data[a], ay = data[a + 1],
         bx = data[b], by = data[b + 1],
-        cx = data[c], cy = data[c + 1],
-
-        abd = ax * by - ay * bx,
-        acd = ax * cy - ay * cx,
-        cbd = cx * by - cy * bx,
-        A = abd - acd - cbd;
-
-    if (A <= 0) return false; // reflex, can't be an ear
+        cx = data[c], cy = data[c + 1];
 
     // now make sure we don't have other points inside the potential ear;
     // the code below is a bit verbose and repetitive but this is done for performance
 
-    var cay = cy - ay,
-        acx = ax - cx,
-        aby = ay - by,
-        bax = bx - ax,
-        i, px, py, s, t, k, node;
+    var i, node;
 
     // if we use z-order curve hashing, iterate through the curve
     if (minX !== undefined) {
@@ -183,20 +174,10 @@ function isEar(data, ear, minX, minY, size) {
 
         while (node && node.z <= maxZ) {
             i = node.i;
+            if (node !== ear.prev && node !== ear.next &&
+                pointInTriangle(ax, ay, bx, by, cx, cy, data[i], data[i + 1]) &&
+                area(data, node.prev.i, i, node.next.i) >= 0) return false;
             node = node.nextZ;
-            if (i === a || i === c) continue;
-
-            px = data[i];
-            py = data[i + 1];
-
-            s = cay * px + acx * py - acd;
-            if (s >= 0) {
-                t = aby * px + bax * py + abd;
-                if (t >= 0) {
-                    k = A - s - t;
-                    if ((k >= 0) && ((s && t) || (s && k) || (t && k))) return false;
-                }
-            }
         }
 
         // then look for points in decreasing z-order
@@ -204,20 +185,10 @@ function isEar(data, ear, minX, minY, size) {
 
         while (node && node.z >= minZ) {
             i = node.i;
+            if (node !== ear.prev && node !== ear.next &&
+                pointInTriangle(ax, ay, bx, by, cx, cy, data[i], data[i + 1]) &&
+                area(data, node.prev.i, i, node.next.i) >= 0) return false;
             node = node.prevZ;
-            if (i === a || i === c) continue;
-
-            px = data[i];
-            py = data[i + 1];
-
-            s = cay * px + acx * py - acd;
-            if (s >= 0) {
-                t = aby * px + bax * py + abd;
-                if (t >= 0) {
-                    k = A - s - t;
-                    if ((k >= 0) && ((s && t) || (s && k) || (t && k))) return false;
-                }
-            }
         }
 
     // if we don't use z-order curve hash, simply iterate through all other points
@@ -226,19 +197,9 @@ function isEar(data, ear, minX, minY, size) {
 
         while (node !== ear.prev) {
             i = node.i;
+            if (pointInTriangle(ax, ay, bx, by, cx, cy, data[i], data[i + 1]) &&
+                area(data, node.prev.i, i, node.next.i) >= 0) return false;
             node = node.next;
-
-            px = data[i];
-            py = data[i + 1];
-
-            s = cay * px + acx * py - acd;
-            if (s >= 0) {
-                t = aby * px + bax * py + abd;
-                if (t >= 0) {
-                    k = A - s - t;
-                    if ((k >= 0) && ((s && t) || (s && k) || (t && k))) return false;
-                }
-            }
         }
     }
 
@@ -253,9 +214,8 @@ function cureLocalIntersections(data, start, triangles, dim) {
             b = node.next.next;
 
         // a self-intersection where edge (v[i-1],v[i]) intersects (v[i+1],v[i+2])
-        if (a.i !== b.i && intersects(data, a.i, node.i, node.next.i, b.i) &&
-                locallyInside(data, a, b) && locallyInside(data, b, a) &&
-                orient(data, a.i, node.i, b.i) && orient(data, a.i, node.next.i, b.i)) {
+        if (intersects(data, a.i, node.i, node.next.i, b.i) &&
+                locallyInside(data, a, b) && locallyInside(data, b, a)) {
 
             triangles.push(a.i / dim);
             triangles.push(node.i / dim);
@@ -341,7 +301,7 @@ function findHoleBridge(data, holeNode, outerNode) {
         i = holeNode.i,
         px = data[i],
         py = data[i + 1],
-        qMax = -Infinity,
+        qx = -Infinity,
         mNode, a, b;
 
     // find a segment intersected by a ray from the hole's leftmost point to the left;
@@ -351,9 +311,9 @@ function findHoleBridge(data, holeNode, outerNode) {
         b = node.next.i;
 
         if (py <= data[a + 1] && py >= data[b + 1]) {
-            var qx = data[a] + (py - data[a + 1]) * (data[b] - data[a]) / (data[b + 1] - data[a + 1]);
-            if (qx <= px && qx > qMax) {
-                qMax = qx;
+            var x = data[a] + (py - data[a + 1]) * (data[b] - data[a]) / (data[b + 1] - data[a + 1]);
+            if (x <= px && x > qx) {
+                qx = x;
                 mNode = data[a] < data[b] ? node : node.next;
             }
         }
@@ -362,23 +322,15 @@ function findHoleBridge(data, holeNode, outerNode) {
 
     if (!mNode) return null;
 
-    // look for points strictly inside the triangle of hole point, segment intersection and endpoint;
+    // look for points inside the triangle of hole point, segment intersection and endpoint;
     // if there are no points found, we have a valid connection;
     // otherwise choose the point of the minimum angle with the ray as connection point
 
     var bx = data[mNode.i],
         by = data[mNode.i + 1],
-        pbd = px * by - py * bx,
-        pcd = px * py - py * qMax,
-        cpy = py - py,
-        pcx = px - qMax,
-        pby = py - by,
-        bpx = bx - px,
-        A = pbd - pcd - (qMax * by - py * bx),
-        sign = A <= 0 ? -1 : 1,
         stop = mNode,
         tanMin = Infinity,
-        mx, my, amx, s, t, tan;
+        mx, my, tan;
 
     node = mNode.next;
 
@@ -386,21 +338,13 @@ function findHoleBridge(data, holeNode, outerNode) {
 
         mx = data[node.i];
         my = data[node.i + 1];
-        amx = px - mx;
 
-        if (amx >= 0 && mx >= bx) {
-            s = (cpy * mx + pcx * my - pcd) * sign;
-            if (s >= 0) {
-                t = (pby * mx + bpx * my + pbd) * sign;
+        if (px >= mx && mx >= bx && pointInTriangle(py < by ? px : qx, py, bx, by, py < by ? qx : px, py, mx, my)) {
+            tan = Math.abs(py - my) / (px - mx); // tangential
 
-                if (t >= 0 && A * sign - s - t >= 0) {
-                    tan = Math.abs(py - my) / amx; // tangential
-                    if ((tan < tanMin || (tan === tanMin && mx > bx)) &&
-                            locallyInside(data, node, holeNode)) {
-                        mNode = node;
-                        tanMin = tan;
-                    }
-                }
+            if ((tan < tanMin || (tan === tanMin && mx > bx)) && locallyInside(data, node, holeNode)) {
+                mNode = node;
+                tanMin = tan;
             }
         }
 
@@ -520,19 +464,25 @@ function getLeftmost(data, start) {
     return leftmost;
 }
 
+// check if a point lies within a convex triangle
+function pointInTriangle(ax, ay, bx, by, cx, cy, px, py) {
+    return (cx - px) * (ay - py) - (ax - px) * (cy - py) >= 0 &&
+           (ax - px) * (by - py) - (bx - px) * (ay - py) >= 0 &&
+           (bx - px) * (cy - py) - (cx - px) * (by - py) >= 0;
+}
+
 // check if a diagonal between two polygon nodes is valid (lies in polygon interior)
 function isValidDiagonal(data, a, b) {
-    return a.next.i !== b.i && a.prev.i !== b.i &&
+    return equals(data, a.i, b.i) ||
+           a.next.i !== b.i && a.prev.i !== b.i &&
            !intersectsPolygon(data, a, a.i, b.i) &&
            locallyInside(data, a, b) && locallyInside(data, b, a) &&
            middleInside(data, a, a.i, b.i);
 }
 
-// winding order of triangle formed by 3 given points
-function orient(data, p, q, r) {
-    var o = (data[q + 1] - data[p + 1]) * (data[r] - data[q]) - (data[q] - data[p]) * (data[r + 1] - data[q + 1]);
-    return o > 0 ? 1 :
-           o < 0 ? -1 : 0;
+// signed area of a triangle
+function area(data, p, q, r) {
+    return (data[q + 1] - data[p + 1]) * (data[r] - data[q]) - (data[q] - data[p]) * (data[r + 1] - data[q + 1]);
 }
 
 // check if two points are equal
@@ -542,8 +492,8 @@ function equals(data, p1, p2) {
 
 // check if two segments intersect
 function intersects(data, p1, q1, p2, q2) {
-    return orient(data, p1, q1, p2) !== orient(data, p1, q1, q2) &&
-           orient(data, p2, q2, p1) !== orient(data, p2, q2, q1);
+    return area(data, p1, q1, p2) > 0 !== area(data, p1, q1, q2) > 0 &&
+           area(data, p2, q2, p1) > 0 !== area(data, p2, q2, q1) > 0;
 }
 
 // check if a polygon diagonal intersects any polygon segments
@@ -563,9 +513,9 @@ function intersectsPolygon(data, start, a, b) {
 
 // check if a polygon diagonal is locally inside the polygon
 function locallyInside(data, a, b) {
-    return orient(data, a.prev.i, a.i, a.next.i) === -1 ?
-        orient(data, a.i, b.i, a.next.i) !== -1 && orient(data, a.i, a.prev.i, b.i) !== -1 :
-        orient(data, a.i, b.i, a.prev.i) === -1 || orient(data, a.i, a.next.i, b.i) === -1;
+    return area(data, a.prev.i, a.i, a.next.i) < 0 ?
+        area(data, a.i, b.i, a.next.i) >= 0 && area(data, a.i, a.prev.i, b.i) >= 0 :
+        area(data, a.i, b.i, a.prev.i) < 0 || area(data, a.i, a.next.i, b.i) < 0;
 }
 
 // check if the middle point of a polygon diagonal is inside the polygon
