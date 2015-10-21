@@ -66,21 +66,21 @@ function filterPoints(start, end) {
     if (!start) return start;
     if (!end) end = start;
 
-    var node = start,
+    var p = start,
         again;
     do {
         again = false;
 
-        if (!node.steiner && (equals(node, node.next) || area(node.prev, node, node.next) === 0)) {
-            removeNode(node);
-            node = end = node.prev;
-            if (node === node.next) return null;
+        if (!p.steiner && (equals(p, p.next) || area(p.prev, p, p.next) === 0)) {
+            removeNode(p);
+            p = end = p.prev;
+            if (p === p.next) return null;
             again = true;
 
         } else {
-            node = node.next;
+            p = p.next;
         }
-    } while (again || node !== end);
+    } while (again || p !== end);
 
     return end;
 }
@@ -294,7 +294,7 @@ function findHoleBridge(hole, outerNode) {
         hx = hole.x,
         hy = hole.y,
         qx = -Infinity,
-        mNode;
+        m;
 
     // find a segment intersected by a ray from the hole's leftmost point to the left;
     // segment's endpoint with lesser x will be potential connection point
@@ -303,32 +303,32 @@ function findHoleBridge(hole, outerNode) {
             var x = p.x + (hy - p.y) * (p.next.x - p.x) / (p.next.y - p.y);
             if (x <= hx && x > qx) {
                 qx = x;
-                mNode = p.x < p.next.x ? p : p.next;
+                m = p.x < p.next.x ? p : p.next;
             }
         }
         p = p.next;
     } while (p !== outerNode);
 
-    if (!mNode) return null;
+    if (!m) return null;
 
     // look for points inside the triangle of hole point, segment intersection and endpoint;
     // if there are no points found, we have a valid connection;
     // otherwise choose the point of the minimum angle with the ray as connection point
 
-    var mx = mNode.x,
-        my = mNode.y,
-        stop = mNode,
+    var stop = m,
         tanMin = Infinity,
         tan;
 
-    p = mNode.next;
+    p = m.next;
 
     while (p !== stop) {
-        if (hx >= p.x && p.x >= mx && pointInTriangle(hy < my ? hx : qx, hy, mx, my, hy < my ? qx : hx, hy, p.x, p.y)) {
+        if (hx >= p.x && p.x >= m.x &&
+                pointInTriangle(hy < m.y ? hx : qx, hy, m.x, m.y, hy < m.y ? qx : hx, hy, p.x, p.y)) {
+
             tan = Math.abs(hy - p.y) / (hx - p.x); // tangential
 
-            if ((tan < tanMin || (tan === tanMin && p.x > mx)) && locallyInside(p, hole)) {
-                mNode = p;
+            if ((tan < tanMin || (tan === tanMin && p.x > m.x)) && locallyInside(p, hole)) {
+                m = p;
                 tanMin = tan;
             }
         }
@@ -336,7 +336,7 @@ function findHoleBridge(hole, outerNode) {
         p = p.next;
     }
 
-    return mNode;
+    return m;
 }
 
 // interlink polygon nodes in z-order
@@ -457,11 +457,8 @@ function pointInTriangle(ax, ay, bx, by, cx, cy, px, py) {
 
 // check if a diagonal between two polygon nodes is valid (lies in polygon interior)
 function isValidDiagonal(a, b) {
-    return equals(a, b) ||
-           a.next.i !== b.i && a.prev.i !== b.i &&
-           !intersectsPolygon(a, b) &&
-           locallyInside(a, b) && locallyInside(b, a) &&
-           middleInside(a, b);
+    return equals(a, b) || a.next.i !== b.i && a.prev.i !== b.i && !intersectsPolygon(a, b) &&
+           locallyInside(a, b) && locallyInside(b, a) && middleInside(a, b);
 }
 
 // signed area of a triangle
