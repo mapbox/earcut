@@ -7,13 +7,13 @@ var test = require('tape'),
 
 areaTest('building', 12);
 areaTest('dude', 106);
-areaTest('water', 2482, 0.0019);
+areaTest('water', 2482, 0.0008);
 areaTest('water2', 1211);
 areaTest('water3', 197);
 areaTest('water3b', 25);
 areaTest('water4', 705);
-areaTest('water-huge', 5164, 0.0015);
-areaTest('water-huge2', 4462, 0.0019);
+areaTest('water-huge', 5159, 0.008);
+areaTest('water-huge2', 4458, 0.0019);
 areaTest('degenerate', 0);
 areaTest('bad-hole', 34, 0.0420);
 areaTest('empty-square', 0);

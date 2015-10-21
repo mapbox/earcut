@@ -176,7 +176,9 @@ function isEar(data, ear, minX, minY, size) {
 
         while (node && node.z <= maxZ) {
             i = node.i;
-            if (i !== a && i !== c && pointInTriangle(ax, ay, bx, by, cx, cy, data[i], data[i + 1])) return false;
+            if (node !== ear.prev && node !== ear.next &&
+                pointInTriangle(ax, ay, bx, by, cx, cy, data[i], data[i + 1]) &&
+                orient(data, node.prev.i, i, node.next.i) >= 0) return false;
             node = node.nextZ;
         }
 
@@ -185,7 +187,9 @@ function isEar(data, ear, minX, minY, size) {
 
         while (node && node.z >= minZ) {
             i = node.i;
-            if (i !== a && i !== c && pointInTriangle(ax, ay, bx, by, cx, cy, data[i], data[i + 1])) return false;
+            if (node !== ear.prev && node !== ear.next &&
+                pointInTriangle(ax, ay, bx, by, cx, cy, data[i], data[i + 1]) &&
+                orient(data, node.prev.i, i, node.next.i) >= 0) return false;
             node = node.prevZ;
         }
 
@@ -194,21 +198,14 @@ function isEar(data, ear, minX, minY, size) {
         node = ear.next.next;
 
         while (node !== ear.prev) {
-            if (pointInTriangle(ax, ay, bx, by, cx, cy, data[node.i], data[node.i + 1])) return false;
+            i = node.i;
+            if (pointInTriangle(ax, ay, bx, by, cx, cy, data[node.i], data[node.i + 1]) &&
+                orient(data, node.prev.i, node.i, node.next.i) >= 0) return false;
             node = node.next;
         }
     }
 
     return true;
-}
-
-function pointInTriangle(ax, ay, bx, by, cx, cy, px, py) {
-    var s = (cx - px) * (ay - py) - (ax - px) * (cy - py);
-    if (s < 0) return false;
-    var t = (ax - px) * (by - py) - (bx - px) * (ay - py);
-    if (t < 0) return false;
-    var k = (bx - px) * (cy - py) - (cx - px) * (by - py);
-    return (k >= 0) && ((s && t) || (s && k) || (t && k));
 }
 
 // go through all polygon nodes and cure small local self-intersections
@@ -307,7 +304,7 @@ function findHoleBridge(data, holeNode, outerNode) {
         i = holeNode.i,
         px = data[i],
         py = data[i + 1],
-        qMax = -Infinity,
+        qx = -Infinity,
         mNode, a, b;
 
     // find a segment intersected by a ray from the hole's leftmost point to the left;
@@ -317,9 +314,9 @@ function findHoleBridge(data, holeNode, outerNode) {
         b = node.next.i;
 
         if (py <= data[a + 1] && py >= data[b + 1]) {
-            var qx = data[a] + (py - data[a + 1]) * (data[b] - data[a]) / (data[b + 1] - data[a + 1]);
-            if (qx <= px && qx > qMax) {
-                qMax = qx;
+            var x = data[a] + (py - data[a + 1]) * (data[b] - data[a]) / (data[b + 1] - data[a + 1]);
+            if (x <= px && x > qx) {
+                qx = x;
                 mNode = data[a] < data[b] ? node : node.next;
             }
         }
@@ -328,23 +325,15 @@ function findHoleBridge(data, holeNode, outerNode) {
 
     if (!mNode) return null;
 
-    // look for points strictly inside the triangle of hole point, segment intersection and endpoint;
+    // look for points inside the triangle of hole point, segment intersection and endpoint;
     // if there are no points found, we have a valid connection;
     // otherwise choose the point of the minimum angle with the ray as connection point
 
     var bx = data[mNode.i],
         by = data[mNode.i + 1],
-        pbd = px * by - py * bx,
-        pcd = px * py - py * qMax,
-        cpy = py - py,
-        pcx = px - qMax,
-        pby = py - by,
-        bpx = bx - px,
-        A = pbd - pcd - (qMax * by - py * bx),
-        sign = A <= 0 ? -1 : 1,
         stop = mNode,
         tanMin = Infinity,
-        mx, my, amx, s, t, tan;
+        mx, my, tan;
 
     node = mNode.next;
 
@@ -352,21 +341,13 @@ function findHoleBridge(data, holeNode, outerNode) {
 
         mx = data[node.i];
         my = data[node.i + 1];
-        amx = px - mx;
 
-        if (amx >= 0 && mx >= bx) {
-            s = (cpy * mx + pcx * my - pcd) * sign;
-            if (s >= 0) {
-                t = (pby * mx + bpx * my + pbd) * sign;
+        if (px >= mx && mx >= bx && pointInTriangle(py < by ? px : qx, py, bx, by, py < by ? qx : px, py, mx, my)) {
+            tan = Math.abs(py - my) / (px - mx); // tangential
 
-                if (t >= 0 && A * sign - s - t >= 0) {
-                    tan = Math.abs(py - my) / amx; // tangential
-                    if ((tan < tanMin || (tan === tanMin && mx > bx)) &&
-                            locallyInside(data, node, holeNode)) {
-                        mNode = node;
-                        tanMin = tan;
-                    }
-                }
+            if ((tan < tanMin || (tan === tanMin && mx > bx)) && locallyInside(data, node, holeNode)) {
+                mNode = node;
+                tanMin = tan;
             }
         }
 
@@ -486,9 +467,17 @@ function getLeftmost(data, start) {
     return leftmost;
 }
 
+// check if a point lies within a convex triangle
+function pointInTriangle(ax, ay, bx, by, cx, cy, px, py) {
+    return (cx - px) * (ay - py) - (ax - px) * (cy - py) >= 0 &&
+           (ax - px) * (by - py) - (bx - px) * (ay - py) >= 0 &&
+           (bx - px) * (cy - py) - (cx - px) * (by - py) >= 0;
+}
+
 // check if a diagonal between two polygon nodes is valid (lies in polygon interior)
 function isValidDiagonal(data, a, b) {
-    return a.next.i !== b.i && a.prev.i !== b.i &&
+    return equals(data, a.i, b.i) ||
+           a.next.i !== b.i && a.prev.i !== b.i &&
            !intersectsPolygon(data, a, a.i, b.i) &&
            locallyInside(data, a, b) && locallyInside(data, b, a) &&
            middleInside(data, a, a.i, b.i);
