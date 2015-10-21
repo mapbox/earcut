@@ -26,6 +26,8 @@ areaTest('issue35', 844);
 areaTest('self-touching', 124, 3.4e-14);
 areaTest('outside-ring', 64);
 areaTest('simplified-us-border', 120);
+areaTest('touching-holes', 57);
+areaTest('hole-touching-outer', 77);
 
 test('indices-2d', function (t) {
     var indices = earcut([10, 0, 0, 50, 60, 60, 70, 10]);
