@@ -29,11 +29,11 @@ Some benchmarks using Node 0.12:
 
 (ops/sec)         | pts  | earcut    | libtess  | poly2tri | pnltri    | polyk
 ------------------| ---- | --------- | -------- | -------- | --------- | ------
-OSM building      | 15   | _640,635_ | _50,640_ | _61,501_ | _122,966_ | _175,570_
-dude shape        | 94   | _34,379_  | _10,339_ | _8,784_  | _11,172_  | _13,557_
-holed dude shape  | 104  | _26,849_  | _8,883_  | _7,494_  | _2,130_   | n/a
-complex OSM water | 2523 | _564_     | _77.54_  | failure  | failure   | n/a
-huge OSM water    | 5667 | _116_     | _29.30_  | failure  | failure   | n/a
+OSM building      | 15   | _743,130_ | _50,640_ | _61,501_ | _122,966_ | _175,570_
+dude shape        | 94   | _35,039_  | _10,339_ | _8,784_  | _11,172_  | _13,557_
+holed dude shape  | 104  | _28,319_  | _8,883_  | _7,494_  | _2,130_   | n/a
+complex OSM water | 2523 | _597_     | _77.54_  | failure  | failure   | n/a
+huge OSM water    | 5667 | _95_      | _29.30_  | failure  | failure   | n/a
 
 The original use case it was created for is [Mapbox GL](https://www.mapbox.com/mapbox-gl), WebGL-based interactive maps.
 
@@ -100,6 +100,12 @@ npm test
 - [Cawfree/earcut-j](https://github.com/Cawfree/earcut-j) (Java)
 
 #### Changelog
+
+##### 2.0.6 (Oct 26, 2015)
+
+- Improved robustness and reliability of the triangulation algorithm.
+- Improved performance by up to 15%.
+- Significantly improved source code clarity.
 
 ##### 2.0.5 (Oct 12, 2015)
 
