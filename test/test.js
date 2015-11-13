@@ -5,24 +5,24 @@ var test = require('tape'),
     fs = require('fs'),
     path = require('path');
 
-areaTest('building', 12);
+areaTest('building', 13);
 areaTest('dude', 106);
 areaTest('water', 2482, 0.0008);
-areaTest('water2', 1211);
+areaTest('water2', 1212);
 areaTest('water3', 197);
 areaTest('water3b', 25);
 areaTest('water4', 705);
-areaTest('water-huge', 5159, 0.008);
-areaTest('water-huge2', 4458, 0.0019);
+areaTest('water-huge', 5159, 0.007);
+areaTest('water-huge2', 4456, 0.0019);
 areaTest('degenerate', 0);
-areaTest('bad-hole', 34, 0.0420);
+areaTest('bad-hole', 42, 0.019);
 areaTest('empty-square', 0);
 areaTest('issue16', 12);
 areaTest('issue17', 11);
 areaTest('steiner', 9);
 areaTest('issue29', 40);
-areaTest('issue34', 139);
-areaTest('issue35', 844);
+areaTest('issue34', 138);
+areaTest('issue35', 841);
 areaTest('self-touching', 124, 3.4e-14);
 areaTest('outside-ring', 64);
 areaTest('simplified-us-border', 120);

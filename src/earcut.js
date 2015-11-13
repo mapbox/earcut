@@ -8,7 +8,7 @@ function earcut(data, holeIndices, dim) {
 
     var hasHoles = holeIndices && holeIndices.length,
         outerLen = hasHoles ? holeIndices[0] * dim : data.length,
-        outerNode = filterPoints(linkedList(data, 0, outerLen, dim, true)),
+        outerNode = linkedList(data, 0, outerLen, dim, true),
         triangles = [];
 
     if (!outerNode) return triangles;
@@ -260,8 +260,7 @@ function eliminateHoles(data, holeIndices, outerNode, dim) {
         end = i < len - 1 ? holeIndices[i + 1] * dim : data.length;
         list = linkedList(data, start, end, dim, false);
         if (list === list.next) list.steiner = true;
-        list = filterPoints(list);
-        if (list) queue.push(getLeftmost(list));
+        queue.push(getLeftmost(list));
     }
 
     queue.sort(compareX);
