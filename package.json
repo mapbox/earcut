@@ -8,6 +8,7 @@
     "watch": "mkdirp dist && watchify -v -d src/earcut.js -s earcut -o dist/earcut.dev.js",
     "build-dev": "mkdirp dist && browserify -d src/earcut.js -s earcut > dist/earcut.dev.js",
     "build-min": "mkdirp dist && browserify src/earcut.js -s earcut | uglifyjs -c warnings=false -m > dist/earcut.min.js",
+    "prepublish": "npm run build-dev && npm run build-min",
     "cov": "istanbul cover test/*.js",
     "coveralls": "istanbul cover test/*.js && coveralls < ./coverage/lcov.info"
   },
