@@ -30,10 +30,10 @@ Some benchmarks using Node 0.12:
 
 (ops/sec)         | pts  | earcut    | libtess  | poly2tri | pnltri    | polyk
 ------------------| ---- | --------- | -------- | -------- | --------- | ------
-OSM building      | 15   | _743,130_ | _50,640_ | _61,501_ | _122,966_ | _175,570_
-dude shape        | 94   | _35,039_  | _10,339_ | _8,784_  | _11,172_  | _13,557_
+OSM building      | 15   | _795,935_ | _50,640_ | _61,501_ | _122,966_ | _175,570_
+dude shape        | 94   | _35,658_  | _10,339_ | _8,784_  | _11,172_  | _13,557_
 holed dude shape  | 104  | _28,319_  | _8,883_  | _7,494_  | _2,130_   | n/a
-complex OSM water | 2523 | _597_     | _77.54_  | failure  | failure   | n/a
+complex OSM water | 2523 | _543_     | _77.54_  | failure  | failure   | n/a
 huge OSM water    | 5667 | _95_      | _29.30_  | failure  | failure   | n/a
 
 The original use case it was created for is [Mapbox GL](https://www.mapbox.com/mapbox-gl), WebGL-based interactive maps.
@@ -79,13 +79,10 @@ NPM and Browserify:
 npm install earcut
 ```
 
-Browser builds:
+Browser builds on CDN:
 
-```bash
-npm install
-npm run build-dev # builds dist/earcut.dev.js, a dev version with a source map
-npm run build-min # builds dist/earcut.min.js, a minified production build
-```
+- [development build](https://npmcdn.com/earcut/dist/earcut.dev.js)
+- [minified production build](https://npmcdn.com/earcut/dist/earcut.min.js)
 
 Running tests:
 
@@ -101,6 +98,11 @@ npm test
 - [Cawfree/earcut-j](https://github.com/Cawfree/earcut-j) (Java)
 
 #### Changelog
+
+##### 2.0.7 (Nov 18, 2015)
+
+- Changed the algorithm to avoid filtering colinear/duplicate vertices unless it can't triangulate the polygon otherwise.
+  Improves performance on simpler shapes and fixes some 3D use cases.
 
 ##### 2.0.6 (Oct 26, 2015)
 
