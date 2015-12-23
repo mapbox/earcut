@@ -1,6 +1,6 @@
 'use strict';
 
-module.exports = earcut;
+(typeof window === 'undefined' ? module.exports : window.earcut) = earcut;
 
 function earcut(data, holeIndices, dim) {
 
