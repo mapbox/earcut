@@ -95,9 +95,13 @@ npm test
 #### Ports to other languages
 
 - [mapbox/earcut.hpp](https://github.com/mapbox/earcut.hpp) (C++11)
-- [Cawfree/earcut-j](https://github.com/Cawfree/earcut-j) (Java)
+- [Cawfree/earcut-j](https://github.com/Cawfree/earcut-j) (Java, outdated)
 
 #### Changelog
+
+##### 2.0.8 (Jan 19, 2016)
+
+- Fixed a rare race condition with a hole touching outer ring.
 
 ##### 2.0.7 (Nov 18, 2015)
 
