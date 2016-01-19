@@ -310,6 +310,8 @@ function findHoleBridge(hole, outerNode) {
 
     if (!m) return null;
 
+    if (hole.x === m.x) return m.prev; // hole touches outer segment; pick lower endpoint
+
     // look for points inside the triangle of hole point, segment intersection and endpoint;
     // if there are no points found, we have a valid connection;
     // otherwise choose the point of the minimum angle with the ray as connection point
