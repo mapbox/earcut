@@ -81,8 +81,8 @@ npm install earcut
 
 Browser builds on CDN:
 
-- [development build](https://npmcdn.com/earcut/dist/earcut.dev.js)
-- [minified production build](https://npmcdn.com/earcut/dist/earcut.min.js)
+- [development build](https://npmcdn.com/earcut@2.0.8/dist/earcut.dev.js)
+- [minified production build](https://npmcdn.com/earcut@2.0.8/dist/earcut.min.js)
 
 Running tests:
 
