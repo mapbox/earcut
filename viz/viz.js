@@ -36,9 +36,9 @@ canvas.ondrop = function (e) {
     var reader = new FileReader();
     reader.onload = function (event) {
         var tile = VT.readTile(new Pbf(new Uint8Array(event.target.result)));
-        console.log(tile);
+        // console.log(tile);
 
-        for (var i = 0; i < 1; i++) {
+        for (var i = 0; i < tile.layers.length; i++) {
             var layer = tile.layers[i];
             console.log(layer.name);
             for (var j = 0; j < layer.features.length; j++) {
