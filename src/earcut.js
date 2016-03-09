@@ -1,6 +1,15 @@
 'use strict';
 
-module.exports = earcut;
+if (typeof define === 'function' && typeof define.amd === 'object' && define.amd) {
+    // AMD. Register as an anonymous module.
+    define(function () {
+        return earcut;
+    });
+} else if (typeof module !== 'undefined' && module.exports) {
+    module.exports = earcut;
+} else {
+    window.earcut = earcut;
+}
 
 function earcut(data, holeIndices, dim) {
 
