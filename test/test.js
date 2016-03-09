@@ -30,6 +30,7 @@ areaTest('touching-holes', 57);
 areaTest('hole-touching-outer', 77);
 areaTest('hilbert', 1023);
 areaTest('issue45', 10);
+areaTest('eberly-6', 1428);
 
 test('indices-2d', function (t) {
     var indices = earcut([10, 0, 0, 50, 60, 60, 70, 10]);
