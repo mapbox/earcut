@@ -995,14 +995,16 @@ function findHoleBridge(hole, outerNode) {
     // otherwise choose the point of the minimum angle with the ray as connection point
 
     var stop = m,
+        mx = m.x,
+        my = m.y,
         tanMin = Infinity,
         tan;
 
     p = m.next;
 
     while (p !== stop) {
-        if (hx >= p.x && p.x >= m.x &&
-                pointInTriangle(hy < m.y ? hx : qx, hy, m.x, m.y, hy < m.y ? qx : hx, hy, p.x, p.y)) {
+        if (hx >= p.x && p.x >= mx &&
+                pointInTriangle(hy < my ? hx : qx, hy, mx, my, hy < my ? qx : hx, hy, p.x, p.y)) {
 
             tan = Math.abs(hy - p.y) / (hx - p.x); // tangential
 
@@ -1425,6 +1427,8 @@ canvas.ondrop = function (e) {
                     }
 
                     var deviation = Math.abs(triangleArea - area) / area;
+
+                    if (deviation) console.log(JSON.stringify(polygons[k]));
 
                     for (m = 0; triangles && m < triangles.length; m += 3) {
                         var triangle = [triangles.slice(m, m + 3)];

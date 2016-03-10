@@ -64,6 +64,8 @@ canvas.ondrop = function (e) {
 
                     var deviation = Math.abs(triangleArea - area) / area;
 
+                    if (deviation) console.log(JSON.stringify(polygons[k]));
+
                     for (m = 0; triangles && m < triangles.length; m += 3) {
                         var triangle = [triangles.slice(m, m + 3)];
                         if (deviation === 0) drawPoly(triangle, 'rgba(0,0,0,0)', 'rgba(0,0,0,0.05)');
