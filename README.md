@@ -99,6 +99,10 @@ npm test
 
 #### Changelog
 
+##### 2.0.9 (Mar 10, 2016)
+
+- Fixed a rare race condition where a hole would be handled incorrectly.
+
 ##### 2.0.8 (Jan 19, 2016)
 
 - Fixed a rare race condition with a hole touching outer ring.

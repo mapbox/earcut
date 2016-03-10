@@ -15,15 +15,15 @@
   "author": "Vladimir Agafonkin",
   "license": "ISC",
   "devDependencies": {
-    "benchmark": "^2.0.0",
+    "benchmark": "^2.1.0",
     "browserify": "^13.0.0",
-    "coveralls": "^2.11.6",
-    "eslint": "^1.10.3",
-    "eslint-config-mourner": "^1.0.1",
+    "coveralls": "^2.11.8",
+    "eslint": "^2.3.0",
+    "eslint-config-mourner": "^2.0.0",
     "istanbul": "^0.4.2",
     "mkdirp": "^0.5.1",
-    "tape": "^4.4.0",
-    "uglify-js": "^2.6.1",
+    "tape": "^4.5.1",
+    "uglify-js": "^2.6.2",
     "watchify": "^3.7.0"
   },
   "eslintConfig": {
