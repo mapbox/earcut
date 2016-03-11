@@ -42,22 +42,12 @@ function earcut(data, holeIndices, dim) {
 
 // create a circular doubly linked list from polygon points in the specified winding order
 function linkedList(data, start, end, dim, clockwise) {
-    var sum = 0,
-        i, j, last;
-
-    // calculate original winding order of a polygon ring
-    for (i = start, j = end - dim; i < end; i += dim) {
-        sum += (data[j] - data[i]) * (data[i + 1] + data[j + 1]);
-        j = i;
-    }
-
-    // link points into circular doubly-linked list in the specified winding order
-    if (clockwise === (sum > 0)) {
+    var i, last;
+    if (clockwise === (signedArea(data, start, end, dim) > 0)) {
         for (i = start; i < end; i += dim) last = insertNode(i, data[i], data[i + 1], last);
     } else {
         for (i = end - dim; i >= start; i -= dim) last = insertNode(i, data[i], data[i + 1], last);
     }
-
     return last;
 }
 
@@ -317,14 +307,16 @@ function findHoleBridge(hole, outerNode) {
     // otherwise choose the point of the minimum angle with the ray as connection point
 
     var stop = m,
+        mx = m.x,
+        my = m.y,
         tanMin = Infinity,
         tan;
 
     p = m.next;
 
     while (p !== stop) {
-        if (hx >= p.x && p.x >= m.x &&
-                pointInTriangle(hy < m.y ? hx : qx, hy, m.x, m.y, hy < m.y ? qx : hx, hy, p.x, p.y)) {
+        if (hx >= p.x && p.x >= mx &&
+                pointInTriangle(hy < my ? hx : qx, hy, mx, my, hy < my ? qx : hx, hy, p.x, p.y)) {
 
             tan = Math.abs(hy - p.y) / (hx - p.x); // tangential
 
@@ -582,3 +574,59 @@ function Node(i, x, y) {
     // indicates whether this is a steiner point
     this.steiner = false;
 }
+
+// return a percentage difference between the polygon area and its triangulation area;
+// used to verify correctness of triangulation
+earcut.deviation = function (data, holeIndices, dim, triangles) {
+    var hasHoles = holeIndices && holeIndices.length;
+    var outerLen = hasHoles ? holeIndices[0] * dim : data.length;
+
+    var polygonArea = Math.abs(signedArea(data, 0, outerLen, dim));
+    if (hasHoles) {
+        for (var i = 0, len = holeIndices.length; i < len; i++) {
+            var start = holeIndices[i] * dim;
+            var end = i < len - 1 ? holeIndices[i + 1] * dim : data.length;
+            polygonArea -= Math.abs(signedArea(data, start, end, dim));
+        }
+    }
+
+    var trianglesArea = 0;
+    for (i = 0; i < triangles.length; i += 3) {
+        var a = triangles[i] * dim;
+        var b = triangles[i + 1] * dim;
+        var c = triangles[i + 2] * dim;
+        trianglesArea += Math.abs(
+            (data[a] - data[c]) * (data[b + 1] - data[a + 1]) -
+            (data[a] - data[b]) * (data[c + 1] - data[a + 1]));
+    }
+
+    return polygonArea === 0 && trianglesArea === 0 ? 0 :
+        Math.abs((trianglesArea - polygonArea) / polygonArea);
+};
+
+function signedArea(data, start, end, dim) {
+    var sum = 0;
+    for (var i = start, j = end - dim; i < end; i += dim) {
+        sum += (data[j] - data[i]) * (data[i + 1] + data[j + 1]);
+        j = i;
+    }
+    return sum;
+}
+
+// turn a polygon in a multi-dimensional array form (e.g. as in GeoJSON) into a form Earcut accepts
+earcut.flatten = function (data) {
+    var dim = data[0][0].length,
+        result = {vertices: [], holes: [], dimensions: dim},
+        holeIndex = 0;
+
+    for (var i = 0; i < data.length; i++) {
+        for (var j = 0; j < data[i].length; j++) {
+            for (var d = 0; d < dim; d++) result.vertices.push(data[i][j][d]);
+        }
+        if (i > 0) {
+            holeIndex += data[i - 1].length;
+            result.holes.push(holeIndex);
+        }
+    }
+    return result;
+};

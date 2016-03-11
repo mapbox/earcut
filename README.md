@@ -47,12 +47,12 @@ and earcut is not precise enough, take a look at [libtess.js](https://github.com
 var triangles = earcut([10,0, 0,50, 60,60, 70,10]); // returns [1,0,3, 3,2,1]
 ```
 
-Signature: `earcut(coords[, holeIndices, numDimensions = 2])`.
+Signature: `earcut(vertices[, holes, dimensions = 2])`.
 
-* `coords` is a flat array of vertice coordinates like `[x0,y0, x1,y1, x2,y2, ...]`.
-* `holeIndices` is an array of hole indices if any
+* `vertices` is a flat array of vertice coordinates like `[x0,y0, x1,y1, x2,y2, ...]`.
+* `holes` is an array of hole _indices_ if any
   (e.g. `[5, 8]` for a 12-vertice input would mean one hole with vertices 5&ndash;7 and another with 8&ndash;11).
-* `numDimensions` is the number of coordinates per vertice in the input array (`2` by default).
+* `dimensions` is the number of coordinates per vertice in the input array (`2` by default).
 
 Each group of three vertice indices in the resulting array forms a triangle.
 
@@ -66,10 +66,24 @@ earcut([10,0,1, 0,50,2, 60,60,3, 70,10,4], null, 3);
 // [1,0,3, 3,2,1]
 ```
 
-If your input is a multi-dimensional array (e.g. [GeoJSON Polygon](http://geojson.org/geojson-spec.html#polygon)),
-you can convert it to the format expected by Earcut with [a couple lines of codes](viz/viz.js#L99-L115).
-
 If you pass a single vertice as a hole, Earcut treats it as a Steiner point.
+
+If your input is a multi-dimensional array (e.g. [GeoJSON Polygon](http://geojson.org/geojson-spec.html#polygon)),
+you can convert it to the format expected by Earcut with `earcut.flatten`:
+
+```js
+var data = earcut.flatten(geojson.geometry.coordinates);
+var triangles = earcut(data.vertices, data.holes, data.dimensions);
+```
+
+After getting a triangulation, you can verify its correctness with `earcut.deviation`:
+
+```js
+var deviation = earcut.deviation(vertices, holes, dimensions, triangles);
+```
+
+Returns the relative difference between the total area of triangles and the area of the input polygon.
+`0` means the triangulation is fully correct.
 
 #### Install
 
@@ -98,6 +112,15 @@ npm test
 - [Cawfree/earcut-j](https://github.com/Cawfree/earcut-j) (Java, outdated)
 
 #### Changelog
+
+##### 2.1.0 (Mar 11, 2016)
+
+- Added `earcut.deviation` function for verifying correctness of triangulation.
+- Added `earcut.flatten` function for converting GeoJSON-like input into a format Earcut expects.
+
+##### 2.0.9 (Mar 10, 2016)
+
+- Fixed a rare race condition where a hole would be handled incorrectly.
 
 ##### 2.0.8 (Jan 19, 2016)
 
