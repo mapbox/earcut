@@ -491,9 +491,14 @@ function intersectsPolygon(a, b) {
 
 // check if a polygon diagonal is locally inside the polygon
 function locallyInside(a, b) {
-    return area(a.prev, a, a.next) < 0 ?
-        area(a, b, a.next) >= 0 && area(a, a.prev, b) >= 0 :
-        area(a, b, a.prev) < 0 || area(a, a.next, b) < 0;
+    var prev = a.prev;
+    var next = a.next;
+    while (equals(prev, a)) prev = prev.prev;
+    while (equals(next, a)) next = next.next;
+
+    return area(prev, a, next) < 0 ?
+        area(a, b, next) >= 0 && area(a, prev, b) >= 0 :
+        area(a, b, prev) < 0 || area(a, next, b) < 0;
 }
 
 // check if the middle point of a polygon diagonal is inside the polygon
