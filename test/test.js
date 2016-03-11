@@ -54,42 +54,20 @@ function areaTest(filename, expectedTriangles, expectedDeviation) {
 
     test(filename, function (t) {
 
-        var data = JSON.parse(fs.readFileSync(path.join(__dirname, '/fixtures/' + filename + '.json'))),
-            data2 = flattenData(data),
-            vertices = data2.vertices,
-            holes = data2.holes,
-            dim = data2.dimensions,
-            indices = earcut(vertices, holes, dim),
-            deviation = earcut.deviation(vertices, holes, dim, indices);
+        var data = earcut.flatten(JSON.parse(fs.readFileSync(path.join(__dirname, '/fixtures/' + filename + '.json')))),
+            indices = earcut(data.vertices, data.holes, data.dimensions),
+            deviation = earcut.deviation(data.vertices, data.holes, data.dimensions, indices);
 
         t.ok(deviation < expectedDeviation,
             'deviation ' + formatPercent(deviation) + ' is less than ' + formatPercent(expectedDeviation));
 
         if (expectedTriangles) {
-            t.ok(indices.length / 3 === expectedTriangles, (indices.length / 3) + ' triangles when expected ' +
-                expectedTriangles);
+            var numTriangles = indices.length / 3;
+            t.ok(numTriangles === expectedTriangles, numTriangles + ' triangles when expected ' + expectedTriangles);
         }
 
         t.end();
     });
-}
-
-function flattenData(data) {
-    var dim = data[0][0].length,
-        result = {vertices: [], holes: [], dimensions: dim},
-        holeIndex = 0;
-
-    for (var i = 0; i < data.length; i++) {
-        for (var j = 0; j < data[i].length; j++) {
-            for (var d = 0; d < dim; d++) result.vertices.push(data[i][j][d]);
-        }
-        if (i > 0) {
-            holeIndex += data[i - 1].length;
-            result.holes.push(holeIndex);
-        }
-    }
-
-    return result;
 }
 
 function formatPercent(num) {

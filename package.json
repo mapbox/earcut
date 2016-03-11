@@ -27,7 +27,10 @@
     "watchify": "^3.7.0"
   },
   "eslintConfig": {
-    "extends": "mourner"
+    "extends": "mourner",
+    "rules": {
+      "no-unmodified-loop-condition": 0
+    }
   },
   "repository": {
     "type": "git",
