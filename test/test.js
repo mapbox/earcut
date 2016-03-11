@@ -60,17 +60,7 @@ function areaTest(filename, expectedTriangles, expectedDeviation) {
             holes = data2.holes,
             dim = data2.dimensions,
             indices = earcut(vertices, holes, dim),
-            expectedArea = polygonArea(data),
-            area = 0;
-
-        for (var i = 0; i < indices.length; i += 3) {
-            area += triangleArea(
-                [vertices[dim * indices[i]], vertices[dim * indices[i] + 1]],
-                [vertices[dim * indices[i + 1]], vertices[dim * indices[i + 1] + 1]],
-                [vertices[dim * indices[i + 2]], vertices[dim * indices[i + 2] + 1]]);
-        }
-
-        var deviation = expectedArea === 0 && area === 0 ? 0 : Math.abs(area - expectedArea) / expectedArea;
+            deviation = earcut.deviation(vertices, holes, dim, indices);
 
         t.ok(deviation < expectedDeviation,
             'deviation ' + formatPercent(deviation) + ' is less than ' + formatPercent(expectedDeviation));
@@ -104,24 +94,4 @@ function flattenData(data) {
 
 function formatPercent(num) {
     return (Math.round(1e8 * num) / 1e6) + '%';
-}
-
-function triangleArea(a, b, c) {
-    return Math.abs((a[0] - c[0]) * (b[1] - a[1]) - (a[0] - b[0]) * (c[1] - a[1])) / 2;
-}
-
-function ringArea(points) {
-    var sum = 0;
-    for (var i = 0, len = points.length, j = len - 1; i < len; j = i++) {
-        sum += (points[i][0] - points[j][0]) * (points[i][1] + points[j][1]);
-    }
-    return Math.abs(sum) / 2;
-}
-
-function polygonArea(rings) {
-    var sum = ringArea(rings[0]);
-    for (var i = 1; i < rings.length; i++) {
-        sum -= ringArea(rings[i]);
-    }
-    return sum;
 }
