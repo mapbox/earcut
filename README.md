@@ -113,6 +113,11 @@ npm test
 
 #### Changelog
 
+##### 2.1.0 (Mar 11, 2016)
+
+- Added `earcut.deviation` function for verifying correctness of triangulation.
+- Added `earcut.flatten` function for converting GeoJSON-like input into a format Earcut expects.
+
 ##### 2.0.9 (Mar 10, 2016)
 
 - Fixed a rare race condition where a hole would be handled incorrectly.
