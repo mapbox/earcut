@@ -8,7 +8,7 @@ function earcut(data, holeIndices, dim) {
 
     var hasHoles = holeIndices && holeIndices.length,
         outerLen = hasHoles ? holeIndices[0] * dim : data.length,
-        outerNode = linkedList(data, 0, outerLen, dim, true),
+        outerNode = filterPoints(linkedList(data, 0, outerLen, dim, true)),
         triangles = [];
 
     if (!outerNode) return triangles;
@@ -257,7 +257,8 @@ function eliminateHoles(data, holeIndices, outerNode, dim) {
         end = i < len - 1 ? holeIndices[i + 1] * dim : data.length;
         list = linkedList(data, start, end, dim, false);
         if (list === list.next) list.steiner = true;
-        queue.push(getLeftmost(list));
+        list = filterPoints(list);
+        if (list) queue.push(getLeftmost(list));
     }
 
     queue.sort(compareX);
@@ -491,14 +492,9 @@ function intersectsPolygon(a, b) {
 
 // check if a polygon diagonal is locally inside the polygon
 function locallyInside(a, b) {
-    var prev = a.prev;
-    var next = a.next;
-    while (equals(prev, a)) prev = prev.prev;
-    while (equals(next, a)) next = next.next;
-
-    return area(prev, a, next) < 0 ?
-        area(a, b, next) >= 0 && area(a, prev, b) >= 0 :
-        area(a, b, prev) < 0 || area(a, next, b) < 0;
+    return area(a.prev, a, a.next) < 0 ?
+        area(a, b, a.next) >= 0 && area(a, a.prev, b) >= 0 :
+        area(a, b, a.prev) < 0 || area(a, a.next, b) < 0;
 }
 
 // check if the middle point of a polygon diagonal is inside the polygon
