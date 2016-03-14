@@ -320,7 +320,8 @@ function findHoleBridge(hole, outerNode) {
 
             tan = Math.abs(hy - p.y) / (hx - p.x); // tangential
 
-            if ((tan < tanMin || (tan === tanMin && p.x > m.x)) && locallyInside(p, hole)) {
+            if ((tan < tanMin || (tan === tanMin && p.x > m.x)) &&
+                    area(p.prev, p, p.next) !== 0 && locallyInside(p, hole)) {
                 m = p;
                 tanMin = tan;
             }
