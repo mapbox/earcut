@@ -113,6 +113,13 @@ npm test
 
 #### Changelog
 
+##### 2.1.1 (Mar 17, 2016)
+
+- Fixed a rare race condition where the split routine would choose bad diagonals.
+- Fixed a rare race condition in the "cure local intersections" routine.
+- Fixed a rare race condition where a hole that shares a point with the outer ring would be handled incorrectly.
+- Fixed a bug where a closing point wouldn't be filtered as duplicate, sometimes breaking triangulation.
+
 ##### 2.1.0 (Mar 11, 2016)
 
 - Added `earcut.deviation` function for verifying correctness of triangulation.
