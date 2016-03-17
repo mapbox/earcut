@@ -30,6 +30,7 @@ areaTest('touching-holes', 57);
 areaTest('hole-touching-outer', 77);
 areaTest('hilbert', 1024);
 areaTest('issue45', 10);
+areaTest('eberly-3', 73);
 areaTest('eberly-6', 1429);
 areaTest('issue52', 109);
 
