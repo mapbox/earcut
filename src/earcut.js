@@ -202,8 +202,7 @@ function cureLocalIntersections(start, triangles, dim) {
         var a = p.prev,
             b = p.next.next;
 
-        // a self-intersection where edge (v[i-1],v[i]) intersects (v[i+1],v[i+2])
-        if (intersects(a, p, p.next, b) && locallyInside(a, b) && locallyInside(b, a)) {
+        if (!equals(a, b) && intersects(a, p, p.next, b) && locallyInside(a, b) && locallyInside(b, a)) {
 
             triangles.push(a.i / dim);
             triangles.push(p.i / dim);

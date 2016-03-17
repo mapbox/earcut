@@ -13,7 +13,7 @@ areaTest('water3', 197);
 areaTest('water3b', 25);
 areaTest('water4', 705);
 areaTest('water-huge', 5173, 0.0011);
-areaTest('water-huge2', 4459, 0.0028);
+areaTest('water-huge2', 4461, 0.0028);
 areaTest('degenerate', 0);
 areaTest('bad-hole', 42, 0.019);
 areaTest('empty-square', 0);
@@ -33,6 +33,7 @@ areaTest('issue45', 10);
 areaTest('eberly-3', 73);
 areaTest('eberly-6', 1429);
 areaTest('issue52', 109);
+areaTest('shared-points', 4);
 
 test('indices-2d', function (t) {
     var indices = earcut([10, 0, 0, 50, 60, 60, 70, 10]);
