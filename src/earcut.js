@@ -147,7 +147,7 @@ function isEar(ear) {
     var p = ear.next.next;
 
     while (p !== ear.prev) {
-        if (pointInTriangle(a.x, a.y, b.x, b.y, c.x, c.y, p.x, p.y) &&
+        if (pointInTriangle(a.x, a.y, b.x, b.y, c.x, c.y, p.x, p.y) && p.i !== ear.i &&
             area(p.prev, p, p.next) >= 0) return false;
         p = p.next;
     }
@@ -177,7 +177,7 @@ function isEarHashed(ear, minX, minY, size) {
 
     while (p && p.z <= maxZ) {
         if (p !== ear.prev && p !== ear.next &&
-            pointInTriangle(a.x, a.y, b.x, b.y, c.x, c.y, p.x, p.y) &&
+            pointInTriangle(a.x, a.y, b.x, b.y, c.x, c.y, p.x, p.y) && p.i !== ear.i &&
             area(p.prev, p, p.next) >= 0) return false;
         p = p.nextZ;
     }
@@ -187,7 +187,7 @@ function isEarHashed(ear, minX, minY, size) {
 
     while (p && p.z >= minZ) {
         if (p !== ear.prev && p !== ear.next &&
-            pointInTriangle(a.x, a.y, b.x, b.y, c.x, c.y, p.x, p.y) &&
+            pointInTriangle(a.x, a.y, b.x, b.y, c.x, c.y, p.x, p.y) && p.i !== ear.i &&
             area(p.prev, p, p.next) >= 0) return false;
         p = p.prevZ;
     }
