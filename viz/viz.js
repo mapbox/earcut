@@ -20,20 +20,8 @@ if (devicePixelRatio > 1) {
     ctx.scale(2, 2);
 }
 
-var data = earcut.flatten(testPoints);
-
-console.time('earcut');
-// for (var i = 0; i < 1000; i++) {
-var result = earcut(data.vertices, data.holes, data.dimensions);
-// }
-console.timeEnd('earcut');
-
-var triangles = [];
-for (i = 0; i < result.length; i++) {
-    var index = result[i];
-    triangles.push([data.vertices[index * data.dimensions], data.vertices[index * data.dimensions + 1]]);
-}
->>>>>>> master
+var numOuter = 0;
+var numHoles = 0;
 
 ctx.lineJoin = 'round';
 
@@ -82,6 +70,8 @@ canvas.ondrop = function (e) {
                         else drawPoly(triangle, 'rgba(255,0,0,0.0)', 'rgba(255,0,0,0.3)');
                     }
 
+                    if (deviation) console.log(JSON.stringify(polygons[k]));
+
                     drawPoly(polygons[k], 'rgba(0,0,0,0.5)');
                 }
             }
@@ -115,4 +105,74 @@ function drawPoly(rings, color, fill) {
     ctx.stroke();
 
     if (fill) ctx.fill('evenodd');
+}
+
+function flattenData(data) {
+    var dim = data[0][0].length,
+        result = {vertices: [], holes: [], dimensions: dim},
+        holeIndex = 0;
+
+    for (var i = 0; i < data.length; i++) {
+        for (var j = 0; j < data[i].length; j++) {
+            for (var d = 0; d < dim; d++) result.vertices.push(data[i][j][d]);
+        }
+        if (i > 0) {
+            holeIndex += data[i - 1].length;
+            result.holes.push(holeIndex);
+        }
+    }
+
+    return result;
+}
+
+function classifyRings(rings) {
+    var len = rings.length;
+
+    if (len <= 1) return [rings];
+
+    var polygons = [],
+        polygon,
+        outerArea;
+
+    for (var i = 0; i < len; i++) {
+        var area = signedArea(rings[i]);
+        if (area === 0) throw new Error('zero area polygon');
+
+        if (!outerArea || (outerArea < 0 === area < 0)) {
+            if (polygon) polygons.push(polygon);
+            polygon = [rings[i]];
+            outerArea = area;
+            numOuter++;
+
+        } else {
+            if (Math.abs(area) > Math.abs(outerArea)) throw new Error('Hole is bigger than outer ring!');
+            polygon.push(rings[i]);
+            numHoles++;
+        }
+    }
+    if (polygon) polygons.push(polygon);
+
+    return polygons;
+}
+
+function signedArea(ring) {
+    var sum = 0;
+    for (var i = 0, len = ring.length, j = len - 1, p1, p2; i < len; j = i++) {
+        p1 = ring[i];
+        p2 = ring[j];
+        sum += (p2[0] - p1[0]) * (p1[1] + p2[1]);
+    }
+    return sum;
+}
+
+function ringArea(ring) {
+    return Math.abs(signedArea(ring)) / 2;
+}
+
+function polygonArea(rings) {
+    var sum = ringArea(rings[0]);
+    for (var i = 1; i < rings.length; i++) {
+        sum -= ringArea(rings[i]);
+    }
+    return sum;
 }
