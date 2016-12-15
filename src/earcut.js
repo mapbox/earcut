@@ -77,17 +77,20 @@ function filterPoints(start, end) {
 
         // Don't remove p , if `p.prev, p & p.next` don't belong to the same polygon(hole).
         var toRemove = false;
-        if (area(p.prev, p, p.next) === 0) {
-            if (p.prev.parentId === p.parentId && p.next.parentId === p.parentId && p.prev.parentId === p.next.parentId) {
+        if (!p.steiner) {
+            if (equals(p, p.next)) {
                 toRemove = true;
+            } else if (area(p.prev, p, p.next) === 0) {
+                if (p.prev.parentId === p.parentId && p.next.parentId === p.parentId && p.prev.parentId === p.next.parentId) {
+                    toRemove = true;
+                }
             }
         }
-        if (!p.steiner && (equals(p, p.next) || toRemove)) {
+        if (toRemove) {
             removeNode(p);
             p = end = p.prev;
             if (p === p.next) return null;
             again = true;
-
         } else {
             p = p.next;
         }
