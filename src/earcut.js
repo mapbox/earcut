@@ -82,7 +82,7 @@ function filterPoints(start, end) {
                 toRemove = true;
             }
         }
-        if (!p.steiner && equals(p, p.next) || toRemove) {
+        if (!p.steiner && (equals(p, p.next) || toRemove)) {
             removeNode(p);
             p = end = p.prev;
             if (p === p.next) return null;
