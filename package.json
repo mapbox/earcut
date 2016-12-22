@@ -1,5 +1,5 @@
 {
-  "name": "earcut",
+  "name": "@mapbox/earcut",
   "version": "2.1.1",
   "description": "The fastest and smallest JavaScript polygon triangulation library for your WebGL apps",
   "main": "src/earcut.js",
