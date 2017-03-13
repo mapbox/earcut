@@ -96,8 +96,30 @@ function earcutLinked(ear, triangles, dim, minX, minY, size, pass) {
     while (ear.prev !== ear.next) {
         prev = ear.prev;
         next = ear.next;
+        var result = null;
+        if (size) {
+            result = isEarHashed(ear, minX, minY, size);
+        } else {
+            result = isEar(ear);
+        }
+        if (result && result !== ear) {
+            console.log("splitting");
+            var a = ear;
+            var b = result;
 
-        if (size ? isEarHashed(ear, minX, minY, size) : isEar(ear)) {
+            var c = splitPolygon(a, b);
+
+            // filter colinear points around the cuts
+            a = filterPoints(a, a.next);
+            c = filterPoints(c, c.next);
+
+            // run earcut on each half
+            earcutLinked(a, triangles, dim, minX, minY, size);
+            earcutLinked(c, triangles, dim, minX, minY, size);
+            break;
+        }
+
+        if (result == ear) {
             // cut off the triangle
             triangles.push(prev.i / dim);
             triangles.push(ear.i / dim);
@@ -141,18 +163,25 @@ function isEar(ear) {
         b = ear,
         c = ear.next;
 
-    if (area(a, b, c) >= 0) return false; // reflex, can't be an ear
-
+    if (area(a, b, c) >= 0) {
+        return null; // reflex, can't be an ear
+    }
     // now make sure we don't have other points inside the potential ear
     var p = ear.next.next;
 
     while (p !== ear.prev) {
         if (pointInTriangle(a.x, a.y, b.x, b.y, c.x, c.y, p.x, p.y) &&
-            area(p.prev, p, p.next) >= 0) return false;
+            p.i !== a.i && p.i !== b.i && p.i !== c.i &&
+            area(p.prev, p, p.next) >= 0) {
+
+            if (equals(p, ear)) { return p; }
+
+            return null;
+        }
         p = p.next;
     }
 
-    return true;
+    return ear;
 }
 
 function isEarHashed(ear, minX, minY, size) {
@@ -160,7 +189,7 @@ function isEarHashed(ear, minX, minY, size) {
         b = ear,
         c = ear.next;
 
-    if (area(a, b, c) >= 0) return false; // reflex, can't be an ear
+    if (area(a, b, c) >= 0) return null; // reflex, can't be an ear
 
     // triangle bbox; min & max are calculated like this for speed
     var minTX = a.x < b.x ? (a.x < c.x ? a.x : c.x) : (b.x < c.x ? b.x : c.x),
@@ -178,7 +207,13 @@ function isEarHashed(ear, minX, minY, size) {
     while (p && p.z <= maxZ) {
         if (p !== ear.prev && p !== ear.next &&
             pointInTriangle(a.x, a.y, b.x, b.y, c.x, c.y, p.x, p.y) &&
-            area(p.prev, p, p.next) >= 0) return false;
+            p.i !== a.i && p.i !== b.i && p.i !== c.i &&
+            area(p.prev, p, p.next) >= 0) {
+
+            if (equals(p, ear)) { return p; }
+
+            return null;
+        }
         p = p.nextZ;
     }
 
@@ -188,11 +223,17 @@ function isEarHashed(ear, minX, minY, size) {
     while (p && p.z >= minZ) {
         if (p !== ear.prev && p !== ear.next &&
             pointInTriangle(a.x, a.y, b.x, b.y, c.x, c.y, p.x, p.y) &&
-            area(p.prev, p, p.next) >= 0) return false;
+            p.i !== a.i && p.i !== b.i && p.i !== c.i &&
+            area(p.prev, p, p.next) >= 0) {
+
+            if (equals(p, ear)) { return p; }
+
+            return null;
+        }
         p = p.prevZ;
     }
 
-    return true;
+    return ear;
 }
 
 // go through all polygon nodes and cure small local self-intersections
@@ -255,8 +296,10 @@ function eliminateHoles(data, holeIndices, outerNode, dim) {
         start = holeIndices[i] * dim;
         end = i < len - 1 ? holeIndices[i + 1] * dim : data.length;
         list = linkedList(data, start, end, dim, false);
-        if (list === list.next) list.steiner = true;
-        queue.push(getLeftmost(list));
+        if (list) {
+            if (list === list.next) list.steiner = true;
+            queue.push(getLeftmost(list));
+        }
     }
 
     queue.sort(compareX);
@@ -271,7 +314,10 @@ function eliminateHoles(data, holeIndices, outerNode, dim) {
 }
 
 function compareX(a, b) {
-    return a.x - b.x;
+    var c = a.x - b.x;
+    if (c !== 0) return c;
+
+    return a.y - b.y;
 }
 
 // find a bridge between vertices that connects hole with an outer ring and and link it
@@ -435,7 +481,11 @@ function getLeftmost(start) {
     var p = start,
         leftmost = start;
     do {
-        if (p.x < leftmost.x) leftmost = p;
+        if (p.x < leftmost.x) {
+            leftmost = p;
+        } else if (p.x === leftmost.x && p.y < leftmost.y) {
+            leftmost = p;
+        }
         p = p.next;
     } while (p !== start);
 
@@ -511,6 +561,12 @@ function middleInside(a, b) {
 // link two polygon vertices with a bridge; if the vertices belong to the same ring, it splits polygon into two;
 // if one belongs to the outer ring and another to a hole, it merges it into a single ring
 function splitPolygon(a, b) {
+
+    // Dont split again in isEar
+    if (a.x === b.x && a.y === b.y) {
+        a.i = b.i;
+    }
+
     var a2 = new Node(a.i, a.x, a.y),
         b2 = new Node(b.i, b.x, b.y),
         an = a.next,
