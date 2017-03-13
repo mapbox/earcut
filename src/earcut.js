@@ -40,19 +40,26 @@ function earcut(data, holeIndices, dim) {
     return triangles;
 }
 
-// create a circular doubly linked list from polygon points in the specified winding order
-function linkedList(data, start, end, dim, clockwise) {
+// Create a circular doubly linked list from polygon points in the specified winding order.
+// parentId is used to identify which polygons（holes）the points belong to.
+function linkedList(data, start, end, dim, clockwise, parentId) {
     var i, last;
 
     if (clockwise === (signedArea(data, start, end, dim) > 0)) {
-        for (i = start; i < end; i += dim) last = insertNode(i, data[i], data[i + 1], last);
+        for (i = start; i < end; i += dim) {
+            last = insertNode(i, data[i], data[i + 1], last);
+            last.parentId = parentId;
+        }
     } else {
-        for (i = end - dim; i >= start; i -= dim) last = insertNode(i, data[i], data[i + 1], last);
+        for (i = end - dim; i >= start; i -= dim) {
+            last = insertNode(i, data[i], data[i + 1], last);
+            last.parentId = parentId;
+        }
     }
-
     if (last && equals(last, last.next)) {
         removeNode(last);
         last = last.next;
+        last.parentId = parentId;
     }
 
     return last;
@@ -68,12 +75,22 @@ function filterPoints(start, end) {
     do {
         again = false;
 
-        if (!p.steiner && (equals(p, p.next) || area(p.prev, p, p.next) === 0)) {
+        // Don't remove p , if `p.prev, p & p.next` don't belong to the same polygon(hole).
+        var toRemove = false;
+        if (!p.steiner) {
+            if (equals(p, p.next)) {
+                toRemove = true;
+            } else if (area(p.prev, p, p.next) === 0) {
+                if (p.prev.parentId === p.parentId && p.next.parentId === p.parentId && p.prev.parentId === p.next.parentId) {
+                    toRemove = true;
+                }
+            }
+        }
+        if (toRemove) {
             removeNode(p);
             p = end = p.prev;
             if (p === p.next) return null;
             again = true;
-
         } else {
             p = p.next;
         }
@@ -254,7 +271,7 @@ function eliminateHoles(data, holeIndices, outerNode, dim) {
     for (i = 0, len = holeIndices.length; i < len; i++) {
         start = holeIndices[i] * dim;
         end = i < len - 1 ? holeIndices[i + 1] * dim : data.length;
-        list = linkedList(data, start, end, dim, false);
+        list = linkedList(data, start, end, dim, false, 'hole-' + i);
         if (list === list.next) list.steiner = true;
         queue.push(getLeftmost(list));
     }
@@ -515,6 +532,9 @@ function splitPolygon(a, b) {
         b2 = new Node(b.i, b.x, b.y),
         an = a.next,
         bp = b.prev;
+
+    a2.parentId = a.parentId;
+    b2.parentId = b.parentId;
 
     a.next = b;
     b.prev = a;
