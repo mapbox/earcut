@@ -271,7 +271,10 @@ function eliminateHoles(data, holeIndices, outerNode, dim) {
 }
 
 function compareX(a, b) {
-    return a.x - b.x;
+    var c = a.x - b.x;
+    if (c !== 0) return c;
+
+    return a.y - b.y;
 }
 
 // find a bridge between vertices that connects hole with an outer ring and and link it
@@ -435,7 +438,11 @@ function getLeftmost(start) {
     var p = start,
         leftmost = start;
     do {
-        if (p.x < leftmost.x) leftmost = p;
+        if (p.x < leftmost.x) {
+            leftmost = p;
+        } else if (p.x === leftmost.x && p.y < leftmost.y) {
+            leftmost = p;
+        }
         p = p.next;
     } while (p !== start);
 
