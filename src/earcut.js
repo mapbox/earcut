@@ -1,6 +1,8 @@
 'use strict';
 
-module.exports = earcut;
+if (typeof module !== 'undefined' && typeof module.exports !== 'undefined') {
+    module.exports = earcut;
+}
 
 function earcut(data, holeIndices, dim) {
 
