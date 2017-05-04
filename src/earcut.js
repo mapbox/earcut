@@ -499,7 +499,7 @@ function middleInside(a, b) {
         px = (a.x + b.x) / 2,
         py = (a.y + b.y) / 2;
     do {
-        if (((p.y > py) !== (p.next.y > py)) && p.next.y !== p.y &&
+        if (p.next.y !== p.y && ((p.y > py) !== (p.next.y > py)) &&
                 (px < (p.next.x - p.x) * (py - p.y) / (p.next.y - p.y) + p.x))
             inside = !inside;
         p = p.next;
