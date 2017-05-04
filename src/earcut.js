@@ -349,9 +349,18 @@ function findHoleBridge(hole, outerNode) {
 
     p = m.next;
 
+    var ax = hy < my ? hx : qx;
+    var cx = hy < my ? qx : hx;
+
+    var ay = hy, bx = mx,
+        by = my, cy = hy,
+        ca = cx * ay - ax * cy,
+        ab = ax * by - bx * ay,
+        bc = bx * cy - cx * by;
+
     while (p !== stop) {
         if (hx >= p.x && p.x >= mx && hx !== p.x &&
-                pointInTriangle(hy < my ? hx : qx, hy, mx, my, hy < my ? qx : hx, hy, p.x, p.y)) {
+            pointInTriangleLoop(ca, ab, bc, ax, ay, bx, by, cx, cy, p.x, p.y)) {
 
             tan = Math.abs(hy - p.y) / (hx - p.x); // tangential
 
@@ -468,34 +477,13 @@ function getLeftmost(start) {
 }
 
 // check if a point lies within a convex triangle
-// 6 mul 15 add = 21 total
 /*function pointInTriangle(ax, ay, bx, by, cx, cy, px, py) {
     return (cx - px) * (ay - py) - (ax - px) * (cy - py) >= 0 &&
            (ax - px) * (by - py) - (bx - px) * (ay - py) >= 0 &&
            (bx - px) * (cy - py) - (cx - px) * (by - py) >= 0;
 }*/
 
-// 12 mul 12 add = 24 total but now only 9 ops need for recalc in loops
-function pointInTriangle(ax, ay, bx, by, cx, cy, px, py) {
-    var axy = ax * py;
-    var ayx = ay * px;
-
-    var bxy = bx * py;
-    var byx = by * px;
-
-    var cxy = cx * py;
-    var cyx = cy * px;
-
-    var da = ayx - axy;
-    var dc = cyx - cxy;
-    var db = byx - bxy;
-
-    return cx * ay - ax * cy + dc - da >= 0 &&
-           ax * by - bx * ay + da - db >= 0 &&
-           bx * cy - cx * by + db - dc >= 0;
-}
-
-
+// check if a point lies within a convex triangle
 function pointInTriangleLoop(ca, ab, bc, ax, ay, bx, by, cx, cy, px, py) {
     var axy = ax * py;
     var ayx = ay * px;
