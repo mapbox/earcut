@@ -500,19 +500,25 @@ function pointInTriangleLoop(ca, ab, bc, ax, ay, bx, by, cx, cy, px, py) {
     var axy = ax * py;
     var ayx = ay * px;
 
-    var bxy = bx * py;
-    var byx = by * px;
-
     var cxy = cx * py;
     var cyx = cy * px;
 
     var da = ayx - axy;
     var dc = cyx - cxy;
+
+    if (ca + dc - da < 0)
+        return false;
+
+    var bxy = bx * py;
+    var byx = by * px;
+
     var db = byx - bxy;
 
-    return ca + dc - da >= 0 &&
-           ab + da - db >= 0 &&
-           bc + db - dc >= 0;
+    if (ab + da - db < 0 ||
+        bc + db - dc < 0)
+        return false;
+
+    return true;
 }
 
 // check if a diagonal between two polygon nodes is valid (lies in polygon interior)
