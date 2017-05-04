@@ -148,9 +148,19 @@ function isEar(ear) {
     // now make sure we don't have other points inside the potential ear
     var p = ear.next.next;
 
-    while (p !== ear.prev) {
+    var ax = a.x, ay = a.y,
+        bx = b.x, by = b.y,
+        cx = c.x, cy = c.y,
+        ca = cx * ay - ax * cy,
+        ab = ax * by - bx * ay,
+        bc = bx * cy - cx * by,
+        first = ear.prev;
+
+    while (p !== first) {
         if (area(p.prev, p, p.next) >= 0 &&
-            pointInTriangle(a.x, a.y, b.x, b.y, c.x, c.y, p.x, p.y)) return false;
+            pointInTriangleLoop(ca, ab, bc, ax, ay, bx, by, cx, cy, p.x, p.y)) {
+            return false;
+        }
         p = p.next;
     }
 
@@ -177,6 +187,9 @@ function isEarHashed(ear, minX, minY, size) {
     var ax = a.x, ay = a.y,
         bx = b.x, by = b.y,
         cx = c.x, cy = c.y,
+        ca = cx * ay - ax * cy,
+        ab = ax * by - bx * ay,
+        bc = bx * cy - cx * by,
         first = ear.prev,
         last  = ear.next;
 
@@ -185,7 +198,10 @@ function isEarHashed(ear, minX, minY, size) {
 
     while (p && p.z <= maxZ) {
         if (p !== first && p !== last && area(p.prev, p, p.next) >= 0 &&
-            pointInTriangle(ax, ay, bx, by, cx, cy, p.x, p.y)) return false;
+            pointInTriangleLoop(ca, ab, bc, ax, ay, bx, by, cx, cy, p.x, p.y)) {
+            return false;
+        }
+
         p = p.nextZ;
     }
 
@@ -194,7 +210,10 @@ function isEarHashed(ear, minX, minY, size) {
 
     while (p && p.z >= minZ) {
         if (p !== first && p !== last && area(p.prev, p, p.next) >= 0 &&
-            pointInTriangle(ax, ay, bx, by, cx, cy, p.x, p.y)) return false;
+            pointInTriangleLoop(ca, ab, bc, ax, ay, bx, by, cx, cy, p.x, p.y)) {
+            return false;
+        }
+
         p = p.prevZ;
     }
 
@@ -449,12 +468,14 @@ function getLeftmost(start) {
 }
 
 // check if a point lies within a convex triangle
+// 6 mul 15 add = 21 total
 /*function pointInTriangle(ax, ay, bx, by, cx, cy, px, py) {
     return (cx - px) * (ay - py) - (ax - px) * (cy - py) >= 0 &&
            (ax - px) * (by - py) - (bx - px) * (ay - py) >= 0 &&
            (bx - px) * (cy - py) - (cx - px) * (by - py) >= 0;
 }*/
 
+// 12 mul 12 add = 24 total but now only 9 ops need for recalc in loops
 function pointInTriangle(ax, ay, bx, by, cx, cy, px, py) {
     var axy = ax * py;
     var ayx = ay * px;
@@ -472,6 +493,26 @@ function pointInTriangle(ax, ay, bx, by, cx, cy, px, py) {
     return cx * ay - ax * cy + dc - da >= 0 &&
            ax * by - bx * ay + da - db >= 0 &&
            bx * cy - cx * by + db - dc >= 0;
+}
+
+
+function pointInTriangleLoop(ca, ab, bc, ax, ay, bx, by, cx, cy, px, py) {
+    var axy = ax * py;
+    var ayx = ay * px;
+
+    var bxy = bx * py;
+    var byx = by * px;
+
+    var cxy = cx * py;
+    var cyx = cy * px;
+
+    var da = ayx - axy;
+    var dc = cyx - cxy;
+    var db = byx - bxy;
+
+    return ca + dc - da >= 0 &&
+           ab + da - db >= 0 &&
+           bc + db - dc >= 0;
 }
 
 // check if a diagonal between two polygon nodes is valid (lies in polygon interior)
