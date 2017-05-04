@@ -178,9 +178,8 @@ function isEarHashed(ear, minX, minY, size) {
     var p = ear.nextZ;
 
     while (p && p.z <= maxZ) {
-        if (p !== ear.prev && p !== ear.next &&
-            pointInTriangle(a.x, a.y, b.x, b.y, c.x, c.y, p.x, p.y) &&
-            area(p.prev, p, p.next) >= 0) return false;
+        if (p !== ear.prev && p !== ear.next && area(p.prev, p, p.next) >= 0 &&
+            pointInTriangle(a.x, a.y, b.x, b.y, c.x, c.y, p.x, p.y)) return false;
         p = p.nextZ;
     }
 
@@ -188,9 +187,8 @@ function isEarHashed(ear, minX, minY, size) {
     p = ear.prevZ;
 
     while (p && p.z >= minZ) {
-        if (p !== ear.prev && p !== ear.next &&
-            pointInTriangle(a.x, a.y, b.x, b.y, c.x, c.y, p.x, p.y) &&
-            area(p.prev, p, p.next) >= 0) return false;
+        if (p !== ear.prev && p !== ear.next && area(p.prev, p, p.next) >= 0 &&
+            pointInTriangle(a.x, a.y, b.x, b.y, c.x, c.y, p.x, p.y)) return false;
         p = p.prevZ;
     }
 
