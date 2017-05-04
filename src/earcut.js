@@ -92,12 +92,14 @@ function earcutLinked(ear, triangles, dim, minX, minY, size, pass) {
     var stop = ear,
         prev, next;
 
+    var isEarCached = size ? isEarHashed : isEar;
+
     // iterate through ears, slicing them one by one
     while (ear.prev !== ear.next) {
         prev = ear.prev;
         next = ear.next;
 
-        if (size ? isEarHashed(ear, minX, minY, size) : isEar(ear)) {
+        if (isEarCached(ear, minX, minY, size)) {
             // cut off the triangle
             triangles.push(prev.i / dim);
             triangles.push(ear.i / dim);
