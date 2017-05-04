@@ -174,12 +174,18 @@ function isEarHashed(ear, minX, minY, size) {
     var minZ = zOrder(minTX, minTY, minX, minY, size),
         maxZ = zOrder(maxTX, maxTY, minX, minY, size);
 
+    var ax = a.x, ay = a.y,
+        bx = b.x, by = b.y,
+        cx = c.x, cy = c.y,
+        first = ear.prev,
+        last  = ear.next;
+
     // first look for points inside the triangle in increasing z-order
     var p = ear.nextZ;
 
     while (p && p.z <= maxZ) {
-        if (p !== ear.prev && p !== ear.next && area(p.prev, p, p.next) >= 0 &&
-            pointInTriangle(a.x, a.y, b.x, b.y, c.x, c.y, p.x, p.y)) return false;
+        if (p !== first && p !== last && area(p.prev, p, p.next) >= 0 &&
+            pointInTriangle(ax, ay, bx, by, cx, cy, p.x, p.y)) return false;
         p = p.nextZ;
     }
 
@@ -187,8 +193,8 @@ function isEarHashed(ear, minX, minY, size) {
     p = ear.prevZ;
 
     while (p && p.z >= minZ) {
-        if (p !== ear.prev && p !== ear.next && area(p.prev, p, p.next) >= 0 &&
-            pointInTriangle(a.x, a.y, b.x, b.y, c.x, c.y, p.x, p.y)) return false;
+        if (p !== first && p !== last && area(p.prev, p, p.next) >= 0 &&
+            pointInTriangle(ax, ay, bx, by, cx, cy, p.x, p.y)) return false;
         p = p.prevZ;
     }
 
@@ -478,7 +484,7 @@ function intersectsPolygon(a, b) {
     var p = a;
     do {
         if (p.i !== a.i && p.next.i !== a.i && p.i !== b.i && p.next.i !== b.i &&
-                intersects(p, p.next, a, b)) return true;
+            intersects(p, p.next, a, b)) return true;
         p = p.next;
     } while (p !== a);
 
