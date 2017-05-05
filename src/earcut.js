@@ -241,15 +241,17 @@ function isEarHashed(ear, minX, minY, size) {
 // go through all polygon nodes and cure small local self-intersections
 function cureLocalIntersections(start, triangles, dim) {
     var p = start;
+    var invDim = 1 / dim;
+
     do {
         var a = p.prev,
             b = p.next.next;
 
         if (!equals(a, b) && intersects(a, p, p.next, b) && locallyInside(a, b) && locallyInside(b, a)) {
 
-            triangles.push(a.i / dim);
-            triangles.push(p.i / dim);
-            triangles.push(b.i / dim);
+            triangles.push(a.i * invDim);
+            triangles.push(p.i * invDim);
+            triangles.push(b.i * invDim);
 
             // remove two nodes involved
             removeNode(p);
@@ -475,8 +477,10 @@ function sortLinked(list) {
 // z-order of a point given coords and size of the data bounding box
 function zOrder(x, y, minX, minY, size) {
     // coords are transformed into non-negative 15-bit integer range
-    x = 32767 * (x - minX) / size;
-    y = 32767 * (y - minY) / size;
+    size = 32767 / size;
+
+    x = (x - minX) * size;
+    y = (y - minY) * size;
 
     x = (x | (x << 8)) & 0x00FF00FF;
     x = (x | (x << 4)) & 0x0F0F0F0F;
