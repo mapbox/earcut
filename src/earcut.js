@@ -92,7 +92,8 @@ function earcutLinked(ear, triangles, dim, minX, minY, size, pass) {
     var stop = ear,
         prev, next;
 
-    var isEarCached = size ? isEarHashed : isEar;
+    var isEarCached = size ? isEarHashed : isEar,
+        invDim = 1 / dim;
 
     // iterate through ears, slicing them one by one
     while (ear.prev !== ear.next) {
@@ -101,9 +102,9 @@ function earcutLinked(ear, triangles, dim, minX, minY, size, pass) {
 
         if (isEarCached(ear, minX, minY, size)) {
             // cut off the triangle
-            triangles.push(prev.i / dim);
-            triangles.push(ear.i / dim);
-            triangles.push(next.i / dim);
+            triangles.push(prev.i * invDim);
+            triangles.push(ear.i  * invDim);
+            triangles.push(next.i * invDim);
 
             removeNode(ear);
 
@@ -116,18 +117,17 @@ function earcutLinked(ear, triangles, dim, minX, minY, size, pass) {
 
         // if we looped through the whole remaining polygon and can't find any more ears
         if (ear === stop) {
-            // try filtering points and slicing again
-            if (!pass) {
+            pass = pass | 0;
+            switch (pass) {
+            case 0:
                 earcutLinked(filterPoints(ear), triangles, dim, minX, minY, size, 1);
-
-            // if this didn't work, try curing all small self-intersections locally
-            } else if (pass === 1) {
-                ear = cureLocalIntersections(ear, triangles, dim);
-                earcutLinked(ear, triangles, dim, minX, minY, size, 2);
-
-            // as a last resort, try splitting the remaining polygon into two
-            } else if (pass === 2) {
+                break;
+            case 1:
+                earcutLinked(cureLocalIntersections(ear, triangles, dim), triangles, dim, minX, minY, size, 2);
+                break;
+            case 2:
                 splitEarcut(ear, triangles, dim, minX, minY, size);
+                break;
             }
 
             break;
