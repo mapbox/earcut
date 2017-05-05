@@ -151,23 +151,11 @@ function isEar(ear) {
     var ax = a.x, ay = a.y,
         bx = b.x, by = b.y,
         cx = c.x, cy = c.y,
-
-        ca = cx * ay - ax * cy,
-        ab = ax * by - bx * ay,
-        bc = bx * cy - cx * by,
-
-        cax = cx - ax,
-        cay = cy - ay,
-        abx = ax - bx,
-        aby = ay - by,
-        bcx = bx - cx,
-        bcy = by - cy,
-
         first = ear.prev;
 
     while (p !== first) {
         if (area(p.prev, p, p.next) >= 0 &&
-            pointInTriangleLoop(ca, ab, bc, cax, cay, abx, aby, bcx, bcy, p.x, p.y)) {
+            pointInTriangle(ax, ay, bx, by, cx, cy, p.x, p.y)) {
             return false;
         }
         p = p.next;
@@ -508,11 +496,11 @@ function getLeftmost(start) {
 }
 
 // check if a point lies within a convex triangle
-/*function pointInTriangle(ax, ay, bx, by, cx, cy, px, py) {
+function pointInTriangle(ax, ay, bx, by, cx, cy, px, py) {
     return (cx - px) * (ay - py) - (ax - px) * (cy - py) >= 0 &&
            (ax - px) * (by - py) - (bx - px) * (ay - py) >= 0 &&
            (bx - px) * (cy - py) - (cx - px) * (by - py) >= 0;
-}*/
+}
 
 // check if a point lies within a convex triangle
 function pointInTriangleLoop(ca, ab, bc, cax, cay, abx, aby, bcx, bcy, px, py) {
