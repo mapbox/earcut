@@ -560,11 +560,13 @@ function locallyInside(a, b) {
 function middleInside(a, b) {
     var p = a,
         inside = false,
-        px = (a.x + b.x) / 2,
-        py = (a.y + b.y) / 2;
+        px = (a.x + b.x) * 0.5,
+        py = (a.y + b.y) * 0.5;
     do {
-        if (p.next.y !== p.y && ((p.y > py) !== (p.next.y > py)) &&
-                (px < (p.next.x - p.x) * (py - p.y) / (p.next.y - p.y) + p.x))
+        var dy  = p.y - py;
+        var dny = p.next.y - p.y;
+        if (dny !== 0 && (dy > 0) !== (p.next.y - py > 0) &&
+            (px < (p.x - p.next.x) * dy / dny + p.x))
             inside = !inside;
         p = p.next;
     } while (p !== a);
