@@ -211,20 +211,8 @@ function isEarHashed(ear, minX, minY, size) {
         first = ear.prev,
         last  = ear.next;
 
-    // first look for points inside the triangle in increasing z-order
-    var p = ear.nextZ;
-
-    while (p && p.z <= maxZ) {
-        if (p !== first && p !== last && area(p.prev, p, p.next) >= 0 &&
-            pointInTriangleLoop(ca, ab, bc, cax, cay, abx, aby, bcx, bcy, p.x, p.y)) {
-            return false;
-        }
-
-        p = p.nextZ;
-    }
-
-    // then look for points in decreasing z-order
-    p = ear.prevZ;
+    // first look for points inside the triangle in decreasing z-order
+    var p = ear.prevZ;
 
     while (p && p.z >= minZ) {
         if (p !== first && p !== last && area(p.prev, p, p.next) >= 0 &&
@@ -233,6 +221,18 @@ function isEarHashed(ear, minX, minY, size) {
         }
 
         p = p.prevZ;
+    }
+
+    // then increasing z-order
+    p = ear.nextZ;
+
+    while (p && p.z <= maxZ) {
+        if (p !== first && p !== last && area(p.prev, p, p.next) >= 0 &&
+            pointInTriangleLoop(ca, ab, bc, cax, cay, abx, aby, bcx, bcy, p.x, p.y)) {
+            return false;
+        }
+
+        p = p.nextZ;
     }
 
     return true;
