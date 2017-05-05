@@ -108,9 +108,7 @@ function earcutLinked(ear, triangles, dim, minX, minY, size, pass) {
             removeNode(ear);
 
             // skipping the next vertice leads to less sliver triangles
-            ear = next.next;
-            stop = next.next;
-
+            ear = stop = next.next;
             continue;
         }
 
