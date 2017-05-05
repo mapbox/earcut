@@ -183,20 +183,16 @@ function isEarHashed(ear, minX, minY, size) {
     var minZ = zOrder(minTX, minTY, minX, minY, size),
         maxZ = zOrder(maxTX, maxTY, minX, minY, size);
 
-    var ax = a.x, ay = a.y,
-        bx = b.x, by = b.y,
-        cx = c.x, cy = c.y,
+    var ca = c.x * a.y - a.x * c.y,
+        ab = a.x * b.y - b.x * a.y,
+        bc = b.x * c.y - c.x * b.y,
 
-        ca = cx * ay - ax * cy,
-        ab = ax * by - bx * ay,
-        bc = bx * cy - cx * by,
-
-        cax = cx - ax,
-        cay = cy - ay,
-        abx = ax - bx,
-        aby = ay - by,
-        bcx = bx - cx,
-        bcy = by - cy,
+        cax = c.x - a.x,
+        cay = c.y - a.y,
+        abx = a.x - b.x,
+        aby = a.y - b.y,
+        bcx = b.x - c.x,
+        bcy = b.y - c.y,
 
         first = ear.prev,
         last  = ear.next;
@@ -205,8 +201,9 @@ function isEarHashed(ear, minX, minY, size) {
     var p = ear.prevZ;
 
     while (p && p.z >= minZ) {
-        if (p !== first && p !== last && area(p.prev, p, p.next) >= 0 &&
-            pointInTriangleLoop(ca, ab, bc, cax, cay, abx, aby, bcx, bcy, p.x, p.y)) {
+        if (p !== first && p !== last &&
+            pointInTriangleLoop(ca, ab, bc, cax, cay, abx, aby, bcx, bcy, p.x, p.y) &&
+            area(p.prev, p, p.next) >= 0) {
             return false;
         }
 
@@ -217,8 +214,9 @@ function isEarHashed(ear, minX, minY, size) {
     p = ear.nextZ;
 
     while (p && p.z <= maxZ) {
-        if (p !== first && p !== last && area(p.prev, p, p.next) >= 0 &&
-            pointInTriangleLoop(ca, ab, bc, cax, cay, abx, aby, bcx, bcy, p.x, p.y)) {
+        if (p !== first && p !== last &&
+            pointInTriangleLoop(ca, ab, bc, cax, cay, abx, aby, bcx, bcy, p.x, p.y) &&
+            area(p.prev, p, p.next) >= 0 ) {
             return false;
         }
 
@@ -325,20 +323,21 @@ function findHoleBridge(hole, outerNode) {
         hx = hole.x,
         hy = hole.y,
         qx = -Infinity,
-        m;
+        m, np;
 
     // find a segment intersected by a ray from the hole's leftmost point to the left;
     // segment's endpoint with lesser x will be potential connection point
     do {
-        if (hy <= p.y && hy >= p.next.y && p.next.y !== p.y) {
-            var x = p.x + (hy - p.y) * (p.next.x - p.x) / (p.next.y - p.y);
+        np = p.next;
+        if (hy <= p.y && hy >= np.y && np.y !== p.y) {
+            var x = p.x + (hy - p.y) * (np.x - p.x) / (np.y - p.y);
             if (x <= hx && x > qx) {
                 qx = x;
                 if (x === hx) {
                     if (hy === p.y) return p;
-                    if (hy === p.next.y) return p.next;
+                    if (hy === np.y) return np;
                 }
-                m = p.x < p.next.x ? p : p.next;
+                m = p.x < np.x ? p : np;
             }
         }
         p = p.next;
@@ -461,7 +460,7 @@ function sortLinked(list) {
         }
 
         tail.nextZ = null;
-        inSize *= 2;
+        inSize <<= 1;
 
     } while (numMerges > 1);
 
