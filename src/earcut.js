@@ -175,6 +175,10 @@ function isEarHashed(ear, minX, minY, size) {
         maxTX = a.x > b.x ? (a.x > c.x ? a.x : c.x) : (b.x > c.x ? b.x : c.x),
         maxTY = a.y > b.y ? (a.y > c.y ? a.y : c.y) : (b.y > c.y ? b.y : c.y);
 
+    size = 32767 / size;
+    minX *= size;
+    minY *= size;
+
     // z-order range for the current triangle bbox;
     var minZ = zOrder(minTX, minTY, minX, minY, size),
         maxZ = zOrder(maxTX, maxTY, minX, minY, size);
@@ -393,6 +397,11 @@ function findHoleBridge(hole, outerNode) {
 // interlink polygon nodes in z-order
 function indexCurve(start, minX, minY, size) {
     var p = start;
+
+    size = 32767 / size;
+    minX *= size;
+    minY *= size;
+
     do {
         if (p.z === null) p.z = zOrder(p.x, p.y, minX, minY, size);
         p.prevZ = p.prev;
@@ -461,12 +470,10 @@ function sortLinked(list) {
 
 
 // z-order of a point given coords and size of the data bounding box
-function zOrder(x, y, minX, minY, size) {
+function zOrder(x, y, minXs, minYs, size) {
     // coords are transformed into non-negative 15-bit integer range
-    size = 32767 / size;
-
-    x = (x - minX) * size;
-    y = (y - minY) * size;
+    x = x * size - minXs;
+    y = y * size - minYs;
 
     x = (x | (x << 8)) & 0x00FF00FF;
     x = (x | (x << 4)) & 0x0F0F0F0F;
