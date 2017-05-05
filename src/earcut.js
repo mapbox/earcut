@@ -216,7 +216,7 @@ function isEarHashed(ear, minX, minY, size) {
     while (p && p.z <= maxZ) {
         if (p !== first && p !== last &&
             pointInTriangleLoop(ca, ab, bc, cax, cay, abx, aby, bcx, bcy, p.x, p.y) &&
-            area(p.prev, p, p.next) >= 0 ) {
+            area(p.prev, p, p.next) >= 0) {
             return false;
         }
 
