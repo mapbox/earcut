@@ -30,10 +30,10 @@ Some benchmarks using Node 0.12:
 
 (ops/sec)         | pts  | earcut    | libtess  | poly2tri | pnltri    | polyk
 ------------------| ---- | --------- | -------- | -------- | --------- | ------
-OSM building      | 15   | _827,648_ | _50,640_ | _61,501_ | _122,966_ | _175,570_
-dude shape        | 94   | _44,800_  | _10,339_ | _8,784_  | _11,172_  | _13,557_
-holed dude shape  | 104  | _36,390_  | _8,883_  | _7,494_  | _2,130_   | n/a
-complex OSM water | 2523 | _577_     | _77.54_  | failure  | failure   | n/a
+OSM building      | 15   | _803,478_ | _50,640_ | _61,501_ | _122,966_ | _175,570_
+dude shape        | 94   | _42,703_  | _10,339_ | _8,784_  | _11,172_  | _13,557_
+holed dude shape  | 104  | _37,532_  | _8,883_  | _7,494_  | _2,130_   | n/a
+complex OSM water | 2523 | _686_     | _77.54_  | failure  | failure   | n/a
 huge OSM water    | 5667 | _95_      | _29.30_  | failure  | failure   | n/a
 
 The original use case it was created for is [Mapbox GL](https://www.mapbox.com/mapbox-gl), WebGL-based interactive maps.
