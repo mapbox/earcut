@@ -151,14 +151,23 @@ function isEar(ear) {
     var ax = a.x, ay = a.y,
         bx = b.x, by = b.y,
         cx = c.x, cy = c.y,
+
         ca = cx * ay - ax * cy,
         ab = ax * by - bx * ay,
         bc = bx * cy - cx * by,
+
+        cax = cx - ax,
+        cay = cy - ay,
+        abx = ax - bx,
+        aby = ay - by,
+        bcx = bx - cx,
+        bcy = by - cy,
+
         first = ear.prev;
 
     while (p !== first) {
         if (area(p.prev, p, p.next) >= 0 &&
-            pointInTriangleLoop(ca, ab, bc, ax, ay, bx, by, cx, cy, p.x, p.y)) {
+            pointInTriangleLoop(ca, ab, bc, cax, cay, abx, aby, bcx, bcy, p.x, p.y)) {
             return false;
         }
         p = p.next;
@@ -187,9 +196,18 @@ function isEarHashed(ear, minX, minY, size) {
     var ax = a.x, ay = a.y,
         bx = b.x, by = b.y,
         cx = c.x, cy = c.y,
+
         ca = cx * ay - ax * cy,
         ab = ax * by - bx * ay,
         bc = bx * cy - cx * by,
+
+        cax = cx - ax,
+        cay = cy - ay,
+        abx = ax - bx,
+        aby = ay - by,
+        bcx = bx - cx,
+        bcy = by - cy,
+
         first = ear.prev,
         last  = ear.next;
 
@@ -198,7 +216,7 @@ function isEarHashed(ear, minX, minY, size) {
 
     while (p && p.z <= maxZ) {
         if (p !== first && p !== last && area(p.prev, p, p.next) >= 0 &&
-            pointInTriangleLoop(ca, ab, bc, ax, ay, bx, by, cx, cy, p.x, p.y)) {
+            pointInTriangleLoop(ca, ab, bc, cax, cay, abx, aby, bcx, bcy, p.x, p.y)) {
             return false;
         }
 
@@ -210,7 +228,7 @@ function isEarHashed(ear, minX, minY, size) {
 
     while (p && p.z >= minZ) {
         if (p !== first && p !== last && area(p.prev, p, p.next) >= 0 &&
-            pointInTriangleLoop(ca, ab, bc, ax, ay, bx, by, cx, cy, p.x, p.y)) {
+            pointInTriangleLoop(ca, ab, bc, cax, cay, abx, aby, bcx, bcy, p.x, p.y)) {
             return false;
         }
 
@@ -274,11 +292,12 @@ function splitEarcut(start, triangles, dim, minX, minY, size) {
 // link every hole into the outer loop, producing a single-ring polygon without holes
 function eliminateHoles(data, holeIndices, outerNode, dim) {
     var queue = [],
-        i, len, start, end, list;
+        i, len, start, end, list,
+        dataLen = data.length;
 
     for (i = 0, len = holeIndices.length; i < len; i++) {
         start = holeIndices[i] * dim;
-        end = i < len - 1 ? holeIndices[i + 1] * dim : data.length;
+        end = i < len - 1 ? holeIndices[i + 1] * dim : dataLen;
         list = linkedList(data, start, end, dim, false);
         if (list === list.next) list.steiner = true;
         queue.push(getLeftmost(list));
@@ -349,18 +368,25 @@ function findHoleBridge(hole, outerNode) {
 
     p = m.next;
 
-    var ax = hy < my ? hx : qx;
-    var cx = hy < my ? qx : hx;
-
-    var ay = hy, bx = mx,
+    var ax = hy < my ? hx : qx,
+        cx = hy < my ? qx : hx,
+        ay = hy, bx = mx,
         by = my, cy = hy,
+
         ca = cx * ay - ax * cy,
         ab = ax * by - bx * ay,
-        bc = bx * cy - cx * by;
+        bc = bx * cy - cx * by,
+
+        cax = cx - ax,
+        cay = cy - ay,
+        abx = ax - bx,
+        aby = ay - by,
+        bcx = bx - cx,
+        bcy = by - cy;
 
     while (p !== stop) {
         if (hx >= p.x && p.x >= mx && hx !== p.x &&
-            pointInTriangleLoop(ca, ab, bc, ax, ay, bx, by, cx, cy, p.x, p.y)) {
+            pointInTriangleLoop(ca, ab, bc, cax, cay, abx, aby, bcx, bcy, p.x, p.y)) {
 
             tan = Math.abs(hy - p.y) / (hx - p.x); // tangential
 
@@ -445,6 +471,7 @@ function sortLinked(list) {
     return list;
 }
 
+
 // z-order of a point given coords and size of the data bounding box
 function zOrder(x, y, minX, minY, size) {
     // coords are transformed into non-negative 15-bit integer range
@@ -484,10 +511,10 @@ function getLeftmost(start) {
 }*/
 
 // check if a point lies within a convex triangle
-function pointInTriangleLoop(ca, ab, bc, ax, ay, bx, by, cx, cy, px, py) {
-    return ca + (cy - ay) * px - (cx - ax) * py >= 0 &&
-           ab + (ay - by) * px - (ax - bx) * py >= 0 &&
-           bc + (by - cy) * px - (bx - cx) * py >= 0;
+function pointInTriangleLoop(ca, ab, bc, cax, cay, abx, aby, bcx, bcy, px, py) {
+    return cay * px + ca - cax * py >= 0 &&
+           aby * px + ab - abx * py >= 0 &&
+           bcy * px + bc - bcx * py >= 0;
 }
 
 // check if a diagonal between two polygon nodes is valid (lies in polygon interior)
