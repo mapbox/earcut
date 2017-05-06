@@ -30,7 +30,7 @@ Some benchmarks using Node 0.12:
 
 (ops/sec)         | pts  | earcut    | libtess  | poly2tri | pnltri    | polyk
 ------------------| ---- | --------- | -------- | -------- | --------- | ------
-OSM building      | 15   | _892,485_ | _50,640_ | _61,501_ | _122,966_ | _175,570_
+OSM building      | 15   | _976,667_ | _50,640_ | _61,501_ | _122,966_ | _175,570_
 dude shape        | 94   | _47,456_  | _10,339_ | _8,784_  | _11,172_  | _13,557_
 holed dude shape  | 104  | _38,357_  | _8,883_  | _7,494_  | _2,130_   | n/a
 complex OSM water | 2523 | _701_     | _77.54_  | failure  | failure   | n/a
