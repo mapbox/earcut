@@ -152,8 +152,8 @@ function isEar(ear) {
         first = ear.prev;
 
     while (p !== first) {
-        if (area(p.prev, p, p.next) >= 0 &&
-            pointInTriangle(ax, ay, bx, by, cx, cy, p.x, p.y)) {
+        if (pointInTriangle(ax, ay, bx, by, cx, cy, p.x, p.y) &&
+            area(p.prev, p, p.next) >= 0) {
             return false;
         }
         p = p.next;
