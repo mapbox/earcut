@@ -100,7 +100,7 @@ function earcutLinked(ear, triangles, dim, minX, minY, size, pass) {
         prev = ear.prev;
         next = ear.next;
 
-        if (isEarCached(ear, minX, minY, size)) {
+        if (isEarCached(ear, minX, minY, size, (pass | 0) === 0)) {
             // cut off the triangle
             triangles.push(prev.i * invDim);
             triangles.push(ear.i  * invDim);
@@ -162,7 +162,16 @@ function isEar(ear) {
     return true;
 }
 
-function isEarHashed(ear, minX, minY, size) {
+function aspect(a, b, c) {
+    var minX = a.x < b.x ? (a.x < c.x ? a.x : c.x) : (b.x < c.x ? b.x : c.x),
+        minY = a.y < b.y ? (a.y < c.y ? a.y : c.y) : (b.y < c.y ? b.y : c.y),
+        maxX = a.x > b.x ? (a.x > c.x ? a.x : c.x) : (b.x > c.x ? b.x : c.x),
+        maxY = a.y > b.y ? (a.y > c.y ? a.y : c.y) : (b.y > c.y ? b.y : c.y);
+
+    return (maxY - minY) / (maxX - minX);
+}
+
+function isEarHashed(ear, minX, minY, size, checkAspect) {
     var a = ear.prev,
         b = ear,
         c = ear.next;
@@ -202,6 +211,7 @@ function isEarHashed(ear, minX, minY, size) {
 
     while (p && p.z >= minZ) {
         if (p !== first && p !== last &&
+            (checkAspect ? Math.abs(aspect(p.prev, p, p.next) - 1) >= 0.2 : true) &&
             pointInTriangleLoop(ca, ab, bc, cax, cay, abx, aby, bcx, bcy, p.x, p.y) &&
             area(p.prev, p, p.next) >= 0) {
             return false;
@@ -215,6 +225,7 @@ function isEarHashed(ear, minX, minY, size) {
 
     while (p && p.z <= maxZ) {
         if (p !== first && p !== last &&
+            (checkAspect ? Math.abs(aspect(p.prev, p, p.next) - 1) >= 0.2 : true) &&
             pointInTriangleLoop(ca, ab, bc, cax, cay, abx, aby, bcx, bcy, p.x, p.y) &&
             area(p.prev, p, p.next) >= 0) {
             return false;
