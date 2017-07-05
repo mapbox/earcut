@@ -7,6 +7,7 @@ The fastest and smallest JavaScript polygon triangulation library. 2.5KB gzipped
 [![Average time to resolve an issue](http://isitmaintained.com/badge/resolution/mapbox/earcut.svg)](http://isitmaintained.com/project/mapbox/earcut "Average time to resolve an issue")
 [![Percentage of issues still open](http://isitmaintained.com/badge/open/mapbox/earcut.svg)](http://isitmaintained.com/project/mapbox/earcut "Percentage of issues still open")
 [![](https://img.shields.io/badge/simply-awesome-brightgreen.svg)](https://github.com/mourner/projects)
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bhttps%3A%2F%2Fgithub.com%2Fmapbox%2Fearcut.svg?type=shield)](https://app.fossa.io/projects/git%2Bhttps%3A%2F%2Fgithub.com%2Fmapbox%2Fearcut?ref=badge_shield)
 
 #### The algorithm
 
@@ -110,6 +111,9 @@ npm test
 
 - [mapbox/earcut.hpp](https://github.com/mapbox/earcut.hpp) (C++11)
 - [Cawfree/earcut-j](https://github.com/Cawfree/earcut-j) (Java, outdated)
+
+#### License
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bhttps%3A%2F%2Fgithub.com%2Fmapbox%2Fearcut.svg?type=large)](https://app.fossa.io/projects/git%2Bhttps%3A%2F%2Fgithub.com%2Fmapbox%2Fearcut?ref=badge_large)
 
 #### Changelog
 
