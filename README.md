@@ -113,6 +113,10 @@ npm test
 
 #### Changelog
 
+##### 2.1.2 (Oct 23, 2017)
+
+- Fixed a few race conditions where bad input would cause an error.
+
 ##### 2.1.1 (Mar 17, 2016)
 
 - Fixed a rare race condition where the split routine would choose bad diagonals.
