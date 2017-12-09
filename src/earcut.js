@@ -126,9 +126,8 @@ function earcutLinked(ear, triangles, dim, minX, minY, invSize, pass) {
     while (ear.prev !== ear.next) {
         prev = ear.prev;
         next = ear.next;
-        var _isEar = isEar(ear);
 
-        if (invSize ? isEarHashed(ear, minX, minY, invSize) : _isEar) {
+        if (invSize ? isEarHashed(ear, minX, minY, invSize) : isEar(ear)) {
             // cut off the triangle
             triangles.push(prev.i / dim);
             triangles.push(ear.i / dim);
