@@ -82,17 +82,19 @@ function filterPoints(start, end) {
         var currentHole = p.holeId;
         var nextHole = p.next.holeId;
 
-        // Don't remove p , if `p.prev, p & p.next` don't belong to the same polygon(hole).
-
         var toRemove = false;
 
         if (!p.steiner) {
             if (equals(p, p.next) || equals(p.prev, p)) {
                 toRemove = true;
             } else if (area(p.prev, p, p.next) === 0) {
-                toRemove = true;
+                // If `p.prev, p & p.next` are on holes (not outer edge) ,
+                // And `p.prev & p` are on the same hole ,
+                // Then do NOT remove `p` .
                 if (prevHole && nextHole && prevHole !== nextHole && prevHole === currentHole) {
                     toRemove = false;
+                } else {
+                    toRemove = true;
                 }
             }
         }
