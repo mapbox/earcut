@@ -88,9 +88,9 @@ function filterPoints(start, end) {
             if (equals(p, p.next) || equals(p.prev, p)) {
                 toRemove = true;
             } else if (!prevHole || !nextHole || prevHole === nextHole || prevHole !== currentHole) {
+                // When `p.prev, p & p.next` are collinear,
                 // If `p.prev, p & p.next` are on holes (not outer edge) ,
                 // And `p.prev & p` are on the same hole ,
-                // And `p.prev, p & p.next` are collinear,
                 // Then do NOT remove `p` .
 
                 // In other words,
