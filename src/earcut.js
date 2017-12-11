@@ -87,13 +87,18 @@ function filterPoints(start, end) {
         if (!p.steiner) {
             if (equals(p, p.next) || equals(p.prev, p)) {
                 toRemove = true;
-            } else if (area(p.prev, p, p.next) === 0) {
+            } else if (!prevHole || !nextHole || prevHole === nextHole || prevHole !== currentHole) {
                 // If `p.prev, p & p.next` are on holes (not outer edge) ,
                 // And `p.prev & p` are on the same hole ,
+                // And `p.prev, p & p.next` are collinear,
                 // Then do NOT remove `p` .
-                if (prevHole && nextHole && prevHole !== nextHole && prevHole === currentHole) {
-                    toRemove = false;
-                } else {
+
+                // In other words,
+                // When `p.prev, p & p.next` are collinear,
+                // If `p.prev, p & p.next` are on the outer edge,
+                // Or `p.prev & p` are on different holes ,
+                // Then do REMOVE `p`
+                if (area(p.prev, p, p.next) === 0) {
                     toRemove = true;
                 }
             }
