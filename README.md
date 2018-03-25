@@ -49,12 +49,12 @@ var triangles = earcut([10,0, 0,50, 60,60, 70,10]); // returns [1,0,3, 3,2,1]
 
 Signature: `earcut(vertices[, holes, dimensions = 2])`.
 
-* `vertices` is a flat array of vertice coordinates like `[x0,y0, x1,y1, x2,y2, ...]`.
+* `vertices` is a flat array of vertex coordinates like `[x0,y0, x1,y1, x2,y2, ...]`.
 * `holes` is an array of hole _indices_ if any
-  (e.g. `[5, 8]` for a 12-vertice input would mean one hole with vertices 5&ndash;7 and another with 8&ndash;11).
-* `dimensions` is the number of coordinates per vertice in the input array (`2` by default).
+  (e.g. `[5, 8]` for a 12-vertex input would mean one hole with vertices 5&ndash;7 and another with 8&ndash;11).
+* `dimensions` is the number of coordinates per vertex in the input array (`2` by default).
 
-Each group of three vertice indices in the resulting array forms a triangle.
+Each group of three vertex indices in the resulting array forms a triangle.
 
 ```js
 // triangulating a polygon with a hole
@@ -66,7 +66,7 @@ earcut([10,0,1, 0,50,2, 60,60,3, 70,10,4], null, 3);
 // [1,0,3, 3,2,1]
 ```
 
-If you pass a single vertice as a hole, Earcut treats it as a Steiner point.
+If you pass a single vertex as a hole, Earcut treats it as a Steiner point.
 
 If your input is a multi-dimensional array (e.g. [GeoJSON Polygon](http://geojson.org/geojson-spec.html#polygon)),
 you can convert it to the format expected by Earcut with `earcut.flatten`:
@@ -202,7 +202,7 @@ npm test
 ##### 1.2.1 (Jan 26, 2015)
 
 - Significantly improved performance on polygons with high number of vertices
-  by using z-order curve hashing for vertice lookup.
+  by using z-order curve hashing for vertex lookup.
 - Slightly improved overall performance with better point filtering.
 
 ##### 1.1.0 (Jan 21, 2015)
