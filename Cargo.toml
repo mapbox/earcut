@@ -1,0 +1,9 @@
+[package]
+name = "earcut"
+version = "1.0.0"
+authors = ["John Firebaugh <john@mapbox.com>"]
+
+[dependencies]
+itertools = "0.7.6"
+serde = "1.0.66"
+serde_json = "1.0.20"
