@@ -17,15 +17,14 @@ pub struct Point {
     y: f64
 }
 
-#[derive(Default)]
 struct Node<'a> {
     i: usize,
     x: f64,
     y: f64,
 
     // previous and next vertice nodes in a polygon ring
-    _prev: Cell<Option<&'a Node<'a>>>,
-    _next: Cell<Option<&'a Node<'a>>>,
+    _prev: Cell<&'a Node<'a>>,
+    _next: Cell<&'a Node<'a>>,
 
     // z-order curve value
     z: Cell<i32>,
@@ -39,12 +38,8 @@ struct Node<'a> {
 }
 
 impl<'a> Node<'a> {
-    fn new<'b>(i: usize, x: f64, y: f64, arena: &'b TypedArena<Node<'b>>) -> &'b Node<'b> {
-        arena.alloc(Node { i, x, y, ..Default::default() })
-    }
-
-    fn prev(&self) -> &'a Node<'a> { self._prev.get().unwrap() }
-    fn next(&self) -> &'a Node<'a> { self._next.get().unwrap() }
+    fn prev(&self) -> &'a Node<'a> { self._prev.get() }
+    fn next(&self) -> &'a Node<'a> { self._next.get() }
 
     fn prev_z(&self) -> Option<&'a Node<'a>> { self._prev_z.get() }
     fn next_z(&self) -> Option<&'a Node<'a>> { self._next_z.get() }
@@ -125,9 +120,69 @@ impl<'a> Node<'a> {
         true
     }
 
+    // Self-referential struct initialization. Must replace _prev and _next.
+    unsafe fn new(i: usize, p: &Point, arena: &'a TypedArena<Node<'a>>) -> &'a Node<'a> {
+        arena.alloc(Node {
+            i,
+            x: p.x,
+            y: p.y,
+            _prev: Cell::new(std::mem::transmute(0 as usize)),
+            _next: Cell::new(std::mem::transmute(0 as usize)),
+            z: Cell::new(0),
+            _prev_z: Cell::new(None),
+            _next_z: Cell::new(None),
+            steiner: Cell::new(false)
+        })
+    }
+
+    fn append(tail: Option<&'a Node<'a>>, i: usize, p: &Point, arena: &'a TypedArena<Node<'a>>) -> Option<&'a Node<'a>> {
+        let node = unsafe { Node::new(i, p, arena) };
+
+        match tail {
+            None => {
+                node._prev.set(&node);
+                node._next.set(&node);
+            },
+            Some(last) => {
+                node._next.set(last.next());
+                node._prev.set(last);
+                last.next()._prev.set(&node);
+                last._next.set(&node);
+            }
+        }
+
+        Some(node)
+    }
+
+    // link two polygon vertices with a bridge; if the vertices belong to the same ring, it splits polygon into two;
+    // if one belongs to the outer ring and another to a hole, it merges it into a single ring
+    fn split_polygon(a: &'a Node<'a>,
+                     b: &'a Node<'a>,
+                     arena: &'a TypedArena<Node<'a>>) -> &'a Node<'a> {
+        let an = a.next();
+        let bp = b.prev();
+
+        a._next.set(b);
+        b._prev.set(a);
+
+        let a2 = unsafe { Node::new(a.i, &Point { x: a.x, y: a.y }, arena) };
+        let b2 = unsafe { Node::new(b.i, &Point { x: b.x, y: b.y }, arena) };
+
+        a2._next.set(an);
+        a2._prev.set(b2);
+
+        b2._next.set(a2);
+        b2._prev.set(bp);
+
+        an._prev.set(a2);
+        bp._next.set(b2);
+
+        b2
+    }
+
     fn remove(&self) {
-        self.next()._prev.set(Some(self.prev()));
-        self.prev()._next.set(Some(self.next()));
+        self.next()._prev.set(self.prev());
+        self.prev()._next.set(self.next());
 
         if let Some(ref pz) = self.prev_z() {
             pz._next_z.set(self.next_z())
@@ -257,38 +312,16 @@ fn linked_list<'a>(points: &Vec<Point>,
                    clockwise: bool, 
                    vertices: usize,
                    arena: &'a TypedArena<Node<'a>>) -> Option<&'a Node<'a>> {
-    // create a node and optionally link it with previous one (in a circular doubly linked list)
-    fn insert_node<'a>(i: usize, 
-                       p: &Point, 
-                       last: Option<&'a Node<'a>>,
-                       arena: &'a TypedArena<Node<'a>>) -> &'a Node<'a> {
-        let p = Node::new(i, p.x, p.y, arena);
-
-        match last {
-            None => {
-                p._prev.set(Some(&p));
-                p._next.set(Some(&p));
-            },
-            Some(last) => {
-                p._next.set(Some(last.next()));
-                p._prev.set(Some(last));
-                last.next()._prev.set(Some(&p));
-                last._next.set(Some(&p));
-            }
-        }
-
-        p
-    }
-
     // link points into circular doubly-linked list in the specified winding order
     let mut last = None;
+
     if clockwise == (twice_signed_area(points) > 0.) {
         for (i, p) in points.iter().enumerate() {
-            last = Some(insert_node(vertices + i, p, last, arena));
+            last = Node::append(last, vertices + i, p, arena);
         }
     } else {
         for (i, p) in points.iter().enumerate().rev() {
-            last = Some(insert_node(vertices + i, p, last, arena));
+            last = Node::append(last, vertices + i, p, arena);
         }
     }
 
@@ -397,7 +430,7 @@ fn split_earcut<'a>(start: &'a Node<'a>,
         while b != a.prev() {
             if a.i != b.i && is_valid_diagonal(a, b) {
                 // split the polygon in two by the diagonal
-                let mut c = split_polygon(a, b, arena);
+                let mut c = Node::split_polygon(a, b, arena);
 
                 // filter colinear points around the cuts
                 a = filter_points(a, a.next());
@@ -422,34 +455,9 @@ fn eliminate_hole<'a>(hole: &'a Node<'a>,
                       outer_node: &'a Node<'a>,
                       arena: &'a TypedArena<Node<'a>>) {
     if let Some(outer_node) = find_hole_bridge(hole, outer_node) {
-        let b = split_polygon(outer_node, hole, arena);
+        let b = Node::split_polygon(outer_node, hole, arena);
         filter_points(b, b.next());
     }
-}
-
-// link two polygon vertices with a bridge; if the vertices belong to the same ring, it splits polygon into two;
-// if one belongs to the outer ring and another to a hole, it merges it into a single ring
-fn split_polygon<'a>(a: &'a Node<'a>, 
-                     b: &'a Node<'a>,
-                     arena: &'a TypedArena<Node<'a>>) -> &'a Node<'a> {
-    let a2 = Node::new(a.i, a.x, a.y, arena);
-    let b2 = Node::new(b.i, b.x, b.y, arena);
-    let an = a.next();
-    let bp = b.prev();
-
-    a._next.set(Some(b));
-    b._prev.set(Some(a));
-
-    a2._next.set(Some(an));
-    an._prev.set(Some(a2));
-
-    b2._next.set(Some(a2));
-    a2._prev.set(Some(b2));
-
-    bp._next.set(Some(b2));
-    b2._prev.set(Some(bp));
-
-    b2
 }
 
 // interlink polygon nodes in z-order
