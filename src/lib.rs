@@ -9,7 +9,6 @@ use std::cell::Cell;
 use std::iter;
 use std::cmp::Ordering::Equal;
 use arena::TypedArena;
-use itertools::Itertools;
 
 #[derive(Debug)]
 pub struct Point {
@@ -245,6 +244,7 @@ pub fn earcut(polygon: &Vec<Vec<Point>>) -> Vec<[usize; 3]> {
 }
 
 fn twice_signed_area(points: &Vec<Point>) -> f64 {
+    use itertools::Itertools;
     iter::once((points.last().unwrap(), points.first().unwrap()))
         .chain(points.iter().tuple_windows())
         .map(|(p1, p2)| (p1.x - p2.x) * (p1.y + p2.y))
@@ -728,18 +728,11 @@ fn middle_inside<'a>(a: &'a Node<'a>, b: &'a Node<'a>) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use Point;
-    use earcut;
-    use twice_signed_area;
-
-    fn point(x: f64, y: f64) -> Point {
-        Point { x, y }
-    }
+    use super::*;
 
     extern crate serde;
     extern crate serde_json;
-    use std::fs;
-    use std::env;
+    use std::{fs, env};
     use self::serde::{Deserialize, Deserializer};
 
     impl<'de> Deserialize<'de> for Point {
@@ -767,11 +760,6 @@ mod tests {
         indices.iter()
             .map(|&[a, b, c]| f64::abs(area(flattened[a], flattened[b], flattened[c])) / 2.)
             .sum()
-    }
-
-    #[test]
-    fn square() {
-        assert_eq!(earcut(&vec![vec![point(0., 0.), point(0., 1.), point(1., 1.), point(1., 0.)]]), vec![[1, 0, 3], [3, 2, 1]]);
     }
 
     fn test(file: &str, expected_triangles: usize, expected_deviation: f64) {
