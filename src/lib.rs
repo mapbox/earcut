@@ -254,23 +254,41 @@ impl HashParameters {
 #[derive(PartialEq)]
 enum Pass { _0, _1, _2 }
 
-pub fn earcut(polygon: &Vec<Vec<Point>>) -> Vec<[usize; 3]> {
-    match polygon.as_slice() {
-        &[] => Vec::new(),
-        &[ref outer, ref inners..] => {
+pub trait Pt {
+    fn x(&self) -> f64;
+    fn y(&self) -> f64;
+}
+
+impl<'a> Pt for &'a Point {
+    fn x(&self) -> f64 { self.0 }
+    fn y(&self) -> f64 { self.1 }
+}
+
+pub fn earcut<P>(polygon: P) -> Vec<[usize; 3]>
+    where P: IntoIterator,
+          P::Item: IntoIterator,
+          <P::Item as IntoIterator>::Item: Pt + Clone,
+          <P::Item as IntoIterator>::IntoIter: DoubleEndedIterator + ExactSizeIterator + Clone
+{
+    let mut polygon = polygon.into_iter();
+    match polygon.next() {
+        None => Vec::new(),
+        Some(outer) => {
+            let outer = outer.into_iter();
             let arena = Arena::new();
             let mut indices = Vec::new();
             let mut vertices = 0;
 
-            if let Some(mut head) = linked_list(&outer, true, vertices, &arena) {
+            if let Some(mut head) = linked_list(outer.clone(), true, vertices, &arena) {
                 vertices += outer.len();
 
                 // link every hole into the outer loop, producing a single-ring polygon without holes
 
                 let mut queue = Vec::new();
 
-                for ring in inners {
-                    if let Some(list) = linked_list(&ring, false, vertices, &arena) {
+                for ring in polygon {
+                    let ring = ring.into_iter();
+                    if let Some(list) = linked_list(ring.clone(), false, vertices, &arena) {
                         if list == list.next() {
                             list.steiner.set(true);
                         }
@@ -294,29 +312,39 @@ pub fn earcut(polygon: &Vec<Vec<Point>>) -> Vec<[usize; 3]> {
     }
 }
 
-fn twice_signed_area(points: &Vec<Point>) -> f64 {
+fn twice_signed_area<P>(points: P) -> f64
+    where P: IntoIterator,
+          P::Item: Pt + Clone,
+          P::IntoIter: DoubleEndedIterator + Clone
+{
     use itertools::Itertools;
-    iter::once((points.last().unwrap(), points.first().unwrap()))
-        .chain(points.iter().tuple_windows())
-        .map(|(p1, p2)| (p1.0 - p2.0) * (p1.1 + p2.1))
+    let points = points.into_iter();
+    iter::once((points.clone().next_back().unwrap(), points.clone().next().unwrap()))
+        .chain(points.tuple_windows())
+        .map(|(p1, p2)| (p1.x() - p2.x()) * (p1.y() + p2.y()))
         .sum::<f64>()
 }
 
 // create a circular doubly linked list from polygon points in the specified winding order
-fn linked_list<'a>(points: &Vec<Point>, 
-                   clockwise: bool, 
-                   vertices: usize,
-                   arena: &'a Arena<Node<'a>>) -> Option<&'a Node<'a>> {
+fn linked_list<'a, P>(points: P,
+                      clockwise: bool,
+                      vertices: usize,
+                      arena: &'a Arena<Node<'a>>) -> Option<&'a Node<'a>>
+    where P: IntoIterator,
+          P::Item: Pt + Clone,
+          P::IntoIter: DoubleEndedIterator + ExactSizeIterator + Clone
+{
     // link points into circular doubly-linked list in the specified winding order
     let mut last = None;
+    let points = points.into_iter();
 
-    if clockwise == (twice_signed_area(points) > 0.) {
-        for (i, &p) in points.iter().enumerate() {
-            last = Node::append(last, vertices + i, p, arena);
+    if clockwise == (twice_signed_area(points.clone()) > 0.) {
+        for (i, p) in points.enumerate() {
+            last = Node::append(last, vertices + i, Point(p.x(), p.y()), arena);
         }
     } else {
-        for (i, &p) in points.iter().enumerate().rev() {
-            last = Node::append(last, vertices + i, p, arena);
+        for (i, p) in points.enumerate().rev() {
+            last = Node::append(last, vertices + i, Point(p.x(), p.y()), arena);
         }
     }
 
