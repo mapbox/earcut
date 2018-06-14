@@ -1,6 +1,7 @@
 #![feature(rustc_private)]
 #![feature(slice_patterns)]
 #![feature(iterator_flatten)]
+#![feature(test)]
 
 extern crate arena;
 extern crate itertools;
@@ -542,7 +543,6 @@ fn find_hole_bridge<'a>(hole: &'a Node<'a>, outer_node: &'a Node<'a>) -> Option<
     let mx = m.x;
     let my = m.y;
     let mut tan_min = std::f64::INFINITY;
-    let mut tan;
 
     p = m.next();
 
@@ -553,8 +553,7 @@ fn find_hole_bridge<'a>(hole: &'a Node<'a>, outer_node: &'a Node<'a>) -> Option<
                               if hy < my { qx } else { hx }, hy, 
                               p.x, p.y) {
 
-            tan = (hy - p.y).abs() / (hx - p.x); // tangential
-
+            let tan = (hy - p.y).abs() / (hx - p.x); // tangential
             if (tan < tan_min || (tan == tan_min && p.x > m.x)) && locally_inside(p, hole) {
                 m = p;
                 tan_min = tan;
@@ -761,15 +760,18 @@ mod tests {
             .map(|&[a, b, c]| f64::abs(area(flattened[a], flattened[b], flattened[c])) / 2.)
             .sum()
     }
-
-    fn test(file: &str, expected_triangles: usize, expected_deviation: f64) {
+    
+    fn load(file: &str) -> Vec<Vec<Point>> {
         let mut path = env::current_dir().unwrap();
         path.push("test");
         path.push("fixtures");
         path.push(file);
         path.set_extension("json");
-        
-        let input: Vec<Vec<Point>> = serde_json::from_str(&fs::read_to_string(path).unwrap()).unwrap();
+        serde_json::from_str(&fs::read_to_string(path).unwrap()).unwrap()
+    }
+
+    fn fixture(file: &str, expected_triangles: usize, expected_deviation: f64) {
+        let input = load(file);
         let output = earcut(&input);
 
         assert_eq!(output.len(), expected_triangles);
@@ -782,37 +784,58 @@ mod tests {
     }
 
     #[test]
-    fn files() {
-        test("building", 13, 1e-14);
-        test("dude", 106, 1e-14);
-        test("water", 2482, 0.0008);
-        test("water2", 1212, 1e-14);
-        test("water3", 197, 1e-14);
-        test("water3b", 25, 1e-14);
-        test("water4", 705, 1e-14);
-        test("water-huge", 5174, 0.0011);
-        test("water-huge2", 4461, 0.0028);
-        test("degenerate", 0, 1e-14);
-        test("bad-hole", 42, 0.019);
-        test("empty-square", 0, 1e-14);
-        test("issue16", 12, 1e-14);
-        test("issue17", 11, 1e-14);
-        test("steiner", 9, 1e-14);
-        test("issue29", 40, 1e-14);
-        test("issue34", 139, 1e-14);
-        test("issue35", 844, 1e-14);
-        test("self-touching", 124, 3.4e-14);
-        test("outside-ring", 64, 1e-14);
-        test("simplified-us-border", 120, 1e-14);
-        test("touching-holes", 57, 1e-14);
-        test("hole-touching-outer", 77, 1e-14);
-        test("hilbert", 1024, 1e-14);
-        test("issue45", 10, 1e-14);
-        test("eberly-3", 73, 1e-14);
-        test("eberly-6", 1429, 1e-14);
-        test("issue52", 109, 1e-14);
-        test("shared-points", 4, 1e-14);
-        test("bad-diagonals", 7, 1e-14);
-        test("issue83", 0, 1e-14);
+    fn fixtures() {
+        fixture("building", 13, 1e-14);
+        fixture("dude", 106, 1e-14);
+        fixture("water", 2482, 0.0008);
+        fixture("water2", 1212, 1e-14);
+        fixture("water3", 197, 1e-14);
+        fixture("water3b", 25, 1e-14);
+        fixture("water4", 705, 1e-14);
+        fixture("water-huge", 5174, 0.0011);
+        fixture("water-huge2", 4461, 0.0028);
+        fixture("degenerate", 0, 1e-14);
+        fixture("bad-hole", 42, 0.019);
+        fixture("empty-square", 0, 1e-14);
+        fixture("issue16", 12, 1e-14);
+        fixture("issue17", 11, 1e-14);
+        fixture("steiner", 9, 1e-14);
+        fixture("issue29", 40, 1e-14);
+        fixture("issue34", 139, 1e-14);
+        fixture("issue35", 844, 1e-14);
+        fixture("self-touching", 124, 3.4e-14);
+        fixture("outside-ring", 64, 1e-14);
+        fixture("simplified-us-border", 120, 1e-14);
+        fixture("touching-holes", 57, 1e-14);
+        fixture("hole-touching-outer", 77, 1e-14);
+        fixture("hilbert", 1024, 1e-14);
+        fixture("issue45", 10, 1e-14);
+        fixture("eberly-3", 73, 1e-14);
+        fixture("eberly-6", 1429, 1e-14);
+        fixture("issue52", 109, 1e-14);
+        fixture("shared-points", 4, 1e-14);
+        fixture("bad-diagonals", 7, 1e-14);
+        fixture("issue83", 0, 1e-14);
+    }
+
+    extern crate test;
+    use self::test::Bencher;
+
+    #[bench]
+    fn building(b: &mut Bencher) {
+        let input = load("building");
+        b.iter(|| earcut(&input));
+    }
+
+    #[bench]
+    fn dude(b: &mut Bencher) {
+        let input = load("dude");
+        b.iter(|| earcut(&input));
+    }
+
+    #[bench]
+    fn water(b: &mut Bencher) {
+        let input = load("water");
+        b.iter(|| earcut(&input));
     }
 }
