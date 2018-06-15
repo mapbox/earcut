@@ -16,12 +16,15 @@
     "build-min": "mkdirp dist && browserify src/earcut.js -s earcut | uglifyjs -c warnings=false -m > dist/earcut.min.js",
     "prepare": "npm run build-dev && npm run build-min",
     "cov": "istanbul cover test/*.js",
-    "coveralls": "istanbul cover test/*.js && coveralls < ./coverage/lcov.info"
+    "coveralls": "istanbul cover test/*.js && coveralls < ./coverage/lcov.info",
+    "wasm-node": "cargo build --release --target wasm32-unknown-unknown && wasm-bindgen target/wasm32-unknown-unknown/release/earcut.wasm --out-dir . --nodejs && node index_node.js",
+    "wasm-browser": "cargo build --release --target wasm32-unknown-unknown && wasm-bindgen target/wasm32-unknown-unknown/release/earcut.wasm --out-dir . && webpack-dev-server"
   },
   "author": "Vladimir Agafonkin",
   "license": "ISC",
   "devDependencies": {
     "benchmark": "^2.1.4",
+    "lodash": "^4.17.4",
     "browserify": "^14.5.0",
     "coveralls": "^3.0.0",
     "eslint": "^4.14.0",
@@ -30,7 +33,10 @@
     "mkdirp": "^0.5.1",
     "tape": "^4.8.0",
     "uglify-js": "^3.3.4",
-    "watchify": "^3.9.0"
+    "watchify": "^3.9.0",
+    "webpack": "^4.0.1",
+    "webpack-cli": "^2.0.10",
+    "webpack-dev-server": "^3.1.0"
   },
   "eslintConfig": {
     "extends": "mourner",

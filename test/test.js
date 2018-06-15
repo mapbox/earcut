@@ -54,13 +54,37 @@ test('empty', function (t) {
     t.end();
 });
 
+function flatten(data) {
+    var dim = data[0][0].length,
+        result = {vertices: [], holes: [], dimensions: dim},
+        holeIndex = 0;
+
+    for (var i = 0; i < data.length; i++) {
+        for (var j = 0; j < data[i].length; j++) {
+            for (var d = 0; d < dim; d++) result.vertices.push(data[i][j][d]);
+        }
+        if (i > 0) {
+            holeIndex += data[i - 1].length;
+            result.holes.push(holeIndex);
+        }
+    }
+
+    return {
+        vertices: Float32Array.from(result.vertices),
+        holes: Uint32Array.from(result.holes),
+        dimensions: result.dimensions
+    };
+}
+
+const earcut_wasm = require('../earcut').earcut_flat;
+
 function areaTest(filename, expectedTriangles, expectedDeviation) {
     expectedDeviation = expectedDeviation || 1e-14;
 
     test(filename, function (t) {
 
-        var data = earcut.flatten(JSON.parse(fs.readFileSync(path.join(__dirname, '/fixtures/' + filename + '.json')))),
-            indices = earcut(data.vertices, data.holes, data.dimensions),
+        var data = flatten(JSON.parse(fs.readFileSync(path.join(__dirname, '/fixtures/' + filename + '.json')))),
+            indices = earcut_wasm(data.vertices, data.holes, data.dimensions),
             deviation = earcut.deviation(data.vertices, data.holes, data.dimensions, indices);
 
         t.ok(deviation < expectedDeviation,

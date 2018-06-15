@@ -1,6 +1,8 @@
 #![feature(slice_patterns)]
 #![feature(iterator_flatten)]
 #![feature(test)]
+#![feature(exact_chunks)]
+#![feature(proc_macro, wasm_custom_section, wasm_import_module)]
 
 extern crate typed_arena;
 extern crate itertools;
@@ -264,7 +266,7 @@ impl<'a> Pt for &'a Point {
     fn y(&self) -> f64 { self.1 }
 }
 
-pub fn earcut<P>(polygon: P) -> Vec<[usize; 3]>
+pub fn earcut<P>(polygon: P) -> Vec<u32>
     where P: IntoIterator,
           P::Item: IntoIterator,
           <P::Item as IntoIterator>::Item: Pt + Clone,
@@ -360,7 +362,7 @@ fn linked_list<'a, P>(points: P,
 
 // main ear slicing loop which triangulates a polygon (given as a linked list)
 fn earcut_linked<'a>(mut ear: &'a Node<'a>,
-                     indices: &mut Vec<[usize; 3]>,
+                     indices: &mut Vec<u32>,
                      hash: &Option<HashParameters>,
                      arena: &'a Arena<Node<'a>>,
                      pass: Pass) {
@@ -382,7 +384,9 @@ fn earcut_linked<'a>(mut ear: &'a Node<'a>,
 
         if ear.is_ear(hash) {
             // cut off the triangle
-            indices.push([prev.i, ear.i, next.i]);
+            indices.push(prev.i as u32);
+            indices.push(ear.i as u32);
+            indices.push(next.i as u32);
             ear.remove();
 
             // skipping the next vertex leads to less sliver triangles
@@ -414,7 +418,7 @@ fn earcut_linked<'a>(mut ear: &'a Node<'a>,
 
 // go through all polygon nodes and cure small local self-intersections
 fn cure_local_intersections<'a>(mut start: &'a Node<'a>,
-                                indices: &mut Vec<[usize; 3]>) -> &'a Node<'a> {
+                                indices: &mut Vec<u32>) -> &'a Node<'a> {
     let mut p = start;
 
     loop {
@@ -422,7 +426,9 @@ fn cure_local_intersections<'a>(mut start: &'a Node<'a>,
         let b = p.next().next();
 
         if a.p != b.p && intersects(a.p, p.p, p.next().p, b.p) && locally_inside(a, b) && locally_inside(b, a) {
-            indices.push([a.i, p.i, b.i]);
+            indices.push(a.i as u32);
+            indices.push(p.i as u32);
+            indices.push(b.i as u32);
 
             // remove two nodes involved
             p.remove();
@@ -443,7 +449,7 @@ fn cure_local_intersections<'a>(mut start: &'a Node<'a>,
 
 // try splitting polygon into two and triangulate them independently
 fn split_earcut<'a>(start: &'a Node<'a>,
-                    indices: &mut Vec<[usize; 3]>,
+                    indices: &mut Vec<u32>,
                     hash: &Option<HashParameters>,
                     arena: &'a Arena<Node<'a>>) {
     // look for a valid diagonal that divides the polygon into two
@@ -746,6 +752,25 @@ fn middle_inside<'a>(a: &'a Node<'a>, b: &'a Node<'a>) -> bool {
     inside
 }
 
+extern crate wasm_bindgen;
+use wasm_bindgen::prelude::*;
+
+#[wasm_bindgen]
+pub fn earcut_flat(vertices: &[f64], holes: &[u32]) -> Vec<u32> {
+    use itertools::Itertools;
+
+    impl<'a> Pt for &'a [f64] {
+        fn x(&self) -> f64 { self[0] }
+        fn y(&self) -> f64 { self[1] }
+    }
+
+    earcut(iter::once(0)
+        .chain(holes.iter().map(|&i| i as usize))
+        .chain(iter::once(vertices.len() / 2))
+        .tuple_windows()
+        .map(|(i, j)| vertices[(i*2)..(j*2)].exact_chunks(2)))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -771,10 +796,12 @@ mod tests {
             .sum()
     }
 
-    fn triangles_area(polygon: &Vec<Vec<Point>>, indices: &Vec<[usize; 3]>) -> f64 {
+    fn triangles_area(polygon: &Vec<Vec<Point>>, indices: &Vec<u32>) -> f64 {
         let flattened = polygon.iter().flatten().collect::<Vec<&Point>>();
-        indices.iter()
-            .map(|&[a, b, c]| f64::abs(area(*flattened[a], *flattened[b], *flattened[c])) / 2.)
+        indices.exact_chunks(3)
+            .map(|tri| f64::abs(area(*flattened[tri[0] as usize], 
+                                     *flattened[tri[1] as usize], 
+                                     *flattened[tri[2] as usize])) / 2.)
             .sum()
     }
     
@@ -791,7 +818,7 @@ mod tests {
         let input = load(file);
         let output = earcut(&input);
 
-        assert_eq!(output.len(), expected_triangles);
+        assert_eq!(output.len() / 3, expected_triangles);
 
         let polygon_area = polygon_area(&input);
         let triangles_area = triangles_area(&input, &output);
@@ -835,6 +862,78 @@ mod tests {
         fixture("issue83", 0, 1e-14);
     }
 
+    fn flatten(data: &Vec<Vec<Point>>) -> (Vec<f64>, Vec<u32>) {
+        let mut vertices = Vec::new();
+        let mut holes = Vec::new();
+        let mut hole_index = 0;
+
+        for (i, ref ring) in data.iter().enumerate() {
+            for point in ring.iter() {
+                vertices.push(point.0);
+                vertices.push(point.1);
+            }
+            if i > 0 {
+                hole_index += data[i - 1].len() as u32;
+                holes.push(hole_index);
+            }
+        }
+        
+        println!("{:?}", data);
+        println!("{:?}", vertices);
+        println!("{:?}", holes);
+
+        (vertices, holes)
+    }
+
+    fn fixture_flat(file: &str, expected_triangles: usize, expected_deviation: f64) {
+        let input = load(file);
+        let flat = flatten(&input);
+        let output = earcut_flat(flat.0.as_slice(), flat.1.as_slice());
+
+        assert_eq!(output.len() / 3, expected_triangles);
+
+        let polygon_area = polygon_area(&input);
+        let triangles_area = triangles_area(&input, &output);
+        let deviation = if polygon_area == 0. && triangles_area == 0. { 0. } else { f64::abs((triangles_area - polygon_area) / polygon_area) };
+
+        assert!(deviation < expected_deviation, "expected {} < {}", deviation, expected_deviation);
+    }
+
+    #[test]
+    fn fixtures_flat() {
+        fixture_flat("building", 13, 1e-14);
+        fixture_flat("dude", 106, 1e-14);
+        fixture_flat("water", 2482, 0.0008);
+        fixture_flat("water2", 1212, 1e-14);
+        fixture_flat("water3", 197, 1e-14);
+        fixture_flat("water3b", 25, 1e-14);
+        fixture_flat("water4", 705, 1e-14);
+        fixture_flat("water-huge", 5174, 0.0011);
+        fixture_flat("water-huge2", 4461, 0.0028);
+        fixture_flat("degenerate", 0, 1e-14);
+        fixture_flat("bad-hole", 42, 0.019);
+        fixture_flat("empty-square", 0, 1e-14);
+        fixture_flat("issue16", 12, 1e-14);
+        fixture_flat("issue17", 11, 1e-14);
+        fixture_flat("steiner", 9, 1e-14);
+        fixture_flat("issue29", 40, 1e-14);
+        fixture_flat("issue34", 139, 1e-14);
+        fixture_flat("issue35", 844, 1e-14);
+        fixture_flat("self-touching", 124, 3.4e-14);
+        fixture_flat("outside-ring", 64, 1e-14);
+        fixture_flat("simplified-us-border", 120, 1e-14);
+        fixture_flat("touching-holes", 57, 1e-14);
+        fixture_flat("hole-touching-outer", 77, 1e-14);
+        fixture_flat("hilbert", 1024, 1e-14);
+        fixture_flat("issue45", 10, 1e-14);
+        fixture_flat("eberly-3", 73, 1e-14);
+        fixture_flat("eberly-6", 1429, 1e-14);
+        fixture_flat("issue52", 109, 1e-14);
+        fixture_flat("shared-points", 4, 1e-14);
+        fixture_flat("bad-diagonals", 7, 1e-14);
+        fixture_flat("issue83", 0, 1e-14);
+    }
+
     extern crate test;
     use self::test::Bencher;
 
@@ -854,5 +953,26 @@ mod tests {
     fn water(b: &mut Bencher) {
         let input = load("water");
         b.iter(|| earcut(&input));
+    }
+
+    #[bench]
+    fn building_flat(b: &mut Bencher) {
+        let input = load("building");
+        let flat = flatten(&input);
+        b.iter(|| earcut_flat(flat.0.as_slice(), flat.1.as_slice()));
+    }
+
+    #[bench]
+    fn dude_flat(b: &mut Bencher) {
+        let input = load("dude");
+        let flat = flatten(&input);
+        b.iter(|| earcut_flat(flat.0.as_slice(), flat.1.as_slice()));
+    }
+
+    #[bench]
+    fn water_flat(b: &mut Bencher) {
+        let input = load("water");
+        let flat = flatten(&input);
+        b.iter(|| earcut_flat(flat.0.as_slice(), flat.1.as_slice()));
     }
 }
