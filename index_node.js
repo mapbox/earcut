@@ -12,7 +12,7 @@ const samples = {
 for (const name in samples) {
     const {vertices, holes} = samples[name];
     const verticesArray = Float64Array.from(vertices);
-    const holesArray = Float32Array.from(holes);
+    const holesArray = Uint32Array.from(holes);
     new Benchmark.Suite()
         .add(`JS ${name} (${vertices.length / 2} vertices):`, function () {
             earcut_js(vertices, holes);
