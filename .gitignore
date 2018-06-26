@@ -3,4 +3,6 @@ node_modules
 dist
 *.log
 target
-earcut*
+earcut*.js
+earcut*.wasm
+earcut*.ts
