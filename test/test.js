@@ -35,7 +35,8 @@ areaTest('eberly-6', 1429);
 areaTest('issue52', 109);
 areaTest('shared-points', 4);
 areaTest('bad-diagonals', 7);
-areaTest('issue83', 0, 1e-14);
+areaTest('issue83', 0);
+areaTest('issue107', 0);
 
 test('indices-2d', function (t) {
     var indices = earcut([10, 0, 0, 50, 60, 60, 70, 10]);
@@ -63,10 +64,10 @@ function areaTest(filename, expectedTriangles, expectedDeviation) {
             indices = earcut(data.vertices, data.holes, data.dimensions),
             deviation = earcut.deviation(data.vertices, data.holes, data.dimensions, indices);
 
-        t.ok(deviation < expectedDeviation,
-            'deviation ' + formatPercent(deviation) + ' is less than ' + formatPercent(expectedDeviation));
+        if (expectedTriangles > 0) {
+            t.ok(deviation < expectedDeviation,
+                'deviation ' + formatPercent(deviation) + ' is less than ' + formatPercent(expectedDeviation));
 
-        if (expectedTriangles) {
             var numTriangles = indices.length / 3;
             t.ok(numTriangles === expectedTriangles, numTriangles + ' triangles when expected ' + expectedTriangles);
         }

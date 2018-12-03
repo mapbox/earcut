@@ -12,7 +12,7 @@ function earcut(data, holeIndices, dim) {
         outerNode = linkedList(data, 0, outerLen, dim, true),
         triangles = [];
 
-    if (!outerNode) return triangles;
+    if (!outerNode || outerNode.next === outerNode.prev) return triangles;
 
     var minX, minY, maxX, maxY, x, y, invSize;
 
