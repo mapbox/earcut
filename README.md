@@ -95,8 +95,8 @@ npm install earcut
 
 Browser builds on CDN:
 
-- [development build](https://unpkg.com/earcut@2.1.1/dist/earcut.dev.js)
-- [minified production build](https://unpkg.com/earcut@2.1.1/dist/earcut.min.js)
+- [development build](https://unpkg.com/earcut@2.1.4/dist/earcut.dev.js)
+- [minified production build](https://unpkg.com/earcut@2.1.4/dist/earcut.min.js)
 
 Running tests:
 
@@ -112,6 +112,14 @@ npm test
 - [Cawfree/earcut-j](https://github.com/Cawfree/earcut-j) (Java, outdated)
 
 #### Changelog
+
+##### 2.1.4 (Dec 4, 2018)
+
+- Fixed a race condition that could lead to a freeze on degenerate input.
+
+##### 2.1.3 (Jan 4, 2018)
+
+- Improved performance for bigger inputs (5-12%).
 
 ##### 2.1.2 (Oct 23, 2017)
 
