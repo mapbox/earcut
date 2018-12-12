@@ -469,7 +469,7 @@ function isValidDiagonal(a, b) {
            locallyInside(a, b) && locallyInside(b, a) && middleInside(a, b);
 }
 
-// signed area of a triangle
+// signed area of a parallelogram
 function area(p, q, r) {
     return (q.y - p.y) * (r.x - q.x) - (q.x - p.x) * (r.y - q.y);
 }
