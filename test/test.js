@@ -37,7 +37,7 @@ areaTest('shared-points', 4);
 areaTest('bad-diagonals', 7);
 areaTest('issue83', 0);
 areaTest('issue107', 0);
-areaTest('issue111', 0);
+areaTest('issue111', 19);
 
 test('indices-2d', function (t) {
     var indices = earcut([10, 0, 0, 50, 60, 60, 70, 10]);
