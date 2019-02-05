@@ -95,8 +95,8 @@ npm install earcut
 
 Browser builds on CDN:
 
-- [development build](https://unpkg.com/earcut@2.1.4/dist/earcut.dev.js)
-- [minified production build](https://unpkg.com/earcut@2.1.4/dist/earcut.min.js)
+- [development build](https://unpkg.com/earcut@2.1.5/dist/earcut.dev.js)
+- [minified production build](https://unpkg.com/earcut@2.1.5/dist/earcut.min.js)
 
 Running tests:
 
@@ -112,6 +112,10 @@ npm test
 - [Cawfree/earcut-j](https://github.com/Cawfree/earcut-j) (Java, outdated)
 
 #### Changelog
+
+##### 2.1.5 (Feb 5, 2019)
+
+- Fixed a race condition with coincident holes that could lead to bad triangulation.
 
 ##### 2.1.4 (Dec 4, 2018)
 
