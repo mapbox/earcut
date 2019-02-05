@@ -12,8 +12,8 @@ areaTest('water2', 1212);
 areaTest('water3', 197);
 areaTest('water3b', 25);
 areaTest('water4', 705);
-areaTest('water-huge', 5174, 0.0011);
-areaTest('water-huge2', 4461, 0.0028);
+areaTest('water-huge', 5175, 0.0011);
+areaTest('water-huge2', 4462, 0.0028);
 areaTest('degenerate', 0);
 areaTest('bad-hole', 42, 0.019);
 areaTest('empty-square', 0);
@@ -37,6 +37,7 @@ areaTest('shared-points', 4);
 areaTest('bad-diagonals', 7);
 areaTest('issue83', 0);
 areaTest('issue107', 0);
+areaTest('issue111', 0);
 
 test('indices-2d', function (t) {
     var indices = earcut([10, 0, 0, 50, 60, 60, 70, 10]);
