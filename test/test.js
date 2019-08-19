@@ -3,35 +3,8 @@
 var test = require('tape'),
     earcut = require('../src/earcut'),
     fs = require('fs'),
-    path = require('path');
-
-areaTest('building', 13);
-areaTest('dude', 106);
-areaTest('water', 2482, 0.0008);
-areaTest('water2', 1212);
-areaTest('water3', 197);
-areaTest('water3b', 25);
-areaTest('water4', 705);
-areaTest('water-huge', 5173, 0.0011);
-areaTest('water-huge2', 4459, 0.0028);
-areaTest('degenerate', 0);
-areaTest('bad-hole', 42, 0.019);
-areaTest('empty-square', 0);
-areaTest('issue16', 12);
-areaTest('issue17', 11);
-areaTest('steiner', 9);
-areaTest('issue29', 40);
-areaTest('issue34', 139);
-areaTest('issue35', 844);
-areaTest('self-touching', 124, 3.4e-14);
-areaTest('outside-ring', 64);
-areaTest('simplified-us-border', 120);
-areaTest('touching-holes', 57);
-areaTest('hole-touching-outer', 77);
-areaTest('hilbert', 1024);
-areaTest('issue45', 10);
-areaTest('eberly-6', 1429);
-areaTest('issue52', 109);
+    path = require('path'),
+    expected = require('./expected.json');
 
 test('indices-2d', function (t) {
     var indices = earcut([10, 0, 0, 50, 60, 60, 70, 10]);
@@ -50,27 +23,23 @@ test('empty', function (t) {
     t.end();
 });
 
-function areaTest(filename, expectedTriangles, expectedDeviation) {
-    expectedDeviation = expectedDeviation || 1e-14;
+Object.keys(expected.triangles).forEach(function (id) {
 
-    test(filename, function (t) {
-
-        var data = earcut.flatten(JSON.parse(fs.readFileSync(path.join(__dirname, '/fixtures/' + filename + '.json')))),
+    test(id, function (t) {
+        var data = earcut.flatten(JSON.parse(fs.readFileSync(path.join(__dirname, '/fixtures/' + id + '.json')))),
             indices = earcut(data.vertices, data.holes, data.dimensions),
-            deviation = earcut.deviation(data.vertices, data.holes, data.dimensions, indices);
+            deviation = earcut.deviation(data.vertices, data.holes, data.dimensions, indices),
+            expectedTriangles = expected.triangles[id],
+            expectedDeviation = expected.errors[id] || 0;
 
-        t.ok(deviation < expectedDeviation,
-            'deviation ' + formatPercent(deviation) + ' is less than ' + formatPercent(expectedDeviation));
+        var numTriangles = indices.length / 3;
+        t.ok(numTriangles === expectedTriangles, numTriangles + ' triangles when expected ' + expectedTriangles);
 
-        if (expectedTriangles) {
-            var numTriangles = indices.length / 3;
-            t.ok(numTriangles === expectedTriangles, numTriangles + ' triangles when expected ' + expectedTriangles);
+        if (expectedTriangles > 0) {
+            t.ok(deviation <= expectedDeviation,
+                'deviation ' + deviation + ' <= ' + expectedDeviation);
         }
 
         t.end();
     });
-}
-
-function formatPercent(num) {
-    return (Math.round(1e8 * num) / 1e6) + '%';
-}
+});

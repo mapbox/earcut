@@ -49,12 +49,12 @@ var triangles = earcut([10,0, 0,50, 60,60, 70,10]); // returns [1,0,3, 3,2,1]
 
 Signature: `earcut(vertices[, holes, dimensions = 2])`.
 
-* `vertices` is a flat array of vertice coordinates like `[x0,y0, x1,y1, x2,y2, ...]`.
+* `vertices` is a flat array of vertex coordinates like `[x0,y0, x1,y1, x2,y2, ...]`.
 * `holes` is an array of hole _indices_ if any
-  (e.g. `[5, 8]` for a 12-vertice input would mean one hole with vertices 5&ndash;7 and another with 8&ndash;11).
-* `dimensions` is the number of coordinates per vertice in the input array (`2` by default).
+  (e.g. `[5, 8]` for a 12-vertex input would mean one hole with vertices 5&ndash;7 and another with 8&ndash;11).
+* `dimensions` is the number of coordinates per vertex in the input array (`2` by default).
 
-Each group of three vertice indices in the resulting array forms a triangle.
+Each group of three vertex indices in the resulting array forms a triangle.
 
 ```js
 // triangulating a polygon with a hole
@@ -66,7 +66,7 @@ earcut([10,0,1, 0,50,2, 60,60,3, 70,10,4], null, 3);
 // [1,0,3, 3,2,1]
 ```
 
-If you pass a single vertice as a hole, Earcut treats it as a Steiner point.
+If you pass a single vertex as a hole, Earcut treats it as a Steiner point.
 
 If your input is a multi-dimensional array (e.g. [GeoJSON Polygon](http://geojson.org/geojson-spec.html#polygon)),
 you can convert it to the format expected by Earcut with `earcut.flatten`:
@@ -95,8 +95,8 @@ npm install earcut
 
 Browser builds on CDN:
 
-- [development build](https://npmcdn.com/earcut@2.0.8/dist/earcut.dev.js)
-- [minified production build](https://npmcdn.com/earcut@2.0.8/dist/earcut.min.js)
+- [development build](https://unpkg.com/earcut@2.1.5/dist/earcut.dev.js)
+- [minified production build](https://unpkg.com/earcut@2.1.5/dist/earcut.min.js)
 
 Running tests:
 
@@ -112,6 +112,29 @@ npm test
 - [Cawfree/earcut-j](https://github.com/Cawfree/earcut-j) (Java, outdated)
 
 #### Changelog
+
+##### 2.1.5 (Feb 5, 2019)
+
+- Fixed a race condition with coincident holes that could lead to bad triangulation.
+
+##### 2.1.4 (Dec 4, 2018)
+
+- Fixed a race condition that could lead to a freeze on degenerate input.
+
+##### 2.1.3 (Jan 4, 2018)
+
+- Improved performance for bigger inputs (5-12%).
+
+##### 2.1.2 (Oct 23, 2017)
+
+- Fixed a few race conditions where bad input would cause an error.
+
+##### 2.1.1 (Mar 17, 2016)
+
+- Fixed a rare race condition where the split routine would choose bad diagonals.
+- Fixed a rare race condition in the "cure local intersections" routine.
+- Fixed a rare race condition where a hole that shares a point with the outer ring would be handled incorrectly.
+- Fixed a bug where a closing point wouldn't be filtered as duplicate, sometimes breaking triangulation.
 
 ##### 2.1.0 (Mar 11, 2016)
 
@@ -191,7 +214,7 @@ npm test
 ##### 1.2.1 (Jan 26, 2015)
 
 - Significantly improved performance on polygons with high number of vertices
-  by using z-order curve hashing for vertice lookup.
+  by using z-order curve hashing for vertex lookup.
 - Slightly improved overall performance with better point filtering.
 
 ##### 1.1.0 (Jan 21, 2015)
