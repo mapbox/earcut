@@ -33,7 +33,8 @@
         "issue83": 0,
         "issue107": 0,
         "issue111": 19,
-        "boxy": 56
+        "boxy": 57,
+        "collinear-diagonal": 14
     },
     "errors": {
         "dude": 2e-15,

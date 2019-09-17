@@ -483,8 +483,11 @@ function equals(p1, p2) {
 function intersects(p1, q1, p2, q2) {
     if ((equals(p1, p2) && equals(q1, q2)) ||
         (equals(p1, q2) && equals(p2, q1))) return true;
-    return area(p1, q1, p2) > 0 !== area(p1, q1, q2) > 0 &&
-           area(p2, q2, p1) > 0 !== area(p2, q2, q1) > 0;
+    var a0 = area(p1, q1, p2);
+    var a1 = area(p1, q1, q2);
+    var a2 = area(p2, q2, p1);
+    var a3 = area(p2, q2, q1);
+    return (a0 === 0 && a1 === 0) || (a0 > 0 !== a1 > 0 && a2 > 0 !== a3 > 0);
 }
 
 // check if a polygon diagonal intersects any polygon segments
