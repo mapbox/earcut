@@ -7,7 +7,7 @@
         "water3": 197,
         "water3b": 25,
         "water4": 705,
-        "water-huge": 5175,
+        "water-huge": 5177,
         "water-huge2": 4462,
         "degenerate": 0,
         "bad-hole": 42,
@@ -35,7 +35,11 @@
         "issue111": 19,
         "boxy": 57,
         "collinear-diagonal": 14,
-        "issue119": 18
+        "issue119": 18,
+        "hourglass": 2,
+        "touching2": 8,
+        "touching3": 15,
+        "rain": 2681
     },
     "errors": {
         "dude": 2e-15,

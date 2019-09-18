@@ -124,7 +124,7 @@ function earcutLinked(ear, triangles, dim, minX, minY, invSize, pass) {
 
             // if this didn't work, try curing all small self-intersections locally
             } else if (pass === 1) {
-                ear = cureLocalIntersections(ear, triangles, dim);
+                ear = cureLocalIntersections(filterPoints(ear), triangles, dim);
                 earcutLinked(ear, triangles, dim, minX, minY, invSize, 2);
 
             // as a last resort, try splitting the remaining polygon into two
@@ -324,7 +324,7 @@ function findHoleBridge(hole, outerNode) {
 
     if (!m) return null;
 
-    if (hx === qx) return m.prev; // hole touches outer segment; pick lower endpoint
+    if (hx === qx) return m; // hole touches outer segment; pick leftmost endpoint
 
     // look for points inside the triangle of hole point, segment intersection and endpoint;
     // if there are no points found, we have a valid connection;
@@ -474,8 +474,10 @@ function pointInTriangle(ax, ay, bx, by, cx, cy, px, py) {
 
 // check if a diagonal between two polygon nodes is valid (lies in polygon interior)
 function isValidDiagonal(a, b) {
-    return a.next.i !== b.i && a.prev.i !== b.i && !intersectsPolygon(a, b) &&
-           locallyInside(a, b) && locallyInside(b, a) && middleInside(a, b);
+    return a.next.i !== b.i && a.prev.i !== b.i && !intersectsPolygon(a, b) && // dones't intersect other edges
+           (locallyInside(a, b) && locallyInside(b, a) && middleInside(a, b) && // locally visible
+            (area(a.prev, a, b.prev) || area(a, b.prev, b)) || // does not create opposite-facing sectors
+            equals(a, b) && area(a.prev, a, a.next) > 0 && area(b.prev, b, b.next) > 0); // special zero-length case
 }
 
 // signed area of a triangle
@@ -490,13 +492,28 @@ function equals(p1, p2) {
 
 // check if two segments intersect
 function intersects(p1, q1, p2, q2) {
-    if ((equals(p1, p2) && equals(q1, q2)) ||
-        (equals(p1, q2) && equals(p2, q1))) return true;
-    var a0 = area(p1, q1, p2);
-    var a1 = area(p1, q1, q2);
-    var a2 = area(p2, q2, p1);
-    var a3 = area(p2, q2, q1);
-    return (a0 === 0 && a1 === 0) || (a0 > 0 !== a1 > 0 && a2 > 0 !== a3 > 0);
+    var o1 = sign(area(p1, q1, p2));
+    var o2 = sign(area(p1, q1, q2));
+    var o3 = sign(area(p2, q2, p1));
+    var o4 = sign(area(p2, q2, q1));
+
+    if (o1 !== o2 && o3 !== o4) return true; // general case
+
+    if (o1 === 0 && onSegment(p1, p2, q1)) return true; // p1, q1 and p2 are collinear and p2 lies on p1q1
+    if (o2 === 0 && onSegment(p1, q2, q1)) return true; // p1, q1 and q2 are collinear and q2 lies on p1q1
+    if (o3 === 0 && onSegment(p2, p1, q2)) return true; // p2, q2 and p1 are collinear and p1 lies on p2q2
+    if (o4 === 0 && onSegment(p2, q1, q2)) return true; // p2, q2 and q1 are collinear and q1 lies on p2q2
+
+    return false;
+}
+
+// for collinear points p, q, r, check if point q lies on segment pr
+function onSegment(p, q, r) {
+    return q.x <= Math.max(p.x, r.x) && q.x >= Math.min(p.x, r.x) && q.y <= Math.max(p.y, r.y) && q.y >= Math.min(p.y, r.y);
+}
+
+function sign(num) {
+    return num > 0 ? 1 : num < 0 ? -1 : 0;
 }
 
 // check if a polygon diagonal intersects any polygon segments
