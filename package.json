@@ -22,15 +22,15 @@
   "license": "ISC",
   "devDependencies": {
     "benchmark": "^2.1.4",
-    "browserify": "^16.2.3",
-    "coveralls": "^3.0.2",
+    "browserify": "^16.5.0",
+    "coveralls": "^3.0.6",
     "eslint": "^4.19.1",
     "eslint-config-mourner": "^2.0.3",
     "istanbul": "^0.4.5",
     "mkdirp": "^0.5.1",
-    "tape": "^4.9.2",
-    "uglify-js": "^3.4.9",
-    "watchify": "^3.11.0"
+    "tape": "^4.11.0",
+    "uglify-js": "^3.6.0",
+    "watchify": "^3.11.1"
   },
   "eslintConfig": {
     "extends": "mourner",
