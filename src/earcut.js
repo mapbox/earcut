@@ -336,24 +336,33 @@ function findHoleBridge(hole, outerNode) {
         tanMin = Infinity,
         tan;
 
-    p = m.next;
+    p = m;
 
-    while (p !== stop) {
+    do {
         if (hx >= p.x && p.x >= mx && hx !== p.x &&
                 pointInTriangle(hy < my ? hx : qx, hy, mx, my, hy < my ? qx : hx, hy, p.x, p.y)) {
 
             tan = Math.abs(hy - p.y) / (hx - p.x); // tangential
 
-            if ((tan < tanMin || (tan === tanMin && p.x > m.x)) && locallyInside(p, hole)) {
+            if (locallyInside(p, hole) &&
+                (tan < tanMin || (tan === tanMin && (p.x > m.x || (p.x === m.x && sectorContainsSector(m, p)))))) {
                 m = p;
                 tanMin = tan;
             }
         }
 
         p = p.next;
-    }
+    } while (p !== stop);
 
     return m;
+}
+
+// whether sector in vertex m contains sector in vertex p in the same coordinates
+function sectorContainsSector(m, p) {
+    return (
+        (area(m.prev, m, p.prev) < 0 || area(p.prev, m, m.next) < 0) &&
+        (area(m.prev, m, p.next) < 0 || area(p.next, m, m.next) < 0)
+    );
 }
 
 // interlink polygon nodes in z-order
