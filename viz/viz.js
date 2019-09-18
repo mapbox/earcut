@@ -47,10 +47,10 @@ if (devicePixelRatio > 1) {
 var data = earcut.flatten(testPoints);
 
 console.time('earcut');
-// for (var i = 0; i < 1000; i++) {
 var result = earcut(data.vertices, data.holes, data.dimensions);
-// }
 console.timeEnd('earcut');
+
+console.log('deviation: ' + earcut.deviation(data.vertices, data.holes, data.dimensions, result));
 
 var triangles = [];
 for (i = 0; i < result.length; i++) {
@@ -61,11 +61,11 @@ for (i = 0; i < result.length; i++) {
 ctx.lineJoin = 'round';
 
 for (i = 0; triangles && i < triangles.length; i += 3) {
-    drawPoly([triangles.slice(i, i + 3)], 'rgba(255,0,0,0.2)', 'rgba(255,255,0,0.2)');
-    // drawPoly([triangles.slice(i, i + 3)], 'rgba(255,0,0,0.0)', 'rgba(255,0,0,0.3)');
+    drawPoly(triangles.slice(i, i + 3), 'rgba(255,0,0,0.2)', 'rgba(255,255,0,0.2)');
+    // drawPoly(triangles.slice(i, i + 3), 'rgba(255,0,0,0.0)', 'rgba(255,0,0,0.3)');
 }
 
-drawPoly(testPoints, 'black');
+drawPoly(testPoints, 'black', true);
 
 function drawPoint(p, color) {
     var x = (p[0] - minX) * ratio + 5,
@@ -78,7 +78,9 @@ function drawPoly(rings, color, fill) {
     ctx.beginPath();
 
     ctx.strokeStyle = color;
-    if (fill) ctx.fillStyle = fill;
+    if (fill && fill !== true) ctx.fillStyle = fill;
+
+    if (typeof rings[0][0] === 'number') rings = [rings];
 
     for (var k = 0; k < rings.length; k++) {
         var points = rings[k];
@@ -88,9 +90,33 @@ function drawPoly(rings, color, fill) {
             if (i === 0) ctx.moveTo(x, y);
             else ctx.lineTo(x, y);
         }
-        ctx.closePath();
+        if (fill) ctx.closePath();
     }
     ctx.stroke();
 
-    if (fill) ctx.fill('evenodd');
+    if (fill && fill !== true) ctx.fill('evenodd');
+}
+
+function clear() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+}
+
+function drawNode(node, color) {
+    drawPoint([node.x, node.y], color);
+}
+
+function drawNodeRing(node, color, fill) {
+    var start = node;
+    var points = [];
+    do {
+        points.push([node.x, node.y]);
+        node = node.next;
+    } while (node !== start);
+
+    console.log(JSON.stringify(points));
+    drawPoly(points, color, fill);
+}
+
+function drawNodePolygon(node) {
+    drawNodeRing(node, 'black', 'rgba(255,255,0,0.2)');
 }
