@@ -1,9 +1,9 @@
 
-const test = require('tape');
-const earcut = require('../src/earcut');
-const fs = require('fs');
-const path = require('path');
-const expected = require('./expected.json');
+import test from 'tape';
+import {earcut, flatten, deviation} from '../src/earcut';
+import fs from 'fs';
+import path from 'path';
+import expected from './expected.json';
 
 test('indices-2d', (t) => {
     const indices = earcut([10, 0, 0, 50, 60, 60, 70, 10]);
@@ -25,9 +25,9 @@ test('empty', (t) => {
 Object.keys(expected.triangles).forEach((id) => {
 
     test(id, (t) => {
-        const data = earcut.flatten(JSON.parse(fs.readFileSync(path.join(__dirname, `/fixtures/${id}.json`))));
+        const data = flatten(JSON.parse(fs.readFileSync(path.join(__dirname, `/fixtures/${id}.json`))));
         const indices = earcut(data.vertices, data.holes, data.dimensions);
-        const deviation = earcut.deviation(data.vertices, data.holes, data.dimensions, indices);
+        const dev = deviation(data.vertices, data.holes, data.dimensions, indices);
         const expectedTriangles = expected.triangles[id];
         const expectedDeviation = expected.errors[id] || 0;
 
@@ -35,7 +35,7 @@ Object.keys(expected.triangles).forEach((id) => {
         t.ok(numTriangles === expectedTriangles, `${numTriangles} triangles when expected ${expectedTriangles}`);
 
         if (expectedTriangles > 0) {
-            t.ok(deviation <= expectedDeviation, `deviation ${deviation} <= ${expectedDeviation}`);
+            t.ok(dev <= expectedDeviation, `deviation ${dev} <= ${expectedDeviation}`);
         }
 
         t.end();

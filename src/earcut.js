@@ -1,8 +1,5 @@
 
-module.exports = earcut;
-module.exports.default = earcut;
-
-function earcut(data, holeIndices, dim = 2) {
+export function earcut(data, holeIndices, dim = 2) {
 
     const hasHoles = holeIndices && holeIndices.length;
     const outerLen = hasHoles ? holeIndices[0] * dim : data.length;
@@ -601,7 +598,7 @@ function Node(i, x, y) {
 
 // return a percentage difference between the polygon area and its triangulation area;
 // used to verify correctness of triangulation
-earcut.deviation = function (data, holeIndices, dim, triangles) {
+export function deviation(data, holeIndices, dim, triangles) {
     const hasHoles = holeIndices && holeIndices.length;
     const outerLen = hasHoles ? holeIndices[0] * dim : data.length;
 
@@ -626,7 +623,7 @@ earcut.deviation = function (data, holeIndices, dim, triangles) {
 
     return polygonArea === 0 && trianglesArea === 0 ? 0 :
         Math.abs((trianglesArea - polygonArea) / polygonArea);
-};
+}
 
 function signedArea(data, start, end, dim) {
     let sum = 0;
@@ -638,7 +635,7 @@ function signedArea(data, start, end, dim) {
 }
 
 // turn a polygon in a multi-dimensional array form (e.g. as in GeoJSON) into a form Earcut accepts
-earcut.flatten = function (data) {
+export function flatten(data) {
     const dim = data[0][0].length;
     const result = {vertices: [], holes: [], dimensions: dim};
     let holeIndex = 0;
@@ -653,4 +650,4 @@ earcut.flatten = function (data) {
         }
     }
     return result;
-};
+}
