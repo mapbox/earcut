@@ -120,3 +120,7 @@ function drawNodeRing(node, color, fill) {
 function drawNodePolygon(node) {
     drawNodeRing(node, 'black', 'rgba(255,255,0,0.2)');
 }
+
+function drawNodeEdge(node, color) {
+    drawPoly([[node.x, node.y], [node.next.x, node.next.y]], color);
+}
