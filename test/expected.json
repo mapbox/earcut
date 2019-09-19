@@ -39,6 +39,7 @@
         "hourglass": 2,
         "touching2": 8,
         "touching3": 15,
+        "touching4": 20,
         "rain": 2681
     },
     "errors": {
