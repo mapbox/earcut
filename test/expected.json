@@ -40,7 +40,8 @@
         "touching2": 8,
         "touching3": 15,
         "touching4": 20,
-        "rain": 2681
+        "rain": 2681,
+        "issue131": 12
     },
     "errors": {
         "dude": 2e-15,
