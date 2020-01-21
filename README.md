@@ -95,8 +95,8 @@ npm install earcut
 
 Browser builds on CDN:
 
-- [development build](https://unpkg.com/earcut@2.2.1/dist/earcut.dev.js)
-- [minified production build](https://unpkg.com/earcut@2.2.1/dist/earcut.min.js)
+- [development build](https://unpkg.com/earcut@2.2.2/dist/earcut.dev.js)
+- [minified production build](https://unpkg.com/earcut@2.2.2/dist/earcut.min.js)
 
 Running tests:
 
@@ -112,6 +112,10 @@ npm test
 - [Cawfree/earcut-j](https://github.com/Cawfree/earcut-j) (Java, outdated)
 
 #### Changelog
+
+##### 2.2.2 (Jan 21, 2020)
+
+- Fixed yet another rare race condition when a hole shared an edge with an outer ring.
 
 ##### 2.2.1 (Sep 19, 2019)
 
