@@ -110,6 +110,7 @@ npm test
 
 - [mapbox/earcut.hpp](https://github.com/mapbox/earcut.hpp) (C++11)
 - [the3deers/earcut-java](https://github.com/the3deers/earcut-java) (Java)
+- [Larpon/earcut](https://github.com/Larpon/earcut) (V)
 - [Cawfree/earcut-j](https://github.com/Cawfree/earcut-j) (Java, outdated)
 
 #### Changelog
