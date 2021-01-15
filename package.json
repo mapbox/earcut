@@ -16,22 +16,22 @@
     "build-dev": "mkdirp dist && browserify -d src/earcut.js -s earcut > dist/earcut.dev.js",
     "build-min": "mkdirp dist && browserify src/earcut.js -s earcut | uglifyjs -c -m > dist/earcut.min.js",
     "prepublishOnly": "npm run build-dev && npm run build-min",
-    "cov": "istanbul cover test/*.js",
-    "coveralls": "istanbul cover test/*.js && coveralls < ./coverage/lcov.info"
+    "cov": "c8 tape test/*.js",
+    "coveralls": "npm run cov && c8 report -r lcov && coveralls < ./coverage/lcov.info"
   },
   "author": "Vladimir Agafonkin",
   "license": "ISC",
   "devDependencies": {
     "benchmark": "^2.1.4",
     "browserify": "^17.0.0",
+    "c8": "^7.4.0",
     "coveralls": "^3.1.0",
     "eslint": "^7.17.0",
     "eslint-config-mourner": "^2.0.3",
-    "istanbul": "^0.4.5",
     "mkdirp": "^1.0.4",
     "tape": "^5.1.1",
-    "uglify-js": "^3.6.0",
-    "watchify": "^3.12.4"
+    "uglify-js": "^3.12.4",
+    "watchify": "^3.11.1"
   },
   "eslintConfig": {
     "extends": "mourner",
