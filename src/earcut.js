@@ -277,7 +277,7 @@ function eliminateHoles(data, holeIndices, outerNode, dim) {
 
     // process holes from left to right
     for (i = 0; i < queue.length; i++) {
-        eliminateHole(queue[i], outerNode);
+        outerNode = eliminateHole(queue[i], outerNode);
         outerNode = filterPoints(outerNode, outerNode.next);
     }
 
@@ -290,14 +290,19 @@ function compareX(a, b) {
 
 // find a bridge between vertices that connects hole with an outer ring and and link it
 function eliminateHole(hole, outerNode) {
-    outerNode = findHoleBridge(hole, outerNode);
-    if (outerNode) {
-        var b = splitPolygon(outerNode, hole);
-
-        // filter collinear points around the cuts
-        filterPoints(outerNode, outerNode.next);
-        filterPoints(b, b.next);
+    var bridge = findHoleBridge(hole, outerNode);
+    if (!bridge) {
+        return outerNode;
     }
+
+    var bridgeReverse = splitPolygon(bridge, hole);
+
+    // filter collinear points around the cuts
+    var filteredBridge = filterPoints(bridge, bridge.next);
+    filterPoints(bridgeReverse, bridgeReverse.next);
+
+    // Check if input node was removed by the filtering
+    return outerNode === bridge ? filteredBridge : outerNode;
 }
 
 // David Eberly's algorithm for finding a bridge between hole and outer polygon
