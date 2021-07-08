@@ -95,8 +95,8 @@ npm install earcut
 
 Browser builds on CDN:
 
-- [development build](https://unpkg.com/earcut@2.2.2/dist/earcut.dev.js)
-- [minified production build](https://unpkg.com/earcut@2.2.2/dist/earcut.min.js)
+- [development build](https://unpkg.com/earcut@2.2.3/dist/earcut.dev.js)
+- [minified production build](https://unpkg.com/earcut@2.2.3/dist/earcut.min.js)
 
 Running tests:
 
@@ -115,6 +115,10 @@ npm test
 - [Cawfree/earcut-j](https://github.com/Cawfree/earcut-j) (Java, outdated)
 
 #### Changelog
+
+##### 2.2.3 (Jul 8, 2021)
+
+- Fixed a rare race condition that could lead to an infinite loop.
 
 ##### 2.2.2 (Jan 21, 2020)
 
