@@ -44,7 +44,7 @@ function earcut(data, holeIndices, dim) {
 
 // create a circular doubly linked list from polygon points in the specified winding order
 function linkedList(data, start, end, dim, clockwise) {
-    var i, last;
+    var i, last, next;
 
     if (clockwise === (signedArea(data, start, end, dim) > 0)) {
         for (i = start; i < end; i += dim) last = insertNode(i, data[i], data[i + 1], last);
@@ -53,8 +53,9 @@ function linkedList(data, start, end, dim, clockwise) {
     }
 
     if (last && equals(last, last.next)) {
+        next = last.next;
         removeNode(last);
-        last = last.next;
+        last = next;
     }
 
     return last;
@@ -66,13 +67,14 @@ function filterPoints(start, end) {
     if (!end) end = start;
 
     var p = start,
-        again;
+        again, prev;
     do {
         again = false;
 
         if (!p.steiner && (equals(p, p.next) || area(p.prev, p, p.next) === 0)) {
+            prev = p.prev;
             removeNode(p);
-            p = end = p.prev;
+            p = end = prev;
             if (p === p.next) break;
             again = true;
 
@@ -223,8 +225,8 @@ function cureLocalIntersections(start, triangles, dim) {
             triangles.push(b.i / dim);
 
             // remove two nodes involved
-            removeNode(p);
             removeNode(p.next);
+            removeNode(p);
 
             p = start = b;
         }
@@ -602,6 +604,9 @@ function removeNode(p) {
 
     if (p.prevZ) p.prevZ.nextZ = p.nextZ;
     if (p.nextZ) p.nextZ.prevZ = p.prevZ;
+
+    p.next = p;
+    p.prev = p;
 }
 
 function Node(i, x, y) {
