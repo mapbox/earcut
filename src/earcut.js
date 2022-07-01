@@ -303,6 +303,11 @@ function eliminateHole(hole, outerNode) {
     var filteredBridge = filterPoints(bridge, bridge.next);
     filterPoints(bridgeReverse, bridgeReverse.next);
 
+    // was outerNode filtered out? return filteredBridge instead. 
+    if (outerNode === outerNode.next) {
+        return filteredBridge;
+    }
+
     // Check if input node was removed by the filtering
     return outerNode === bridge ? filteredBridge : outerNode;
 }

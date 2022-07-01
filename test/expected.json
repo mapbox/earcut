@@ -42,7 +42,8 @@
         "touching4": 20,
         "rain": 2681,
         "issue131": 12,
-        "infinite-loop-jhl" : 0
+        "infinite-loop-jhl" : 0,
+        "filtered-bridge-jhl" : 25
     },
     "errors": {
         "dude": 2e-15,
