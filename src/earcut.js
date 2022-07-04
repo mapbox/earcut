@@ -101,9 +101,9 @@ function earcutLinked(ear, triangles, dim, minX, minY, invSize, pass) {
 
         if (invSize ? isEarHashed(ear, minX, minY, invSize) : isEar(ear)) {
             // cut off the triangle
-            triangles.push(prev.i / dim);
-            triangles.push(ear.i / dim);
-            triangles.push(next.i / dim);
+            triangles.push(prev.i / dim | 0);
+            triangles.push(ear.i / dim | 0);
+            triangles.push(next.i / dim | 0);
 
             removeNode(ear);
 
@@ -218,9 +218,9 @@ function cureLocalIntersections(start, triangles, dim) {
 
         if (!equals(a, b) && intersects(a, p, p.next, b) && locallyInside(a, b) && locallyInside(b, a)) {
 
-            triangles.push(a.i / dim);
-            triangles.push(p.i / dim);
-            triangles.push(b.i / dim);
+            triangles.push(a.i / dim | 0);
+            triangles.push(p.i / dim | 0);
+            triangles.push(b.i / dim | 0);
 
             // remove two nodes involved
             removeNode(p);
@@ -374,7 +374,7 @@ function sectorContainsSector(m, p) {
 function indexCurve(start, minX, minY, invSize) {
     var p = start;
     do {
-        if (p.z === null) p.z = zOrder(p.x, p.y, minX, minY, invSize);
+        if (p.z === 0) p.z = zOrder(p.x, p.y, minX, minY, invSize);
         p.prevZ = p.prev;
         p.nextZ = p.next;
         p = p.next;
@@ -617,7 +617,7 @@ function Node(i, x, y) {
     this.next = null;
 
     // z-order curve value
-    this.z = null;
+    this.z = 0;
 
     // previous and next nodes in z-order
     this.prevZ = null;
