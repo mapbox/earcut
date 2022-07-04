@@ -43,7 +43,8 @@
         "rain": 2681,
         "issue131": 12,
         "infinite-loop-jhl" : 0,
-        "filtered-bridge-jhl" : 25
+        "filtered-bridge-jhl" : 25,
+        "issue149": 2
     },
     "errors": {
         "dude": 2e-15,
