@@ -24,13 +24,13 @@
   "devDependencies": {
     "benchmark": "^2.1.4",
     "browserify": "^17.0.0",
-    "c8": "^7.7.3",
+    "c8": "^7.11.3",
     "coveralls": "^3.1.1",
-    "eslint": "^7.30.0",
+    "eslint": "^8.19.0",
     "eslint-config-mourner": "^2.0.3",
     "mkdirp": "^1.0.4",
-    "tape": "^5.2.2",
-    "uglify-js": "^3.13.10",
+    "tape": "^5.5.3",
+    "uglify-js": "^3.16.2",
     "watchify": "^4.0.0"
   },
   "eslintConfig": {
