@@ -34,10 +34,10 @@ function earcut(data, holeIndices, dim) {
 
         // minX, minY and invSize are later used to transform coords into integers for z-order calculation
         invSize = Math.max(maxX - minX, maxY - minY);
-        invSize = invSize !== 0 ? 1 / invSize : 0;
+        invSize = invSize !== 0 ? 32767 / invSize : 0;
     }
 
-    earcutLinked(outerNode, triangles, dim, minX, minY, invSize);
+    earcutLinked(outerNode, triangles, dim, minX, minY, invSize, 0);
 
     return triangles;
 }
@@ -165,7 +165,7 @@ function isEarHashed(ear, minX, minY, invSize) {
 
     if (area(a, b, c) >= 0) return false; // reflex, can't be an ear
 
-    const ax = a.x, bx = b.x, cx = c.x, ay = a.y, by = b.y, cy = c.y;
+    var ax = a.x, bx = b.x, cx = c.x, ay = a.y, by = b.y, cy = c.y;
 
     // triangle bbox; min & max are calculated like this for speed
     var minTX = ax < bx ? (ax < cx ? ax : cx) : (bx < cx ? bx : cx),
@@ -253,8 +253,8 @@ function splitEarcut(start, triangles, dim, minX, minY, invSize) {
                 c = filterPoints(c, c.next);
 
                 // run earcut on each half
-                earcutLinked(a, triangles, dim, minX, minY, invSize);
-                earcutLinked(c, triangles, dim, minX, minY, invSize);
+                earcutLinked(a, triangles, dim, minX, minY, invSize, 0);
+                earcutLinked(c, triangles, dim, minX, minY, invSize, 0);
                 return;
             }
             b = b.next;
@@ -445,8 +445,8 @@ function sortLinked(list) {
 // z-order of a point given coords and inverse of the longer side of data bbox
 function zOrder(x, y, minX, minY, invSize) {
     // coords are transformed into non-negative 15-bit integer range
-    x = 32767 * (x - minX) * invSize;
-    y = 32767 * (y - minY) * invSize;
+    x = (x - minX) * invSize | 0;
+    y = (y - minY) * invSize | 0;
 
     x = (x | (x << 8)) & 0x00FF00FF;
     x = (x | (x << 4)) & 0x0F0F0F0F;
