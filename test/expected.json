@@ -41,7 +41,11 @@
         "touching3": 15,
         "touching4": 20,
         "rain": 2681,
-        "issue131": 12
+        "issue131": 12,
+        "infinite-loop-jhl" : 0,
+        "filtered-bridge-jhl" : 25,
+        "issue149": 2,
+        "issue142": 4
     },
     "errors": {
         "dude": 2e-15,
@@ -53,6 +57,7 @@
         "issue17": 2e-16,
         "issue29": 2e-15,
         "self-touching": 2e-13,
-        "eberly-6": 2e-14
+        "eberly-6": 2e-14,
+        "issue142": 0.13
     }
 }

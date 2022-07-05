@@ -284,7 +284,6 @@ function eliminateHoles(data, holeIndices, outerNode, dim) {
     // process holes from left to right
     for (i = 0; i < queue.length; i++) {
         outerNode = eliminateHole(queue[i], outerNode);
-        outerNode = filterPoints(outerNode, outerNode.next);
     }
 
     return outerNode;
@@ -304,11 +303,8 @@ function eliminateHole(hole, outerNode) {
     var bridgeReverse = splitPolygon(bridge, hole);
 
     // filter collinear points around the cuts
-    var filteredBridge = filterPoints(bridge, bridge.next);
     filterPoints(bridgeReverse, bridgeReverse.next);
-
-    // Check if input node was removed by the filtering
-    return outerNode === bridge ? filteredBridge : outerNode;
+    return filterPoints(bridge, bridge.next);
 }
 
 // David Eberly's algorithm for finding a bridge between hole and outer polygon
