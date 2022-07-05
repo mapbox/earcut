@@ -1,6 +1,6 @@
 ## Earcut
 
-The fastest and smallest JavaScript polygon triangulation library. 2.5KB gzipped.
+The fastest and smallest JavaScript polygon triangulation library. 3KB gzipped.
 
 [![Build Status](https://travis-ci.org/mapbox/earcut.svg?branch=master)](https://travis-ci.org/mapbox/earcut)
 [![Coverage Status](https://coveralls.io/repos/mapbox/earcut/badge.svg?branch=master)](https://coveralls.io/r/mapbox/earcut?branch=master)
@@ -95,8 +95,8 @@ npm install earcut
 
 Browser builds on CDN:
 
-- [development build](https://unpkg.com/earcut@2.2.3/dist/earcut.dev.js)
-- [minified production build](https://unpkg.com/earcut@2.2.3/dist/earcut.min.js)
+- [development build](https://unpkg.com/earcut@2.2.4/dist/earcut.dev.js)
+- [minified production build](https://unpkg.com/earcut@2.2.4/dist/earcut.min.js)
 
 Running tests:
 
@@ -115,6 +115,11 @@ npm test
 - [Cawfree/earcut-j](https://github.com/Cawfree/earcut-j) (Java, outdated)
 
 #### Changelog
+
+##### 2.2.4 (Jul 5, 2022)
+
+- Improved performance by 10–15%.
+- Fixed another rare race condition that could lead to an infinite loop.
 
 ##### 2.2.3 (Jul 8, 2021)
 
