@@ -52,7 +52,7 @@ Signature: `earcut(vertices[, holes, dimensions = 2])`.
 * `vertices` is a flat array of vertex coordinates like `[x0,y0, x1,y1, x2,y2, ...]`.
 * `holes` is an array of hole _indices_ if any
   (e.g. `[5, 8]` for a 12-vertex input would mean one hole with vertices 5&ndash;7 and another with 8&ndash;11).
-* `dimensions` is the number of coordinates per vertex in the input array (`2` by default).
+* `dimensions` is the number of coordinates per vertex in the input array (`2` by default). Only two are used for triangulation (`x` and `y`), and the rest are ignored.
 
 Each group of three vertex indices in the resulting array forms a triangle.
 
@@ -67,6 +67,8 @@ earcut([10,0,1, 0,50,2, 60,60,3, 70,10,4], null, 3);
 ```
 
 If you pass a single vertex as a hole, Earcut treats it as a Steiner point.
+
+Note that Earcut is a **2D** triangulation algorithm, and handles 3D data as if it was projected onto the XY plane (with Z component ignored).
 
 If your input is a multi-dimensional array (e.g. [GeoJSON Polygon](http://geojson.org/geojson-spec.html#polygon)),
 you can convert it to the format expected by Earcut with `earcut.flatten`:
