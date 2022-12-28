@@ -2,7 +2,7 @@ language: node_js
 node_js:
   - "14"
 before_install:
-  - npm install npm@8
+  - npm install -g npm@8
 script:
   - npm test
   - npm run coveralls
