@@ -111,6 +111,7 @@ npm test
 #### Ports to other languages
 
 - [mapbox/earcut.hpp](https://github.com/mapbox/earcut.hpp) (C++11)
+- [JaffaKetchup/dart_earcut](https://github.com/JaffaKetchup/dart_earcut) (Dart)
 - [earcut4j/earcut4j](https://github.com/earcut4j/earcut4j) (Java)
 - [the3deers/earcut-java](https://github.com/the3deers/earcut-java) (Java)
 - [Larpon/earcut](https://github.com/Larpon/earcut) (V)
