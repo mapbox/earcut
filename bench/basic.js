@@ -1,13 +1,18 @@
-const earcut = require('../src/earcut');
+import {earcut, flatten} from '../src/earcut.js';
+import {readFileSync} from 'fs';
 
-const {vertices, holes} = earcut.flatten(require('../test/fixtures/water.json'));
+const data = JSON.parse(readFileSync(new URL('../test/fixtures/building.json', import.meta.url)));
+const {vertices, holes} = flatten(data);
 
-let start = Date.now(),
-    ops = 0;
+let start = performance.now();
+let ops = 0;
+let passed = 0;
 
-while (Date.now() - start < 1000) {
+do {
     earcut(vertices, holes);
-    ops++;
-}
 
-console.log(Math.round(ops * 1000 / (Date.now() - start)) + ' ops/s');
+    ops++;
+    passed = performance.now() - start;
+} while (passed < 1000);
+
+console.log(`${Math.round(ops * 1000 / passed).toLocaleString()} ops/s`);

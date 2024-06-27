@@ -3,9 +3,12 @@
   "version": "2.2.4",
   "description": "The fastest and smallest JavaScript polygon triangulation library for your WebGL apps",
   "main": "src/earcut.js",
+  "type": "module",
+  "exports": "./src/earcut.js",
   "unpkg": "dist/earcut.min.js",
   "jsdelivr": "dist/earcut.min.js",
   "files": [
+    "src/earcut.js",
     "dist/earcut.min.js",
     "dist/earcut.dev.js"
   ],
@@ -34,7 +37,11 @@
     "watchify": "^4.0.0"
   },
   "eslintConfig": {
-    "extends": "mourner"
+    "extends": "mourner",
+    "parserOptions": {
+      "sourceType": "module",
+      "ecmaVersion": 2020
+    }
   },
   "repository": {
     "type": "git",
