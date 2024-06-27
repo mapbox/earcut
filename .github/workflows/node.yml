@@ -15,11 +15,8 @@ jobs:
     - name: Install dependencies
       run: npm ci
 
-    - name: Build the dev bundle
-      run: npm run build-dev
-
-    - name: Build the min bundle
-      run: npm run build-min
+    - name: Build the bundle
+      run: npm run build
 
     - name: Run tests
       run: npm test

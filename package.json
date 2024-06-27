@@ -15,21 +15,19 @@
   "scripts": {
     "pretest": "eslint src test/test.js bench/*.js",
     "test": "node --test",
-    "watch": "mkdirp dist && watchify -v -d src/earcut.js -s earcut -o dist/earcut.dev.js",
-    "build-dev": "mkdirp dist && browserify -d src/earcut.js -s earcut > dist/earcut.dev.js",
-    "build-min": "mkdirp dist && browserify src/earcut.js -s earcut | uglifyjs -c -m > dist/earcut.min.js",
+    "build": "rollup -c",
     "prepublishOnly": "npm run build-dev && npm run build-min",
     "cov": "node --test --experimental-test-coverage"
   },
   "author": "Vladimir Agafonkin",
   "license": "ISC",
   "devDependencies": {
+    "@rollup/plugin-terser": "^0.4.4",
     "benchmark": "^2.1.4",
-    "browserify": "^17.0.0",
     "coveralls": "^3.1.1",
     "eslint": "^9.5.0",
     "eslint-config-mourner": "^4.0.1",
-    "mkdirp": "^3.0.1",
+    "rollup": "^4.18.0",
     "uglify-js": "^3.18.0",
     "watchify": "^4.0.0"
   },
