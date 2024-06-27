@@ -1,0 +1,25 @@
+name: Node
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup Node
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Build the dev bundle
+      run: npm run build-dev
+
+    - name: Build the min bundle
+      run: npm run build-min
+
+    - name: Run tests
+      run: npm test
