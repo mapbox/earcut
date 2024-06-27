@@ -23,7 +23,7 @@ const samples = {
 for (const name in samples) {
     const {vertices, holes, dimensions} = samples[name];
     new Benchmark.Suite()
-        .add(name + ' (' + (vertices.length / 2) + ' vertices):', function () {
+        .add(`${name} (${vertices.length / 2} vertices):`, () => {
             earcut(vertices, holes, dimensions);
         })
         .on('cycle', logCycle)

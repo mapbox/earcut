@@ -13,7 +13,7 @@
     "dist/earcut.dev.js"
   ],
   "scripts": {
-    "pretest": "eslint src test/test.js",
+    "pretest": "eslint src test/test.js bench/*.js",
     "test": "node --test",
     "watch": "mkdirp dist && watchify -v -d src/earcut.js -s earcut -o dist/earcut.dev.js",
     "build-dev": "mkdirp dist && browserify -d src/earcut.js -s earcut > dist/earcut.dev.js",
@@ -27,10 +27,10 @@
     "benchmark": "^2.1.4",
     "browserify": "^17.0.0",
     "coveralls": "^3.1.1",
-    "eslint": "^8.30.0",
-    "eslint-config-mourner": "^2.0.3",
-    "mkdirp": "^1.0.4",
-    "uglify-js": "^3.17.4",
+    "eslint": "^9.5.0",
+    "eslint-config-mourner": "^4.0.1",
+    "mkdirp": "^3.0.1",
+    "uglify-js": "^3.18.0",
     "watchify": "^4.0.0"
   },
   "eslintConfig": {

@@ -4,7 +4,7 @@ import {readFileSync} from 'fs';
 const data = JSON.parse(readFileSync(new URL('../test/fixtures/building.json', import.meta.url)));
 const {vertices, holes} = flatten(data);
 
-let start = performance.now();
+const start = performance.now();
 let ops = 0;
 let passed = 0;
 
