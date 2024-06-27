@@ -14,25 +14,22 @@
   ],
   "scripts": {
     "pretest": "eslint src test/test.js",
-    "test": "tape test/test.js",
+    "test": "node --test",
     "watch": "mkdirp dist && watchify -v -d src/earcut.js -s earcut -o dist/earcut.dev.js",
     "build-dev": "mkdirp dist && browserify -d src/earcut.js -s earcut > dist/earcut.dev.js",
     "build-min": "mkdirp dist && browserify src/earcut.js -s earcut | uglifyjs -c -m > dist/earcut.min.js",
     "prepublishOnly": "npm run build-dev && npm run build-min",
-    "cov": "c8 tape test/*.js",
-    "coveralls": "npm run cov && c8 report -r lcov && coveralls < ./coverage/lcov.info"
+    "cov": "node --test --experimental-test-coverage"
   },
   "author": "Vladimir Agafonkin",
   "license": "ISC",
   "devDependencies": {
     "benchmark": "^2.1.4",
     "browserify": "^17.0.0",
-    "c8": "^7.12.0",
     "coveralls": "^3.1.1",
     "eslint": "^8.30.0",
     "eslint-config-mourner": "^2.0.3",
     "mkdirp": "^1.0.4",
-    "tape": "^5.6.1",
     "uglify-js": "^3.17.4",
     "watchify": "^4.0.0"
   },
