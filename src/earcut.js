@@ -1,5 +1,5 @@
 
-export function earcut(data, holeIndices, dim = 2) {
+export default function earcut(data, holeIndices, dim = 2) {
 
     const hasHoles = holeIndices && holeIndices.length;
     const outerLen = hasHoles ? holeIndices[0] * dim : data.length;

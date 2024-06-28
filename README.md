@@ -88,21 +88,24 @@ Returns the relative difference between the total area of triangles and the area
 
 #### Install
 
-NPM and Browserify:
+Install with NPM: `npm install earcut`, then import as a module:
 
-```bash
-npm install earcut
+```js
+import earcut from 'earcut';
 ```
 
-Browser builds on CDN:
+Or use as a module directly in the browser with [jsDelivr](https://www.jsdelivr.com/esm):
 
-- [development build](https://unpkg.com/earcut@2.2.4/dist/earcut.dev.js)
-- [minified production build](https://unpkg.com/earcut@2.2.4/dist/earcut.min.js)
+```html
+<script type="module">
+    import earcut from 'https://cdn.jsdelivr.net/npm/earcut/+esm';
+</script>
+```
 
-Running tests:
+Alternatively, there's a UMD browser bundle with an `earcut` global variable (exposing the main function as `earcut.default`):
 
-```bash
-npm test
+```html
+<script src="https://cdn.jsdelivr.net/npm/earcut/dist/earcut.min.js"></script>
 ```
 
 ![](https://cloud.githubusercontent.com/assets/25395/5778431/e8ec0c10-9da3-11e4-8d4e-a2ced6a7d2b7.png)

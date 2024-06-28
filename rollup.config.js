@@ -4,6 +4,7 @@ const config = (file, plugins) => ({
     input: 'src/earcut.js',
     output: {
         name: 'earcut',
+        exports: 'named',
         format: 'umd',
         indent: false,
         file

@@ -5,8 +5,6 @@
   "main": "src/earcut.js",
   "type": "module",
   "exports": "./src/earcut.js",
-  "unpkg": "dist/earcut.min.js",
-  "jsdelivr": "dist/earcut.min.js",
   "files": [
     "src/earcut.js",
     "dist/earcut.min.js",
