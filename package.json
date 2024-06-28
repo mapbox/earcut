@@ -14,7 +14,7 @@
     "pretest": "eslint src test/test.js bench/*.js viz/viz.js",
     "test": "node --test",
     "build": "rollup -c",
-    "prepublishOnly": "npm run build-dev && npm run build-min",
+    "prepublishOnly": "npm run build",
     "cov": "node --test --experimental-test-coverage"
   },
   "author": "Vladimir Agafonkin",
