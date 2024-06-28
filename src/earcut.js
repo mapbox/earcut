@@ -1,29 +1,4 @@
 
-class Node {
-    constructor(i, x, y) {
-        // vertex index in coordinates array
-        this.i = i;
-
-        // vertex coordinates
-        this.x = x;
-        this.y = y;
-
-        // previous and next vertex nodes in a polygon ring
-        this.prev = null;
-        this.next = null;
-
-        // z-order curve value
-        this.z = 0;
-
-        // previous and next nodes in z-order
-        this.prevZ = null;
-        this.nextZ = null;
-
-        // indicates whether this is a steiner point
-        this.steiner = false;
-    }
-}
-
 export function earcut(data, holeIndices, dim = 2) {
 
     const hasHoles = holeIndices && holeIndices.length;
@@ -68,9 +43,9 @@ function linkedList(data, start, end, dim, clockwise) {
     let last;
 
     if (clockwise === (signedArea(data, start, end, dim) > 0)) {
-        for (let i = start; i < end; i += dim) last = insertNode(i, data[i], data[i + 1], last);
+        for (let i = start; i < end; i += dim) last = insertNode(i / dim | 0, data[i], data[i + 1], last);
     } else {
-        for (let i = end - dim; i >= start; i -= dim) last = insertNode(i, data[i], data[i + 1], last);
+        for (let i = end - dim; i >= start; i -= dim) last = insertNode(i / dim | 0, data[i], data[i + 1], last);
     }
 
     if (last && equals(last, last.next)) {
@@ -120,10 +95,7 @@ function earcutLinked(ear, triangles, dim, minX, minY, invSize, pass) {
         const next = ear.next;
 
         if (invSize ? isEarHashed(ear, minX, minY, invSize) : isEar(ear)) {
-            // cut off the triangle
-            triangles.push(prev.i / dim | 0);
-            triangles.push(ear.i / dim | 0);
-            triangles.push(next.i / dim | 0);
+            triangles.push(prev.i, ear.i, next.i); // cut off the triangle
 
             removeNode(ear);
 
@@ -144,7 +116,7 @@ function earcutLinked(ear, triangles, dim, minX, minY, invSize, pass) {
 
             // if this didn't work, try curing all small self-intersections locally
             } else if (pass === 1) {
-                ear = cureLocalIntersections(filterPoints(ear), triangles, dim);
+                ear = cureLocalIntersections(filterPoints(ear), triangles);
                 earcutLinked(ear, triangles, dim, minX, minY, invSize, 2);
 
             // as a last resort, try splitting the remaining polygon into two
@@ -236,7 +208,7 @@ function isEarHashed(ear, minX, minY, invSize) {
 }
 
 // go through all polygon nodes and cure small local self-intersections
-function cureLocalIntersections(start, triangles, dim) {
+function cureLocalIntersections(start, triangles) {
     let p = start;
     do {
         const a = p.prev,
@@ -244,9 +216,7 @@ function cureLocalIntersections(start, triangles, dim) {
 
         if (!equals(a, b) && intersects(a, p, p.next, b) && locallyInside(a, b) && locallyInside(b, a)) {
 
-            triangles.push(a.i / dim | 0);
-            triangles.push(p.i / dim | 0);
-            triangles.push(b.i / dim | 0);
+            triangles.push(a.i, p.i, b.i);
 
             // remove two nodes involved
             removeNode(p);
@@ -575,8 +545,8 @@ function middleInside(a, b) {
 // link two polygon vertices with a bridge; if the vertices belong to the same ring, it splits polygon into two;
 // if one belongs to the outer ring and another to a hole, it merges it into a single ring
 function splitPolygon(a, b) {
-    const a2 = new Node(a.i, a.x, a.y),
-        b2 = new Node(b.i, b.x, b.y),
+    const a2 = createNode(a.i, a.x, a.y),
+        b2 = createNode(b.i, b.x, b.y),
         an = a.next,
         bp = b.prev;
 
@@ -597,7 +567,7 @@ function splitPolygon(a, b) {
 
 // create a node and optionally link it with previous one (in a circular doubly linked list)
 function insertNode(i, x, y, last) {
-    const p = new Node(i, x, y);
+    const p = createNode(i, x, y);
 
     if (!last) {
         p.prev = p;
@@ -618,6 +588,19 @@ function removeNode(p) {
 
     if (p.prevZ) p.prevZ.nextZ = p.nextZ;
     if (p.nextZ) p.nextZ.prevZ = p.prevZ;
+}
+
+function createNode(i, x, y) {
+    return {
+        i, // vertex index in coordinates array
+        x, y, // vertex coordinates
+        prev: null, // previous and next vertex nodes in a polygon ring
+        next: null,
+        z: 0, // z-order curve value
+        prevZ: null, // previous and next nodes in z-order
+        nextZ: null,
+        steiner: false // indicates whether this is a steiner point
+    };
 }
 
 // return a percentage difference between the polygon area and its triangulation area;
@@ -660,17 +643,21 @@ function signedArea(data, start, end, dim) {
 
 // turn a polygon in a multi-dimensional array form (e.g. as in GeoJSON) into a form Earcut accepts
 export function flatten(data) {
-    const dim = data[0][0].length;
-    const result = {vertices: [], holes: [], dimensions: dim};
+    const vertices = [];
+    const holes = [];
+    const dimensions = data[0][0].length;
+    let holeIndex = 0;
+    let prevLen = 0;
 
-    for (let i = 0, holeIndex = 0; i < data.length; i++) {
-        for (let j = 0; j < data[i].length; j++) {
-            for (let d = 0; d < dim; d++) result.vertices.push(data[i][j][d]);
+    for (const ring of data) {
+        for (const p of ring) {
+            for (let d = 0; d < dimensions; d++) vertices.push(p[d]);
         }
-        if (i > 0) {
-            holeIndex += data[i - 1].length;
-            result.holes.push(holeIndex);
+        if (prevLen) {
+            holeIndex += prevLen;
+            holes.push(holeIndex);
         }
+        prevLen = ring.length;
     }
-    return result;
+    return {vertices, holes, dimensions};
 }
