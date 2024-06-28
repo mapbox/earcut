@@ -2,7 +2,7 @@
 
 The fastest and smallest JavaScript polygon triangulation library. 3KB gzipped.
 
-[![Coverage Status](https://coveralls.io/repos/mapbox/earcut/badge.svg?branch=master)](https://coveralls.io/r/mapbox/earcut?branch=master)
+[![Node](https://github.com/mapbox/earcut/actions/workflows/node.yml/badge.svg)](https://github.com/mapbox/earcut/actions/workflows/node.yml)
 [![Average time to resolve an issue](http://isitmaintained.com/badge/resolution/mapbox/earcut.svg)](http://isitmaintained.com/project/mapbox/earcut "Average time to resolve an issue")
 [![Percentage of issues still open](http://isitmaintained.com/badge/open/mapbox/earcut.svg)](http://isitmaintained.com/project/mapbox/earcut "Percentage of issues still open")
 [![](https://img.shields.io/badge/simply-awesome-brightgreen.svg)](https://github.com/mourner/projects)
@@ -43,7 +43,7 @@ and earcut is not precise enough, take a look at [libtess.js](https://github.com
 #### Usage
 
 ```js
-var triangles = earcut([10,0, 0,50, 60,60, 70,10]); // returns [1,0,3, 3,2,1]
+const triangles = earcut([10,0, 0,50, 60,60, 70,10]); // returns [1,0,3, 3,2,1]
 ```
 
 Signature: `earcut(vertices[, holes, dimensions = 2])`.
@@ -73,14 +73,14 @@ If your input is a multi-dimensional array (e.g. [GeoJSON Polygon](http://geojso
 you can convert it to the format expected by Earcut with `earcut.flatten`:
 
 ```js
-var data = earcut.flatten(geojson.geometry.coordinates);
-var triangles = earcut(data.vertices, data.holes, data.dimensions);
+const data = earcut.flatten(geojson.geometry.coordinates);
+const triangles = earcut(data.vertices, data.holes, data.dimensions);
 ```
 
 After getting a triangulation, you can verify its correctness with `earcut.deviation`:
 
 ```js
-var deviation = earcut.deviation(vertices, holes, dimensions, triangles);
+const deviation = earcut.deviation(vertices, holes, dimensions, triangles);
 ```
 
 Returns the relative difference between the total area of triangles and the area of the input polygon.
@@ -118,143 +118,3 @@ Alternatively, there's a UMD browser bundle with an `earcut` global variable (ex
 - [the3deers/earcut-java](https://github.com/the3deers/earcut-java) (Java)
 - [Larpon/earcut](https://github.com/Larpon/earcut) (V)
 - [Cawfree/earcut-j](https://github.com/Cawfree/earcut-j) (Java, outdated)
-
-#### Changelog
-
-##### 2.2.4 (Jul 5, 2022)
-
-- Improved performance by 10–15%.
-- Fixed another rare race condition that could lead to an infinite loop.
-
-##### 2.2.3 (Jul 8, 2021)
-
-- Fixed a rare race condition that could lead to an infinite loop.
-
-##### 2.2.2 (Jan 21, 2020)
-
-- Fixed yet another rare race condition when a hole shared an edge with an outer ring.
-
-##### 2.2.1 (Sep 19, 2019)
-
-- Fixed another rare case with touching holes.
-
-##### 2.2.0 (Sep 18, 2019)
-
-- Fixed a handful of rare race conditions.
-
-##### 2.1.5 (Feb 5, 2019)
-
-- Fixed a race condition with coincident holes that could lead to bad triangulation.
-
-##### 2.1.4 (Dec 4, 2018)
-
-- Fixed a race condition that could lead to a freeze on degenerate input.
-
-##### 2.1.3 (Jan 4, 2018)
-
-- Improved performance for bigger inputs (5-12%).
-
-##### 2.1.2 (Oct 23, 2017)
-
-- Fixed a few race conditions where bad input would cause an error.
-
-##### 2.1.1 (Mar 17, 2016)
-
-- Fixed a rare race condition where the split routine would choose bad diagonals.
-- Fixed a rare race condition in the "cure local intersections" routine.
-- Fixed a rare race condition where a hole that shares a point with the outer ring would be handled incorrectly.
-- Fixed a bug where a closing point wouldn't be filtered as duplicate, sometimes breaking triangulation.
-
-##### 2.1.0 (Mar 11, 2016)
-
-- Added `earcut.deviation` function for verifying correctness of triangulation.
-- Added `earcut.flatten` function for converting GeoJSON-like input into a format Earcut expects.
-
-##### 2.0.9 (Mar 10, 2016)
-
-- Fixed a rare race condition where a hole would be handled incorrectly.
-
-##### 2.0.8 (Jan 19, 2016)
-
-- Fixed a rare race condition with a hole touching outer ring.
-
-##### 2.0.7 (Nov 18, 2015)
-
-- Changed the algorithm to avoid filtering colinear/duplicate vertices unless it can't triangulate the polygon otherwise.
-  Improves performance on simpler shapes and fixes some 3D use cases.
-
-##### 2.0.6 (Oct 26, 2015)
-
-- Improved robustness and reliability of the triangulation algorithm.
-- Improved performance by up to 15%.
-- Significantly improved source code clarity.
-
-##### 2.0.5 (Oct 12, 2015)
-
-- Fixed a z-curve hashing bug that could lead to unexpected results in very rare cases involving shapes with lots of points.
-
-##### 2.0.4 (Oct 8, 2015)
-
-- Fixed one more extremely rare race condition, lol!
-
-##### 2.0.3 (Oct 8, 2015)
-
-- Fixed yet another rare race condition (multiple holes connected with colinear bridges).
-- Fixed crash on empty input.
-
-##### 2.0.2 (Jul 8, 2015)
-
-- Fixed one more rare race condition with a holed polygon.
-
-##### 2.0.1 (May 11, 2015)
-
-- Added Steiner points support.
-
-##### 2.0.0 (Apr 30, 2015)
-
-- **Breaking**: changed the API to accept a flat input array of vertices with hole indices and return triangle indices.
-  It makes the indexed output much faster than it was before (up to 30%) and improves memory footprint.
-
-##### 1.4.2 (Mar 18, 2015)
-
-- Fixed another rare edge case with a tiny hole in a huge polygon.
-
-##### 1.4.1 (Mar 17, 2015)
-
-- Fixed a rare edge case that led to incomplete triangulation.
-
-##### 1.4.0 (Mar 9, 2015)
-
-- Fixed indexed output to produce indices not multiplied by dimension and work with any number of dimensions.
-
-##### 1.3.0 (Feb 24, 2015)
-
-- Added a second argument to `earcut` that switches output format to flat vertex and index arrays if set to `true`.
-
-##### 1.2.3 (Feb 10, 2015)
-
-- Improved performance (especially on recent v8) by avoiding `Array` `push` with multiple arguments.
-
-##### 1.2.2 (Jan 27, 2015)
-
-- Significantly improved performance for polygons with self-intersections
-  (e.g. big OSM water polygons are now handled 2-3x faster)
-
-##### 1.2.1 (Jan 26, 2015)
-
-- Significantly improved performance on polygons with high number of vertices
-  by using z-order curve hashing for vertex lookup.
-- Slightly improved overall performance with better point filtering.
-
-##### 1.1.0 (Jan 21, 2015)
-
-- Improved performance on polygons with holes by switching from Held to Eberly hole elimination algorithm
-- More robustness fixes and tests
-
-##### 1.0.1 &mdash; 1.0.6 (Jan 20, 2015)
-
-- Various robustness improvements and fixes.
-
-##### 1.0.0 (Jan 18, 2015)
-
-- Initial release.
