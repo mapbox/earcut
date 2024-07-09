@@ -118,3 +118,4 @@ Alternatively, there's a UMD browser bundle with an `earcut` global variable (ex
 - [the3deers/earcut-java](https://github.com/the3deers/earcut-java) (Java)
 - [Larpon/earcut](https://github.com/Larpon/earcut) (V)
 - [Cawfree/earcut-j](https://github.com/Cawfree/earcut-j) (Java, outdated)
+- [measuredweighed/SwiftEarcut](https://github.com/measuredweighed/SwiftEarcut) (Swift)
