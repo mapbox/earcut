@@ -1,18 +1,24 @@
 import terser from '@rollup/plugin-terser';
+import typescript from '@rollup/plugin-typescript';
 
-const config = (file, plugins) => ({
-    input: 'src/earcut.js',
+/**
+ * @returns {import('rollup').RollupOptions}
+ */
+const config = (file, plugins, format) => ({
+    input: 'src/earcut.ts',
     output: {
         name: 'earcut',
         exports: 'named',
-        format: 'umd',
+        format: format,
         indent: false,
-        file
+        file,
+        sourcemap: true
     },
     plugins
 });
 
 export default [
-    config('dist/earcut.dev.js', []),
-    config('dist/earcut.min.js', [terser()])
+    config('dist/earcut.dev.js', [typescript()], "umd"),
+    config('dist/earcut.min.js', [typescript(), terser()], "umd"),
+    config('dist/earcut.esm.js', [typescript()], "esm"),
 ];
