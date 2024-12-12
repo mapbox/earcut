@@ -268,7 +268,7 @@ function eliminateHoles(data, holeIndices, outerNode, dim) {
         queue.push(getLeftmost(list));
     }
 
-    queue.sort(compareX);
+    queue.sort(compareXThenSlopeWhenEqual);
 
     // process holes from left to right
     for (let i = 0; i < queue.length; i++) {
@@ -278,8 +278,16 @@ function eliminateHoles(data, holeIndices, outerNode, dim) {
     return outerNode;
 }
 
-function compareX(a, b) {
-    return a.x - b.x;
+function compareXThenSlopeWhenEqual(a, b) {
+    const result = a.x - b.x;
+    // when the left-most point of 2 holes meet at a vertex, sort the holes counterclockwise so that when we find
+    // the bridge to the outer shell is always the point that they meet at.
+    if (result === 0 && a.y === b.y) {
+        const aSlope = (a.next.y - a.y) / (a.next.x - a.x);
+        const bSlope = (b.next.y - b.y) / (b.next.x - b.x);
+        return aSlope - bSlope;
+    }
+    return result;
 }
 
 // find a bridge between vertices that connects hole with an outer ring and and link it
@@ -307,9 +315,9 @@ function findHoleBridge(hole, outerNode) {
     // find a segment intersected by a ray from the hole's leftmost point to the left;
     // segment's endpoint with lesser x will be potential connection point
     do {
-        if (hy <= p.y && hy >= p.next.y && p.next.y !== p.y) {
+        if (hy <= p.y && (hy >= p.next.y || equals(hole, p)) && p.next.y !== p.y) {
             const x = p.x + (hy - p.y) * (p.next.x - p.x) / (p.next.y - p.y);
-            if (x <= hx && x > qx) {
+            if (x <= hx && x >= qx) {
                 qx = x;
                 m = p.x < p.next.x ? p : p.next;
                 if (x === hx) return m; // hole touches outer segment; pick leftmost endpoint
