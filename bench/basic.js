@@ -1,4 +1,4 @@
-import {earcut, flatten} from '../src/earcut.js';
+import earcut, {flatten} from '../src/earcut.js';
 import {readFileSync} from 'fs';
 
 const data = JSON.parse(readFileSync(new URL('../test/fixtures/building.json', import.meta.url)));
