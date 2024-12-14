@@ -183,25 +183,25 @@ function isEarHashed(ear, minX, minY, invSize) {
     // look for points inside the triangle in both directions
     while (p && p.z >= minZ && n && n.z <= maxZ) {
         if (p.x >= x0 && p.x <= x1 && p.y >= y0 && p.y <= y1 && p !== a && p !== c &&
-        pointInTriangle(ax, ay, bx, by, cx, cy, p.x, p.y, true) && !equals(a, p) && area(p.prev, p, p.next) >= 0) return false;
+            pointInTriangle(ax, ay, bx, by, cx, cy, p.x, p.y, true) && !equals(a, p) && area(p.prev, p, p.next) >= 0) return false;
         p = p.prevZ;
 
         if (n.x >= x0 && n.x <= x1 && n.y >= y0 && n.y <= y1 && n !== a && n !== c &&
-        pointInTriangle(ax, ay, bx, by, cx, cy, n.x, n.y, true) && !equals(a, n) && area(n.prev, n, n.next) >= 0) return false;
+            pointInTriangle(ax, ay, bx, by, cx, cy, n.x, n.y, true) && !equals(a, n) && area(n.prev, n, n.next) >= 0) return false;
         n = n.nextZ;
     }
 
     // look for remaining points in decreasing z-order
     while (p && p.z >= minZ) {
         if (p.x >= x0 && p.x <= x1 && p.y >= y0 && p.y <= y1 && p !== a && p !== c &&
-        pointInTriangle(ax, ay, bx, by, cx, cy, p.x, p.y, true) && !equals(a, p) && area(p.prev, p, p.next) >= 0) return false;
+            pointInTriangle(ax, ay, bx, by, cx, cy, p.x, p.y, true) && !equals(a, p) && area(p.prev, p, p.next) >= 0) return false;
         p = p.prevZ;
     }
 
     // look for remaining points in increasing z-order
     while (n && n.z <= maxZ) {
         if (n.x >= x0 && n.x <= x1 && n.y >= y0 && n.y <= y1 && n !== a && n !== c &&
-        pointInTriangle(ax, ay, bx, by, cx, cy, n.x, n.y, true) && !equals(a, n) && area(n.prev, n, n.next) >= 0) return false;
+            pointInTriangle(ax, ay, bx, by, cx, cy, n.x, n.y, true) && !equals(a, n) && area(n.prev, n, n.next) >= 0) return false;
         n = n.nextZ;
     }
 

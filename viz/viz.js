@@ -23,7 +23,6 @@ import earcut, {flatten, deviation} from '../src/earcut.js';
 
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
-    ctx.globalCompositeOperation = 'darker';
 
     let minX = Infinity,
         maxX = -Infinity,
