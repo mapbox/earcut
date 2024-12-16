@@ -324,7 +324,7 @@ function findHoleBridge(hole, outerNode) {
         if (equals(hole, p.next)) return p.next;
         else if (hy <= p.y && hy >= p.next.y && p.next.y !== p.y) {
             const x = p.x + (hy - p.y) * (p.next.x - p.x) / (p.next.y - p.y);
-            if (x <= hx && x >= qx) {
+            if (x <= hx && x > qx) {
                 qx = x;
                 m = p.x < p.next.x ? p : p.next;
                 if (x === hx) return m; // hole touches outer segment; pick leftmost endpoint
