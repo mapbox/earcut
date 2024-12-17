@@ -477,7 +477,7 @@ function pointInTriangle(ax, ay, bx, by, cx, cy, px, py) {
            (bx - px) * (cy - py) >= (cx - px) * (by - py);
 }
 
-// same except return false if the point is the same
+// check if a point lies within a convex triangle but false if its equal to the first point of the triangle
 function pointInTriangleExceptFirst(ax, ay, bx, by, cx, cy, px, py) {
     return !(ax === px && ay === py) &&
            ((cx - px) * (ay - py) >= (ax - px) * (cy - py) &&
