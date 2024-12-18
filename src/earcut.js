@@ -140,16 +140,16 @@ function isEar(ear) {
     // now make sure we don't have other points inside the potential ear
     const ax = a.x, bx = b.x, cx = c.x, ay = a.y, by = b.y, cy = c.y;
 
-    // triangle bbox; min & max are calculated like this for speed
-    const x0 = ax < bx ? (ax < cx ? ax : cx) : (bx < cx ? bx : cx),
-        y0 = ay < by ? (ay < cy ? ay : cy) : (by < cy ? by : cy),
-        x1 = ax > bx ? (ax > cx ? ax : cx) : (bx > cx ? bx : cx),
-        y1 = ay > by ? (ay > cy ? ay : cy) : (by > cy ? by : cy);
+    // triangle bbox
+    const x0 = Math.min(ax, bx, cx),
+        y0 = Math.min(ay, by, cy),
+        x1 = Math.max(ax, bx, cx),
+        y1 = Math.max(ay, by, cy);
 
     let p = c.next;
     while (p !== a) {
         if (p.x >= x0 && p.x <= x1 && p.y >= y0 && p.y <= y1 &&
-            pointInTriangle(ax, ay, bx, by, cx, cy, p.x, p.y) &&
+            pointInTriangleExceptFirst(ax, ay, bx, by, cx, cy, p.x, p.y) &&
             area(p.prev, p, p.next) >= 0) return false;
         p = p.next;
     }
@@ -166,11 +166,11 @@ function isEarHashed(ear, minX, minY, invSize) {
 
     const ax = a.x, bx = b.x, cx = c.x, ay = a.y, by = b.y, cy = c.y;
 
-    // triangle bbox; min & max are calculated like this for speed
-    const x0 = ax < bx ? (ax < cx ? ax : cx) : (bx < cx ? bx : cx),
-        y0 = ay < by ? (ay < cy ? ay : cy) : (by < cy ? by : cy),
-        x1 = ax > bx ? (ax > cx ? ax : cx) : (bx > cx ? bx : cx),
-        y1 = ay > by ? (ay > cy ? ay : cy) : (by > cy ? by : cy);
+    // triangle bbox
+    const x0 = Math.min(ax, bx, cx),
+        y0 = Math.min(ay, by, cy),
+        x1 = Math.max(ax, bx, cx),
+        y1 = Math.max(ay, by, cy);
 
     // z-order range for the current triangle bbox;
     const minZ = zOrder(x0, y0, minX, minY, invSize),
@@ -182,25 +182,25 @@ function isEarHashed(ear, minX, minY, invSize) {
     // look for points inside the triangle in both directions
     while (p && p.z >= minZ && n && n.z <= maxZ) {
         if (p.x >= x0 && p.x <= x1 && p.y >= y0 && p.y <= y1 && p !== a && p !== c &&
-            pointInTriangle(ax, ay, bx, by, cx, cy, p.x, p.y) && area(p.prev, p, p.next) >= 0) return false;
+            pointInTriangleExceptFirst(ax, ay, bx, by, cx, cy, p.x, p.y) && area(p.prev, p, p.next) >= 0) return false;
         p = p.prevZ;
 
         if (n.x >= x0 && n.x <= x1 && n.y >= y0 && n.y <= y1 && n !== a && n !== c &&
-            pointInTriangle(ax, ay, bx, by, cx, cy, n.x, n.y) && area(n.prev, n, n.next) >= 0) return false;
+            pointInTriangleExceptFirst(ax, ay, bx, by, cx, cy, n.x, n.y) && area(n.prev, n, n.next) >= 0) return false;
         n = n.nextZ;
     }
 
     // look for remaining points in decreasing z-order
     while (p && p.z >= minZ) {
         if (p.x >= x0 && p.x <= x1 && p.y >= y0 && p.y <= y1 && p !== a && p !== c &&
-            pointInTriangle(ax, ay, bx, by, cx, cy, p.x, p.y) && area(p.prev, p, p.next) >= 0) return false;
+            pointInTriangleExceptFirst(ax, ay, bx, by, cx, cy, p.x, p.y) && area(p.prev, p, p.next) >= 0) return false;
         p = p.prevZ;
     }
 
     // look for remaining points in increasing z-order
     while (n && n.z <= maxZ) {
         if (n.x >= x0 && n.x <= x1 && n.y >= y0 && n.y <= y1 && n !== a && n !== c &&
-            pointInTriangle(ax, ay, bx, by, cx, cy, n.x, n.y) && area(n.prev, n, n.next) >= 0) return false;
+            pointInTriangleExceptFirst(ax, ay, bx, by, cx, cy, n.x, n.y) && area(n.prev, n, n.next) >= 0) return false;
         n = n.nextZ;
     }
 
@@ -268,7 +268,7 @@ function eliminateHoles(data, holeIndices, outerNode, dim) {
         queue.push(getLeftmost(list));
     }
 
-    queue.sort(compareX);
+    queue.sort(compareXYSlope);
 
     // process holes from left to right
     for (let i = 0; i < queue.length; i++) {
@@ -278,8 +278,19 @@ function eliminateHoles(data, holeIndices, outerNode, dim) {
     return outerNode;
 }
 
-function compareX(a, b) {
-    return a.x - b.x;
+function compareXYSlope(a, b) {
+    let result = a.x - b.x;
+    // when the left-most point of 2 holes meet at a vertex, sort the holes counterclockwise so that when we find
+    // the bridge to the outer shell is always the point that they meet at.
+    if (result === 0) {
+        result = a.y - b.y;
+        if (result === 0) {
+            const aSlope = (a.next.y - a.y) / (a.next.x - a.x);
+            const bSlope = (b.next.y - b.y) / (b.next.x - b.x);
+            result = aSlope - bSlope;
+        }
+    }
+    return result;
 }
 
 // find a bridge between vertices that connects hole with an outer ring and and link it
@@ -306,8 +317,11 @@ function findHoleBridge(hole, outerNode) {
 
     // find a segment intersected by a ray from the hole's leftmost point to the left;
     // segment's endpoint with lesser x will be potential connection point
+    // unless they intersect at a vertex, then choose the vertex
+    if (equals(hole, p)) return p;
     do {
-        if (hy <= p.y && hy >= p.next.y && p.next.y !== p.y) {
+        if (equals(hole, p.next)) return p.next;
+        else if (hy <= p.y && hy >= p.next.y && p.next.y !== p.y) {
             const x = p.x + (hy - p.y) * (p.next.x - p.x) / (p.next.y - p.y);
             if (x <= hx && x > qx) {
                 qx = x;
@@ -461,6 +475,11 @@ function pointInTriangle(ax, ay, bx, by, cx, cy, px, py) {
     return (cx - px) * (ay - py) >= (ax - px) * (cy - py) &&
            (ax - px) * (by - py) >= (bx - px) * (ay - py) &&
            (bx - px) * (cy - py) >= (cx - px) * (by - py);
+}
+
+// check if a point lies within a convex triangle but false if its equal to the first point of the triangle
+function pointInTriangleExceptFirst(ax, ay, bx, by, cx, cy, px, py) {
+    return !(ax === px && ay === py) && pointInTriangle(ax, ay, bx, by, cx, cy, px, py);
 }
 
 // check if a diagonal between two polygon nodes is valid (lies in polygon interior)

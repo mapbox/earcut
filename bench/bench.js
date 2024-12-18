@@ -1,4 +1,4 @@
-import {earcut, flatten} from '../src/earcut.js';
+import earcut, {flatten} from '../src/earcut.js';
 import Benchmark from 'benchmark';
 import {readFileSync} from 'fs';
 
