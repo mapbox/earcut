@@ -1,4 +1,4 @@
-/*eslint @stylistic/js/comma-spacing: 0, no-unused-vars: 0 */
+/*eslint @stylistic/comma-spacing: 0, no-unused-vars: 0 */
 
 import earcut, {flatten, deviation} from '../src/earcut.js';
 
