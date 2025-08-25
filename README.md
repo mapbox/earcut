@@ -115,7 +115,5 @@ Alternatively, there's a UMD browser bundle with an `earcut` global variable (ex
 - [mapbox/earcut.hpp](https://github.com/mapbox/earcut.hpp) (C++11)
 - [JaffaKetchup/dart_earcut](https://github.com/JaffaKetchup/dart_earcut) (Dart)
 - [earcut4j/earcut4j](https://github.com/earcut4j/earcut4j) (Java)
-- [the3deers/earcut-java](https://github.com/the3deers/earcut-java) (Java)
 - [Larpon/earcut](https://github.com/Larpon/earcut) (V)
-- [Cawfree/earcut-j](https://github.com/Cawfree/earcut-j) (Java, outdated)
 - [measuredweighed/SwiftEarcut](https://github.com/measuredweighed/SwiftEarcut) (Swift)

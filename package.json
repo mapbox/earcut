@@ -22,9 +22,9 @@
   "devDependencies": {
     "@rollup/plugin-terser": "^0.4.4",
     "benchmark": "^2.1.4",
-    "eslint": "^9.31.0",
+    "eslint": "^9.34.0",
     "eslint-config-mourner": "^4.1.0",
-    "rollup": "^4.45.1"
+    "rollup": "^4.48.1"
   },
   "eslintConfig": {
     "extends": "mourner",
