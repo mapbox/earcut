@@ -6,7 +6,7 @@ const {vertices, holes} = flatten(data);
 
 const start = performance.now();
 let ops = 0;
-let passed = 0;
+let passed;
 
 do {
     earcut(vertices, holes);
