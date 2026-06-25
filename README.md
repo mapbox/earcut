@@ -118,3 +118,4 @@ Alternatively, there's a UMD browser bundle with an `earcut` global variable (ex
 - [Larpon/earcut](https://github.com/Larpon/earcut) (V)
 - [measuredweighed/SwiftEarcut](https://github.com/measuredweighed/SwiftEarcut) (Swift)
 - [goswinr/Earcut](https://github.com/goswinr/Earcut/)(F# / .NET)
+- [tenyoru/earcut.zig](https://github.com/tenyoru/earcut.zig) (Zig)
