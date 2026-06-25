@@ -20,11 +20,11 @@
   "author": "Vladimir Agafonkin",
   "license": "ISC",
   "devDependencies": {
-    "@rollup/plugin-terser": "^0.4.4",
+    "@rollup/plugin-terser": "^1.0.0",
     "benchmark": "^2.1.4",
-    "eslint": "^9.34.0",
-    "eslint-config-mourner": "^4.1.0",
-    "rollup": "^4.48.1"
+    "eslint": "^10.5.0",
+    "eslint-config-mourner": "^5.0.1",
+    "rollup": "^4.62.2"
   },
   "eslintConfig": {
     "extends": "mourner",
@@ -36,5 +36,8 @@
   "repository": {
     "type": "git",
     "url": "git://github.com/mapbox/earcut.git"
+  },
+  "allowScripts": {
+    "fsevents@2.3.3": true
   }
 }
