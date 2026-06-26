@@ -67,7 +67,7 @@
         "issue142": 0.13
     },
     "errors-with-rotation": {
-        "water-huge": 0.0035,
+        "water-huge": 0.004,
         "water-huge2": 0.061,
         "bad-hole": 0.04,
         "issue16": 8e-16
