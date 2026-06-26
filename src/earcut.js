@@ -456,74 +456,60 @@ function sectorContainsSector(m, p) {
     return area(m.prev, m, p.prev) < 0 && area(p.next, m, m.next) < 0;
 }
 
-// interlink polygon nodes in z-order
+// scratch array of node refs, reused across calls and grown on demand
+const sortArr = [];
+
+// interlink polygon nodes in z-order: collect into an array, quicksort by z, relink
 function indexCurve(start, minX, minY, invSize) {
     let p = start;
+    let n = 0;
     do {
         if (p.z === 0) p.z = zOrder(p.x, p.y, minX, minY, invSize);
-        p.prevZ = p.prev;
-        p.nextZ = p.next;
+        sortArr[n++] = p;
         p = p.next;
     } while (p !== start);
 
-    p.prevZ.nextZ = null;
-    p.prevZ = null;
+    quicksortNodes(sortArr, 0, n - 1);
 
-    sortLinked(p);
+    let prev = null;
+    for (let i = 0; i < n; i++) {
+        const node = sortArr[i];
+        node.prevZ = prev;
+        if (prev) prev.nextZ = node;
+        prev = node;
+    }
+    prev.nextZ = null;
 }
 
-// Simon Tatham's linked list merge sort algorithm
-// http://www.chiark.greenend.org.uk/~sgtatham/algorithms/listsort.html
-function sortLinked(list) {
-    let numMerges;
-    let inSize = 1;
+// quicksort an array of nodes by z; middle-element pivot + insertion sort for small ranges
+function quicksortNodes(arr, left, right) {
+    while (right - left > 20) {
+        // middle pivot splits already-sorted/reversed runs evenly; real ring-order-by-z data
+        // is non-adversarial, so the median-of-three guard isn't needed
+        const pivot = arr[(left + right) >> 1].z;
 
-    do {
-        let p = list;
-        let e;
-        list = null;
-        let tail = null;
-        numMerges = 0;
-
-        while (p) {
-            numMerges++;
-            let q = p;
-            let pSize = 0;
-            for (let i = 0; i < inSize; i++) {
-                pSize++;
-                q = q.nextZ;
-                if (!q) break;
-            }
-            let qSize = inSize;
-
-            while (pSize > 0 || (qSize > 0 && q)) {
-
-                if (pSize !== 0 && (qSize === 0 || !q || p.z <= q.z)) {
-                    e = p;
-                    p = p.nextZ;
-                    pSize--;
-                } else {
-                    e = q;
-                    q = q.nextZ;
-                    qSize--;
-                }
-
-                if (tail) tail.nextZ = e;
-                else list = e;
-
-                e.prevZ = tail;
-                tail = e;
-            }
-
-            p = q;
+        let i = left, j = right, t;
+        while (i <= j) {
+            while (arr[i].z < pivot) i++;
+            while (arr[j].z > pivot) j--;
+            if (i <= j) { t = arr[i]; arr[i] = arr[j]; arr[j] = t; i++; j--; }
         }
-
-        tail.nextZ = null;
-        inSize *= 2;
-
-    } while (numMerges > 1);
-
-    return list;
+        // recurse into the smaller half, loop on the larger to bound stack depth
+        if (j - left < right - i) {
+            quicksortNodes(arr, left, j);
+            left = i;
+        } else {
+            quicksortNodes(arr, i, right);
+            right = j;
+        }
+    }
+    // insertion sort the small remaining range
+    for (let i = left + 1; i <= right; i++) {
+        const node = arr[i], z = node.z;
+        let j = i - 1;
+        while (j >= left && arr[j].z > z) { arr[j + 1] = arr[j]; j--; }
+        arr[j + 1] = node;
+    }
 }
 
 // z-order of a point given coords and inverse of the longer side of data bbox
