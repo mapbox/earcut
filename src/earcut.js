@@ -615,11 +615,24 @@ function sign(num) {
 
 // check if a polygon diagonal intersects any polygon segments
 function intersectsPolygon(a, b) {
+    // diagonal bbox; an edge whose bbox can't overlap it can't intersect it, so
+    // skip the orientation test for those (the common case — the diagonal is short)
+    const minX = a.x < b.x ? a.x : b.x;
+    const maxX = a.x > b.x ? a.x : b.x;
+    const minY = a.y < b.y ? a.y : b.y;
+    const maxY = a.y > b.y ? a.y : b.y;
+
     let p = a;
     do {
-        if (p.i !== a.i && p.next.i !== a.i && p.i !== b.i && p.next.i !== b.i &&
-                intersects(p, p.next, a, b)) return true;
-        p = p.next;
+        const n = p.next;
+        if ((p.x > maxX && n.x > maxX) || (p.x < minX && n.x < minX) ||
+            (p.y > maxY && n.y > maxY) || (p.y < minY && n.y < minY)) {
+            p = n;
+            continue;
+        }
+        if (p.i !== a.i && n.i !== a.i && p.i !== b.i && n.i !== b.i &&
+                intersects(p, n, a, b)) return true;
+        p = n;
     } while (p !== a);
 
     return false;
