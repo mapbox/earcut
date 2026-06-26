@@ -416,28 +416,37 @@ function findHoleBridge(hole, outerNode) {
     // if there are no points found, we have a valid connection;
     // otherwise choose the point of the minimum angle with the ray as connection point
 
-    const stop = m;
     const mx = m.x;
     const my = m.y;
+    const tminY = hy < my ? hy : my; // the triangle's y span; x span is [mx, hx]
+    const tmaxY = hy < my ? my : hy;
     let tanMin = Infinity;
 
-    p = m;
+    // scan the same blocks; skip any whose bbox can't overlap the triangle's [mx,hx]×[tminY,tmaxY] box
+    for (let b = 0, g = 0; b < numBlocks; b++, g += 4) {
+        if (blockBBox[g + 2] < mx || blockBBox[g] > hx || blockBBox[g + 3] < tminY || blockBBox[g + 1] > tmaxY) continue;
 
-    do {
-        if (hx >= p.x && p.x >= mx && hx !== p.x &&
-                pointInTriangle(hy < my ? hx : qx, hy, mx, my, hy < my ? qx : hx, hy, p.x, p.y)) {
+        let stop = blockStop[b];
+        while (stop.prev.next !== stop) stop = stop.next;
+        blockStop[b] = stop;
 
-            const tan = Math.abs(hy - p.y) / (hx - p.x); // tangential
+        p = blockHead[b];
+        do {
+            if (p.prev.next === p && hx >= p.x && p.x >= mx && hx !== p.x && // skip dead nodes
+                    pointInTriangle(hy < my ? hx : qx, hy, mx, my, hy < my ? qx : hx, hy, p.x, p.y)) {
 
-            if (locallyInside(p, hole) &&
-                (tan < tanMin || (tan === tanMin && (p.x > m.x || (p.x === m.x && sectorContainsSector(m, p)))))) {
-                m = p;
-                tanMin = tan;
+                const tan = Math.abs(hy - p.y) / (hx - p.x); // tangential
+
+                if (locallyInside(p, hole) &&
+                    (tan < tanMin || (tan === tanMin && (p.x > m.x || (p.x === m.x && sectorContainsSector(m, p)))))) {
+                    m = p;
+                    tanMin = tan;
+                }
             }
-        }
 
-        p = p.next;
-    } while (p !== stop);
+            p = p.next;
+        } while (p !== stop);
+    }
 
     return m;
 }
