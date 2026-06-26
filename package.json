@@ -17,7 +17,7 @@
     "prepublishOnly": "npm run build",
     "cov": "node --test --experimental-test-coverage"
   },
-  "author": "Vladimir Agafonkin",
+  "author": "Volodymyr Agafonkin",
   "license": "ISC",
   "devDependencies": {
     "@rollup/plugin-terser": "^1.0.0",
@@ -25,13 +25,6 @@
     "eslint": "^10.5.0",
     "eslint-config-mourner": "^5.0.1",
     "rollup": "^4.62.2"
-  },
-  "eslintConfig": {
-    "extends": "mourner",
-    "parserOptions": {
-      "sourceType": "module",
-      "ecmaVersion": 2020
-    }
   },
   "repository": {
     "type": "git",

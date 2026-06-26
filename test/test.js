@@ -3,8 +3,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import earcut, {flatten, deviation} from '../src/earcut.js';
 import fs from 'fs';
-
-const expected = JSON.parse(fs.readFileSync(new URL('expected.json', import.meta.url)));
+import expected from './expected.json' with {type: 'json'};
 
 test('indices-2d', () => {
     const indices = earcut([10, 0, 0, 50, 60, 60, 70, 10]);
