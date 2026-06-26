@@ -210,6 +210,7 @@ function isEarHashed(ear, minX, minY, invSize) {
 // go through all polygon nodes and cure small local self-intersections
 function cureLocalIntersections(start, triangles) {
     let p = start;
+    let cured = false;
     do {
         const a = p.prev,
             b = p.next.next;
@@ -223,11 +224,12 @@ function cureLocalIntersections(start, triangles) {
             removeNode(p.next);
 
             p = start = b;
+            cured = true;
         }
         p = p.next;
     } while (p !== start);
 
-    return filterPoints(p);
+    return cured ? filterPoints(p) : p;
 }
 
 // try splitting polygon into two and triangulate them independently
@@ -349,8 +351,7 @@ function buildBlockIndex(maxNodes, numHoles) {
 // the whole ring. each block's bbox covers both endpoints of every edge it owns.
 function indexSegment(head, stop) {
     let p = head;
-    let first = true;
-    while (p !== stop || first) {
+    do {
         const b = numBlocks++;
         blockHead[b] = p;
         let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
@@ -362,12 +363,18 @@ function indexSegment(head, stop) {
             if (c.x < minX) minX = c.x; if (c.x > maxX) maxX = c.x;
             if (c.y < minY) minY = c.y; if (c.y > maxY) maxY = c.y;
             p = c;
-            first = false;
         } while (++k < K && p !== stop);
         blockStop[b] = p;
         const g = b * 4;
         blockBBox[g] = minX; blockBBox[g + 1] = minY; blockBBox[g + 2] = maxX; blockBBox[g + 3] = maxY;
-    }
+    } while (p !== stop);
+}
+
+function liveBlockStop(b) {
+    let stop = blockStop[b];
+    while (stop.prev.next !== stop) stop = stop.next;
+    blockStop[b] = stop;
+    return stop;
 }
 
 // David Eberly's algorithm for finding a bridge between hole and outer polygon
@@ -389,9 +396,7 @@ function findHoleBridge(hole, outerNode) {
         if (hy < blockBBox[g + 1] || hy > blockBBox[g + 3] || blockBBox[g] > hx || blockBBox[g + 2] <= qx) continue;
 
         // ensure the walk's exclusive bound is live so we don't overrun into other blocks
-        let stop = blockStop[b];
-        while (stop.prev.next !== stop) stop = stop.next;
-        blockStop[b] = stop;
+        const stop = liveBlockStop(b);
 
         p = blockHead[b];
         do {
@@ -426,9 +431,7 @@ function findHoleBridge(hole, outerNode) {
     for (let b = 0, g = 0; b < numBlocks; b++, g += 4) {
         if (blockBBox[g + 2] < mx || blockBBox[g] > hx || blockBBox[g + 3] < tminY || blockBBox[g + 1] > tmaxY) continue;
 
-        let stop = blockStop[b];
-        while (stop.prev.next !== stop) stop = stop.next;
-        blockStop[b] = stop;
+        const stop = liveBlockStop(b);
 
         p = blockHead[b];
         do {
