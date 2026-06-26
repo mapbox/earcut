@@ -270,6 +270,11 @@ function eliminateHoles(data, holeIndices, outerNode, dim) {
 
     queue.sort(compareXYSlope);
 
+    // block-bbox index for findHoleBridge, grown append-only as holes merge (see notes
+    // above buildBlockIndex). Seed it with the outer ring, then append each merged hole.
+    buildBlockIndex(data.length / dim, holeIndices.length);
+    indexSegment(outerNode, outerNode);
+
     // process holes from left to right
     for (let i = 0; i < queue.length; i++) {
         outerNode = eliminateHole(queue[i], outerNode);
@@ -302,9 +307,67 @@ function eliminateHole(hole, outerNode) {
 
     const bridgeReverse = splitPolygon(bridge, hole);
 
+    // index the merged-in segment before filtering: in ring order the splice runs
+    // bridge -> hole -> bridgeReverse -> bridge2 -> (bridge's old next), covering the
+    // hole's edges and both new slit edges. filterPoints below only drops collinear /
+    // coincident points, so these bboxes stay valid (conservative) supersets.
+    const bridge2 = bridgeReverse.next;
+    indexSegment(bridge, bridge2.next);
+
     // filter collinear points around the cuts
     filterPoints(bridgeReverse, bridgeReverse.next);
     return filterPoints(bridge, bridge.next);
+}
+
+// Block-bbox index for findHoleBridge (issue #183): one [minX,minY,maxX,maxY] bbox per K
+// consecutive ring edges, in a flat Float64Array, so the leftward-ray scan can skip whole
+// blocks in O(1) instead of walking the entire merged ring. Grown append-only — the outer
+// ring seeds it, then each merged hole appends a segment (head node, stop node, K-blocks
+// over head..stop); independent segments, not a ring tiling, since splices land mid-ring.
+// Buffers are sized once from the input upper bound and reused across calls.
+//
+// filterPoints only drops collinear/coincident points, so a stale bbox stays a conservative
+// superset of its live edges (never a false skip); the scan skips dead nodes (p.prev.next !==
+// p) and lazily advances a dead stop. Blocks are scanned in append (not ring) order, so the
+// chosen bridge can differ from the un-indexed code — a different but equally valid result.
+const K = 16; // edges per block
+
+let blockBBox = new Float64Array(0); // [minX,minY,maxX,maxY] per block
+let numBlocks = 0;
+const blockHead = []; // first node of each block's segment
+const blockStop = []; // node just past each block's segment (exclusive walk bound)
+
+function buildBlockIndex(maxNodes, numHoles) {
+    // upper bound: every input node indexed once, +2 bridge nodes per hole, plus a partial
+    // trailing block per appended segment (outer ring + one per hole)
+    const maxBlocks = Math.ceil((maxNodes + 2 * numHoles) / K) + numHoles + 2;
+    if (blockBBox.length < maxBlocks * 4) blockBBox = new Float64Array(maxBlocks * 4);
+    numBlocks = 0;
+}
+
+// index the ring run head..stop (exclusive) as ceil(len / K) blocks; head === stop means
+// the whole ring. each block's bbox covers both endpoints of every edge it owns.
+function indexSegment(head, stop) {
+    let p = head;
+    let first = true;
+    while (p !== stop || first) {
+        const b = numBlocks++;
+        blockHead[b] = p;
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        let k = 0;
+        do {
+            const c = p.next; // edge p->c; bbox must bound both endpoints
+            if (p.x < minX) minX = p.x; if (p.x > maxX) maxX = p.x;
+            if (p.y < minY) minY = p.y; if (p.y > maxY) maxY = p.y;
+            if (c.x < minX) minX = c.x; if (c.x > maxX) maxX = c.x;
+            if (c.y < minY) minY = c.y; if (c.y > maxY) maxY = c.y;
+            p = c;
+            first = false;
+        } while (++k < K && p !== stop);
+        blockStop[b] = p;
+        const g = b * 4;
+        blockBBox[g] = minX; blockBBox[g + 1] = minY; blockBBox[g + 2] = maxX; blockBBox[g + 3] = maxY;
+    }
 }
 
 // David Eberly's algorithm for finding a bridge between hole and outer polygon
@@ -319,18 +382,33 @@ function findHoleBridge(hole, outerNode) {
     // segment's endpoint with lesser x will be potential connection point
     // unless they intersect at a vertex, then choose the vertex
     if (equals(hole, p)) return p;
-    do {
-        if (equals(hole, p.next)) return p.next;
-        else if (hy <= p.y && hy >= p.next.y && p.next.y !== p.y) {
-            const x = p.x + (hy - p.y) * (p.next.x - p.x) / (p.next.y - p.y);
-            if (x <= hx && x > qx) {
-                qx = x;
-                m = p.x < p.next.x ? p : p.next;
-                if (x === hx) return m; // hole touches outer segment; pick leftmost endpoint
+
+    // scan blocks; skip any whose bbox can't hold a crossing that beats qx and lies left
+    // of hx (the prune Morton order can't express — explicit per-axis [minY,maxY]/[minX,maxX])
+    for (let b = 0, g = 0; b < numBlocks; b++, g += 4) {
+        if (hy < blockBBox[g + 1] || hy > blockBBox[g + 3] || blockBBox[g] > hx || blockBBox[g + 2] <= qx) continue;
+
+        // ensure the walk's exclusive bound is live so we don't overrun into other blocks
+        let stop = blockStop[b];
+        while (stop.prev.next !== stop) stop = stop.next;
+        blockStop[b] = stop;
+
+        p = blockHead[b];
+        do {
+            if (p.prev.next === p) { // skip nodes removed by filterPoints (stale in the index)
+                if (equals(hole, p.next)) return p.next;
+                else if (hy <= p.y && hy >= p.next.y && p.next.y !== p.y) {
+                    const x = p.x + (hy - p.y) * (p.next.x - p.x) / (p.next.y - p.y);
+                    if (x <= hx && x > qx) {
+                        qx = x;
+                        m = p.x < p.next.x ? p : p.next;
+                        if (x === hx) return m; // hole touches outer segment; pick leftmost endpoint
+                    }
+                }
             }
-        }
-        p = p.next;
-    } while (p !== outerNode);
+            p = p.next;
+        } while (p !== stop);
+    }
 
     if (!m) return null;
 
