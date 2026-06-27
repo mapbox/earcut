@@ -71,10 +71,9 @@ function linkedList(data, start, end, dim, clockwise) {
 // we sweep the whole ring, lapping until nothing is removable (the fixpoint the clipper needs).
 // With an explicit `end` we heal only the dirty window around a bridge/diagonal cut, stopping at
 // `end` rather than lapping — O(window) instead of O(ring).
-function filterPoints(start, end) {
-    if (!start) return start;
-    const full = !end;
-    if (full) end = start;
+function filterPoints(start, end = start) {
+    if (!start) return null;
+    const full = end === start;
 
     let p = start, again;
     do {
@@ -230,7 +229,7 @@ function cureLocalIntersections(start, triangles) {
         const a = p.prev,
             b = p.next.next;
 
-        if (!equals(a, b) && intersects(a, p, p.next, b) && locallyInside(a, b) && locallyInside(b, a)) {
+        if (!equals(a, b) && intersects(a, p, p.next, b, false) && locallyInside(a, b) && locallyInside(b, a)) {
 
             triangles.push(a.i, p.i, b.i);
 
@@ -616,14 +615,16 @@ function equals(p1, p2) {
     return p1.x === p2.x && p1.y === p2.y;
 }
 
-// check if two segments intersect
-function intersects(p1, q1, p2, q2) {
-    const o1 = Math.sign(area(p1, q1, p2));
-    const o2 = Math.sign(area(p1, q1, q2));
-    const o3 = Math.sign(area(p2, q2, p1));
-    const o4 = Math.sign(area(p2, q2, q1));
+// check if two segments intersect; by default includes collinear boundary touches
+function intersects(p1, q1, p2, q2, includeBoundary = true) {
+    const o1 = area(p1, q1, p2);
+    const o2 = area(p1, q1, q2);
+    const o3 = area(p2, q2, p1);
+    const o4 = area(p2, q2, q1);
 
-    if (o1 !== o2 && o3 !== o4) return true; // general case
+    if (((o1 > 0 && o2 < 0) || (o1 < 0 && o2 > 0)) && ((o3 > 0 && o4 < 0) || (o3 < 0 && o4 > 0))) return true;
+
+    if (!includeBoundary) return false;
 
     if (o1 === 0 && onSegment(p1, p2, q1)) return true; // p1, q1 and p2 are collinear and p2 lies on p1q1
     if (o2 === 0 && onSegment(p1, q2, q1)) return true; // p1, q1 and q2 are collinear and q2 lies on p1q1
