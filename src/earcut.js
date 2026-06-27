@@ -100,7 +100,7 @@ function earcutLinked(ear, triangles, dim, minX, minY, invSize, pass) {
         const prev = ear.prev;
         const next = ear.next;
 
-        if (invSize ? isEarHashed(ear, minX, minY, invSize) : isEar(ear)) {
+        if (area(prev, ear, next) < 0 && (invSize ? isEarHashed(ear, minX, minY, invSize) : isEar(ear))) {
             triangles.push(prev.i, ear.i, next.i); // cut off the triangle
 
             removeNode(ear);
@@ -141,9 +141,9 @@ function isEar(ear) {
         b = ear,
         c = ear.next;
 
-    if (area(a, b, c) >= 0) return false; // reflex, can't be an ear
+    // reflex check (area(a, b, c) >= 0) is hoisted into the earcutLinked caller to avoid non-inlined call here
 
-    // now make sure we don't have other points inside the potential ear
+    // make sure we don't have other points inside the potential ear
     const ax = a.x, bx = b.x, cx = c.x, ay = a.y, by = b.y, cy = c.y;
 
     // triangle bbox
@@ -168,7 +168,7 @@ function isEarHashed(ear, minX, minY, invSize) {
         b = ear,
         c = ear.next;
 
-    if (area(a, b, c) >= 0) return false; // reflex, can't be an ear
+    // reflex check is hoisted into the earcutLinked caller (see isEar)
 
     const ax = a.x, bx = b.x, cx = c.x, ay = a.y, by = b.y, cy = c.y;
 
