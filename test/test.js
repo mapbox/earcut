@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import earcut, {flatten, deviation} from '../src/earcut.js';
 import fs from 'fs';
 import expected from './expected.json' with {type: 'json'};
+import {readTilesFixture} from '../bench/tiles-fixture.js';
 
 test('indices-2d', () => {
     const indices = earcut([10, 0, 0, 50, 60, 60, 70, 10]);
@@ -58,6 +59,39 @@ for (const id of Object.keys(expected.triangles)) {
 
 test('infinite-loop', () => {
     earcut([1, 2, 2, 2, 1, 2, 1, 1, 1, 2, 4, 1, 5, 1, 3, 2, 4, 2, 4, 1], [5], 2);
+});
+
+test('mvt fixture has zero deviation', () => {
+    const polys = readTilesFixture();
+    let nonzero = 0;
+    let firstIndex = -1;
+    let firstDev = 0;
+    let worstIndex = -1;
+    let worstDev = 0;
+    let sumDev = 0;
+
+    for (let i = 0; i < polys.length; i++) {
+        const data = polys[i];
+        const triangles = earcut(data.vertices, data.holes, data.dimensions);
+        const dev = deviation(data.vertices, data.holes, data.dimensions, triangles);
+        if (dev !== 0) {
+            if (firstIndex < 0) {
+                firstIndex = i;
+                firstDev = dev;
+            }
+            nonzero++;
+            sumDev += dev;
+            if (dev > worstDev) {
+                worstIndex = i;
+                worstDev = dev;
+            }
+        }
+    }
+
+    assert.equal(polys.length, 119680);
+    assert.equal(nonzero, 0,
+        `${nonzero} polygons with nonzero deviation; first ${firstIndex}: ${firstDev}, ` +
+        `worst ${worstIndex}: ${worstDev}, sum ${sumDev}`);
 });
 
 // Regression for the hole-bridge block index (issue #183): a collinear-rich outer ring

@@ -1,97 +1,10 @@
-// Benchmark earcut over a realistic set of MVT polygons.
-//
-// Reads bench/tiles-fixture.bin: length-delimited packed-varint MVT geometry blobs,
-// one per polygon feature. Decodes them here with a small varint reader (no pbf
-// dependency), reconstructs polygons (splitting multipolygons and classifying holes by
-// signed area, per the MVT spec), then times triangulating all of them. Reports the
-// polygon-size distribution so the fixture's representativeness is visible, plus
-// throughput + checksum.
-//
-// tiles-fixture.bin format (little-endian LEB128 unsigned varints throughout):
-//
-//   file    := tile*                     (repeated until EOF)
-//   tile    := zoom featureCount feature*
-//   feature := geomLen geom              (geomLen = number of varints in geom)
-//   geom    := uint32*                   (raw MVT command/parameter integers)
-//
-// The geom integers are the native MVT polygon encoding: MoveTo/LineTo/ClosePath
-// command-integers interleaved with zigzag delta-encoded coordinate pairs (decoded by
-// decodeRings below). The fixture was generated from a local tile cache by a one-off,
-// author-machine-specific script (not committed: it points at a sibling pbf checkout
-// and its downloaded tile cache, so it isn't externally reproducible). Regenerating the
-// fixture is therefore intentionally out of scope for this repo.
-import {readFileSync} from 'fs';
-import earcut, {flatten} from '../src/earcut.js';
+// Benchmark earcut over a realistic set of MVT polygons. The fixture was generated
+// from a local tile cache by a one-off, author-machine-specific script; regenerating
+// it is intentionally out of scope for this repo.
+import earcut from '../src/earcut.js';
+import {readTilesFixture} from './tiles-fixture.js';
 
-const buf = readFileSync(new URL('./tiles-fixture.bin', import.meta.url));
-
-// --- decode the binary fixture into flattened polygons ---
-function zz(n) { return (n >> 1) ^ (-(n & 1)); }
-
-// decode an MVT geometry command array into rings
-function decodeRings(geom) {
-    const rings = [];
-    let x = 0, y = 0, ring = null, i = 0;
-    while (i < geom.length) {
-        const cmd = geom[i] & 0x7, count = geom[i] >> 3;
-        i++;
-        if (cmd === 1) { // MoveTo
-            for (let k = 0; k < count; k++) {
-                x += zz(geom[i++]); y += zz(geom[i++]);
-                if (ring) rings.push(ring);
-                ring = [[x, y]];
-            }
-        } else if (cmd === 2) { // LineTo
-            for (let k = 0; k < count; k++) { x += zz(geom[i++]); y += zz(geom[i++]); ring.push([x, y]); }
-        } else if (cmd === 7) { // ClosePath
-            if (ring) { rings.push(ring); ring = null; }
-        }
-    }
-    if (ring) rings.push(ring);
-    return rings;
-}
-
-function ringArea(ring) { // exterior > 0, hole < 0
-    let sum = 0;
-    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
-        sum += (ring[j][0] - ring[i][0]) * (ring[i][1] + ring[j][1]);
-    }
-    return sum / 2;
-}
-
-const polys = []; // each: {vertices, holes, dimensions, z} ready for earcut
-let pos = 0;
-function readVarint() {
-    let val = 0, shift = 0, b;
-    do { b = buf[pos++]; val |= (b & 0x7f) << shift; shift += 7; } while (b & 0x80);
-    return val >>> 0;
-}
-
-// decode per the format documented in the header comment
-while (pos < buf.length) {
-    const z = readVarint();
-    const features = readVarint();
-    for (let fi = 0; fi < features; fi++) {
-        const count = readVarint();
-        const geom = new Array(count);
-        for (let k = 0; k < count; k++) geom[k] = readVarint();
-        // split into polygons: each exterior ring (area > 0) starts a new one
-        let current = null;
-        const push = (rings) => { const d = flatten(rings); d.z = z; polys.push(d); };
-        for (const ring of decodeRings(geom)) {
-            if (ring.length < 3) continue;
-            const a = ringArea(ring);
-            if (a === 0) continue;
-            if (a > 0) {
-                if (current) push(current);
-                current = [ring];
-            } else if (current) {
-                current.push(ring);
-            }
-        }
-        if (current) push(current);
-    }
-}
+const polys = readTilesFixture(); // each: {vertices, holes, dimensions, z} ready for earcut
 
 // --- distribution (representativeness check) ---
 const vc = polys.map(p => p.vertices.length / p.dimensions).sort((a, b) => a - b);
