@@ -1,8 +1,14 @@
 
+// single-vertex holes to preserve through filterPoints (steiner points); kept off the Node
+// shape since they're rare — the empty-set fast path means non-steiner inputs pay nothing
+const steiners = new Set();
+
 export default function earcut(data, holeIndices, dim = 2) {
 
     const hasHoles = holeIndices && holeIndices.length;
     const outerLen = hasHoles ? holeIndices[0] * dim : data.length;
+    if (steiners.size) steiners.clear();
+
     let outerNode = linkedList(data, 0, outerLen, dim, true);
     const triangles = [];
 
@@ -10,7 +16,11 @@ export default function earcut(data, holeIndices, dim = 2) {
 
     let minX, minY, invSize;
 
-    if (hasHoles) outerNode = eliminateHoles(data, holeIndices, outerNode, dim);
+    if (hasHoles) {
+        outerNode = eliminateHoles(data, holeIndices, outerNode, dim);
+        // collapse collinear/coincident points across the whole merged ring once before clipping
+        outerNode = filterPoints(outerNode);
+    }
 
     // if the shape is not too simple, we'll use z-order curve hash later; calculate polygon bbox
     if (data.length > 80 * dim) {
@@ -56,24 +66,28 @@ function linkedList(data, start, end, dim, clockwise) {
     return last;
 }
 
-// eliminate colinear or duplicate points
+// Remove collinear or coincident points; removability depends only on a node's immediate
+// neighbors, so we sweep forward and re-check the predecessor after each removal. With no `end`
+// we sweep the whole ring, lapping until nothing is removable (the fixpoint the clipper needs).
+// With an explicit `end` we heal only the dirty window around a bridge/diagonal cut, stopping at
+// `end` rather than lapping — O(window) instead of O(ring).
 function filterPoints(start, end) {
     if (!start) return start;
-    if (!end) end = start;
+    const full = !end;
+    if (full) end = start;
 
-    let p = start,
-        again;
+    let p = start, again;
     do {
         again = false;
-
-        if (!p.steiner && (equals(p, p.next) || area(p.prev, p, p.next) === 0)) {
+        if (p !== p.next && (steiners.size === 0 || !steiners.has(p)) &&
+            (equals(p, p.next) || area(p.prev, p, p.next) === 0)) {
+            if (full || p === end) end = p.prev; // pull the stop bound back past the removal
             removeNode(p);
-            p = end = p.prev;
-            if (p === p.next) break;
+            p = p.prev;         // re-check the predecessor
             again = true;
-
-        } else {
+        } else if (full || p !== end) {
             p = p.next;
+            again = !full;      // local heal: keep looping until the sweep reaches end
         }
     } while (again || p !== end);
 
@@ -94,14 +108,13 @@ function earcutLinked(ear, triangles, dim, minX, minY, invSize, pass) {
         const prev = ear.prev;
         const next = ear.next;
 
-        if (invSize ? isEarHashed(ear, minX, minY, invSize) : isEar(ear)) {
+        if (area(prev, ear, next) < 0 && (invSize ? isEarHashed(ear, minX, minY, invSize) : isEar(ear))) {
             triangles.push(prev.i, ear.i, next.i); // cut off the triangle
 
             removeNode(ear);
 
-            // skipping the next vertex leads to less sliver triangles
-            ear = next.next;
-            stop = next.next;
+            ear = next;
+            stop = next;
 
             continue;
         }
@@ -135,9 +148,11 @@ function isEar(ear) {
         b = ear,
         c = ear.next;
 
-    if (area(a, b, c) >= 0) return false; // reflex, can't be an ear
+    // reflex check (area(a, b, c) >= 0) is hoisted into the earcutLinked caller to avoid non-inlined call here
 
-    // now make sure we don't have other points inside the potential ear
+    // make sure we don't have other points inside the potential ear; the point-in-triangle
+    // test (false when the point coincides with the first vertex a) is inlined here and in
+    // isEarHashed rather than called — V8 doesn't inline it and the call sits in the hot loop
     const ax = a.x, bx = b.x, cx = c.x, ay = a.y, by = b.y, cy = c.y;
 
     // triangle bbox
@@ -149,7 +164,7 @@ function isEar(ear) {
     let p = c.next;
     while (p !== a) {
         if (p.x >= x0 && p.x <= x1 && p.y >= y0 && p.y <= y1 &&
-            pointInTriangleExceptFirst(ax, ay, bx, by, cx, cy, p.x, p.y) &&
+            !(ax === p.x && ay === p.y) && (cx - p.x) * (ay - p.y) >= (ax - p.x) * (cy - p.y) && (ax - p.x) * (by - p.y) >= (bx - p.x) * (ay - p.y) && (bx - p.x) * (cy - p.y) >= (cx - p.x) * (by - p.y) &&
             area(p.prev, p, p.next) >= 0) return false;
         p = p.next;
     }
@@ -162,7 +177,7 @@ function isEarHashed(ear, minX, minY, invSize) {
         b = ear,
         c = ear.next;
 
-    if (area(a, b, c) >= 0) return false; // reflex, can't be an ear
+    // reflex check is hoisted into the earcutLinked caller (see isEar)
 
     const ax = a.x, bx = b.x, cx = c.x, ay = a.y, by = b.y, cy = c.y;
 
@@ -182,25 +197,25 @@ function isEarHashed(ear, minX, minY, invSize) {
     // look for points inside the triangle in both directions
     while (p && p.z >= minZ && n && n.z <= maxZ) {
         if (p.x >= x0 && p.x <= x1 && p.y >= y0 && p.y <= y1 && p !== a && p !== c &&
-            pointInTriangleExceptFirst(ax, ay, bx, by, cx, cy, p.x, p.y) && area(p.prev, p, p.next) >= 0) return false;
+            !(ax === p.x && ay === p.y) && (cx - p.x) * (ay - p.y) >= (ax - p.x) * (cy - p.y) && (ax - p.x) * (by - p.y) >= (bx - p.x) * (ay - p.y) && (bx - p.x) * (cy - p.y) >= (cx - p.x) * (by - p.y) && area(p.prev, p, p.next) >= 0) return false;
         p = p.prevZ;
 
         if (n.x >= x0 && n.x <= x1 && n.y >= y0 && n.y <= y1 && n !== a && n !== c &&
-            pointInTriangleExceptFirst(ax, ay, bx, by, cx, cy, n.x, n.y) && area(n.prev, n, n.next) >= 0) return false;
+            !(ax === n.x && ay === n.y) && (cx - n.x) * (ay - n.y) >= (ax - n.x) * (cy - n.y) && (ax - n.x) * (by - n.y) >= (bx - n.x) * (ay - n.y) && (bx - n.x) * (cy - n.y) >= (cx - n.x) * (by - n.y) && area(n.prev, n, n.next) >= 0) return false;
         n = n.nextZ;
     }
 
     // look for remaining points in decreasing z-order
     while (p && p.z >= minZ) {
         if (p.x >= x0 && p.x <= x1 && p.y >= y0 && p.y <= y1 && p !== a && p !== c &&
-            pointInTriangleExceptFirst(ax, ay, bx, by, cx, cy, p.x, p.y) && area(p.prev, p, p.next) >= 0) return false;
+            !(ax === p.x && ay === p.y) && (cx - p.x) * (ay - p.y) >= (ax - p.x) * (cy - p.y) && (ax - p.x) * (by - p.y) >= (bx - p.x) * (ay - p.y) && (bx - p.x) * (cy - p.y) >= (cx - p.x) * (by - p.y) && area(p.prev, p, p.next) >= 0) return false;
         p = p.prevZ;
     }
 
     // look for remaining points in increasing z-order
     while (n && n.z <= maxZ) {
         if (n.x >= x0 && n.x <= x1 && n.y >= y0 && n.y <= y1 && n !== a && n !== c &&
-            pointInTriangleExceptFirst(ax, ay, bx, by, cx, cy, n.x, n.y) && area(n.prev, n, n.next) >= 0) return false;
+            !(ax === n.x && ay === n.y) && (cx - n.x) * (ay - n.y) >= (ax - n.x) * (cy - n.y) && (ax - n.x) * (by - n.y) >= (bx - n.x) * (ay - n.y) && (bx - n.x) * (cy - n.y) >= (cx - n.x) * (by - n.y) && area(n.prev, n, n.next) >= 0) return false;
         n = n.nextZ;
     }
 
@@ -210,6 +225,7 @@ function isEarHashed(ear, minX, minY, invSize) {
 // go through all polygon nodes and cure small local self-intersections
 function cureLocalIntersections(start, triangles) {
     let p = start;
+    let cured = false;
     do {
         const a = p.prev,
             b = p.next.next;
@@ -223,11 +239,12 @@ function cureLocalIntersections(start, triangles) {
             removeNode(p.next);
 
             p = start = b;
+            cured = true;
         }
         p = p.next;
     } while (p !== start);
 
-    return filterPoints(p);
+    return cured ? filterPoints(p) : p;
 }
 
 // try splitting polygon into two and triangulate them independently
@@ -256,6 +273,9 @@ function splitEarcut(start, triangles, dim, minX, minY, invSize) {
     } while (a !== start);
 }
 
+// true only while eliminateHoles merges holes, so removeNode keeps the block index live (growBlock)
+let indexActive = false;
+
 // link every hole into the outer loop, producing a single-ring polygon without holes
 function eliminateHoles(data, holeIndices, outerNode, dim) {
     const queue = [];
@@ -264,16 +284,24 @@ function eliminateHoles(data, holeIndices, outerNode, dim) {
         const start = holeIndices[i] * dim;
         const end = i < len - 1 ? holeIndices[i + 1] * dim : data.length;
         const list = linkedList(data, start, end, dim, false);
-        if (list === list.next) list.steiner = true;
+        if (list === list.next) steiners.add(list);
         queue.push(getLeftmost(list));
     }
 
     queue.sort(compareXYSlope);
 
-    // process holes from left to right
+    // block-bbox index for findHoleBridge, grown append-only as holes merge (see notes
+    // above buildBlockIndex). Seed it with the outer ring, then append each merged hole.
+    buildBlockIndex(data.length / dim, holeIndices.length);
+    indexSegment(outerNode, outerNode);
+
+    // process holes from left to right; indexActive lets removeNode keep block bboxes live as
+    // filterPoints heals edges during merges (see growBlock)
+    indexActive = true;
     for (let i = 0; i < queue.length; i++) {
         outerNode = eliminateHole(queue[i], outerNode);
     }
+    indexActive = false;
 
     return outerNode;
 }
@@ -302,9 +330,84 @@ function eliminateHole(hole, outerNode) {
 
     const bridgeReverse = splitPolygon(bridge, hole);
 
-    // filter collinear points around the cuts
+    // index the merged-in segment before filtering: in ring order the splice runs
+    // bridge -> hole -> bridgeReverse -> bridge2 -> (bridge's old next), covering the
+    // hole's edges and both new slit edges. filterPoints below only drops collinear /
+    // coincident points, so these bboxes stay valid (conservative) supersets.
+    const bridge2 = bridgeReverse.next;
+    indexSegment(bridge, bridge2.next);
+
+    // heal collinear/coincident points around the two new slit edges
     filterPoints(bridgeReverse, bridgeReverse.next);
     return filterPoints(bridge, bridge.next);
+}
+
+// Block-bbox index for findHoleBridge (issue #183): one [minX,minY,maxX,maxY] bbox per K
+// consecutive ring edges, in a flat Float64Array, so the leftward-ray scan can skip whole
+// blocks in O(1) instead of walking the entire merged ring. Grown append-only — the outer
+// ring seeds it, then each merged hole appends a segment (head node, stop node, K-blocks
+// over head..stop); independent segments, not a ring tiling, since splices land mid-ring.
+// Buffers are sized once from the input upper bound and reused across calls.
+//
+// filterPoints only drops collinear/coincident points, so a stale bbox stays a conservative
+// superset of its live edges (never a false skip); the scan skips dead nodes (p.prev.next !==
+// p) and lazily advances a dead stop. Blocks are scanned in append (not ring) order, so the
+// chosen bridge can differ from the un-indexed code — a different but equally valid result.
+const K = 16; // edges per block
+
+let blockBBox = new Float64Array(0); // [minX,minY,maxX,maxY] per block
+let numBlocks = 0;
+const blockHead = []; // first node of each block's segment
+const blockStop = []; // node just past each block's segment (exclusive walk bound)
+
+function buildBlockIndex(maxNodes, numHoles) {
+    // upper bound: every input node indexed once, +2 bridge nodes per hole, plus a partial
+    // trailing block per appended segment (outer ring + one per hole)
+    const maxBlocks = Math.ceil((maxNodes + 2 * numHoles) / K) + numHoles + 2;
+    if (blockBBox.length < maxBlocks * 4) blockBBox = new Float64Array(maxBlocks * 4);
+    numBlocks = 0;
+}
+
+// index the ring run head..stop (exclusive) as ceil(len / K) blocks; head === stop means
+// the whole ring. each block's bbox covers both endpoints of every edge it owns.
+function indexSegment(head, stop) {
+    let p = head;
+    do {
+        const b = numBlocks++;
+        blockHead[b] = p;
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        let k = 0;
+        do {
+            const c = p.next; // edge p->c; bbox must bound both endpoints
+            p.z = b; // reuse z as the owning block during eliminateHoles (see growBlock)
+            if (p.x < minX) minX = p.x; if (p.x > maxX) maxX = p.x;
+            if (p.y < minY) minY = p.y; if (p.y > maxY) maxY = p.y;
+            if (c.x < minX) minX = c.x; if (c.x > maxX) maxX = c.x;
+            if (c.y < minY) minY = c.y; if (c.y > maxY) maxY = c.y;
+            p = c;
+        } while (++k < K && p !== stop);
+        blockStop[b] = p;
+        const g = b * 4;
+        blockBBox[g] = minX; blockBBox[g + 1] = minY; blockBBox[g + 2] = maxX; blockBBox[g + 3] = maxY;
+    } while (p !== stop);
+}
+
+// when filterPoints heals an edge head->tail (removing the collinear node between them), the
+// healed edge can extend past head's frozen block bbox if its old far endpoint lived in another
+// block; grow head's block bbox to cover tail so the leftward-ray prune can't false-skip it.
+function growBlock(head, tail) {
+    const g = head.z * 4;
+    if (tail.x < blockBBox[g]) blockBBox[g] = tail.x;
+    if (tail.y < blockBBox[g + 1]) blockBBox[g + 1] = tail.y;
+    if (tail.x > blockBBox[g + 2]) blockBBox[g + 2] = tail.x;
+    if (tail.y > blockBBox[g + 3]) blockBBox[g + 3] = tail.y;
+}
+
+function liveBlockStop(b) {
+    let stop = blockStop[b];
+    while (stop.prev.next !== stop) stop = stop.next;
+    blockStop[b] = stop;
+    return stop;
 }
 
 // David Eberly's algorithm for finding a bridge between hole and outer polygon
@@ -319,18 +422,31 @@ function findHoleBridge(hole, outerNode) {
     // segment's endpoint with lesser x will be potential connection point
     // unless they intersect at a vertex, then choose the vertex
     if (equals(hole, p)) return p;
-    do {
-        if (equals(hole, p.next)) return p.next;
-        else if (hy <= p.y && hy >= p.next.y && p.next.y !== p.y) {
-            const x = p.x + (hy - p.y) * (p.next.x - p.x) / (p.next.y - p.y);
-            if (x <= hx && x > qx) {
-                qx = x;
-                m = p.x < p.next.x ? p : p.next;
-                if (x === hx) return m; // hole touches outer segment; pick leftmost endpoint
+
+    // scan blocks; skip any whose bbox can't hold a crossing that beats qx and lies left
+    // of hx (the prune Morton order can't express — explicit per-axis [minY,maxY]/[minX,maxX])
+    for (let b = 0, g = 0; b < numBlocks; b++, g += 4) {
+        if (hy < blockBBox[g + 1] || hy > blockBBox[g + 3] || blockBBox[g] > hx || blockBBox[g + 2] <= qx) continue;
+
+        // ensure the walk's exclusive bound is live so we don't overrun into other blocks
+        const stop = liveBlockStop(b);
+
+        p = blockHead[b];
+        do {
+            if (p.prev.next === p) { // skip nodes removed by filterPoints (stale in the index)
+                if (equals(hole, p.next)) return p.next;
+                else if (hy <= p.y && hy >= p.next.y && p.next.y !== p.y) {
+                    const x = p.x + (hy - p.y) * (p.next.x - p.x) / (p.next.y - p.y);
+                    if (x <= hx && x > qx) {
+                        qx = x;
+                        m = p.x < p.next.x ? p : p.next;
+                        if (x === hx) return m; // hole touches outer segment; pick leftmost endpoint
+                    }
+                }
             }
-        }
-        p = p.next;
-    } while (p !== outerNode);
+            p = p.next;
+        } while (p !== stop);
+    }
 
     if (!m) return null;
 
@@ -338,28 +454,35 @@ function findHoleBridge(hole, outerNode) {
     // if there are no points found, we have a valid connection;
     // otherwise choose the point of the minimum angle with the ray as connection point
 
-    const stop = m;
     const mx = m.x;
     const my = m.y;
+    const tminY = hy < my ? hy : my; // the triangle's y span; x span is [mx, hx]
+    const tmaxY = hy < my ? my : hy;
     let tanMin = Infinity;
 
-    p = m;
+    // scan the same blocks; skip any whose bbox can't overlap the triangle's [mx,hx]×[tminY,tmaxY] box
+    for (let b = 0, g = 0; b < numBlocks; b++, g += 4) {
+        if (blockBBox[g + 2] < mx || blockBBox[g] > hx || blockBBox[g + 3] < tminY || blockBBox[g + 1] > tmaxY) continue;
 
-    do {
-        if (hx >= p.x && p.x >= mx && hx !== p.x &&
-                pointInTriangle(hy < my ? hx : qx, hy, mx, my, hy < my ? qx : hx, hy, p.x, p.y)) {
+        const stop = liveBlockStop(b);
 
-            const tan = Math.abs(hy - p.y) / (hx - p.x); // tangential
+        p = blockHead[b];
+        do {
+            if (p.prev.next === p && hx >= p.x && p.x >= mx && hx !== p.x && // skip dead nodes
+                    pointInTriangle(hy < my ? hx : qx, hy, mx, my, hy < my ? qx : hx, hy, p.x, p.y)) {
 
-            if (locallyInside(p, hole) &&
-                (tan < tanMin || (tan === tanMin && (p.x > m.x || (p.x === m.x && sectorContainsSector(m, p)))))) {
-                m = p;
-                tanMin = tan;
+                const tan = Math.abs(hy - p.y) / (hx - p.x); // tangential
+
+                if (locallyInside(p, hole) &&
+                    (tan < tanMin || (tan === tanMin && (p.x > m.x || (p.x === m.x && sectorContainsSector(m, p)))))) {
+                    m = p;
+                    tanMin = tan;
+                }
             }
-        }
 
-        p = p.next;
-    } while (p !== stop);
+            p = p.next;
+        } while (p !== stop);
+    }
 
     return m;
 }
@@ -369,74 +492,61 @@ function sectorContainsSector(m, p) {
     return area(m.prev, m, p.prev) < 0 && area(p.next, m, m.next) < 0;
 }
 
-// interlink polygon nodes in z-order
+// scratch array of node refs, reused across calls and grown on demand
+const sortArr = [];
+
+// interlink polygon nodes in z-order: collect into an array, quicksort by z, relink
 function indexCurve(start, minX, minY, invSize) {
     let p = start;
+    let n = 0;
     do {
-        if (p.z === 0) p.z = zOrder(p.x, p.y, minX, minY, invSize);
-        p.prevZ = p.prev;
-        p.nextZ = p.next;
+        // always (re)compute: z may still hold a block index left over from eliminateHoles
+        p.z = zOrder(p.x, p.y, minX, minY, invSize);
+        sortArr[n++] = p;
         p = p.next;
     } while (p !== start);
 
-    p.prevZ.nextZ = null;
-    p.prevZ = null;
+    quicksortNodes(sortArr, 0, n - 1);
 
-    sortLinked(p);
+    let prev = null;
+    for (let i = 0; i < n; i++) {
+        const node = sortArr[i];
+        node.prevZ = prev;
+        if (prev) prev.nextZ = node;
+        prev = node;
+    }
+    prev.nextZ = null;
 }
 
-// Simon Tatham's linked list merge sort algorithm
-// http://www.chiark.greenend.org.uk/~sgtatham/algorithms/listsort.html
-function sortLinked(list) {
-    let numMerges;
-    let inSize = 1;
+// quicksort an array of nodes by z; middle-element pivot + insertion sort for small ranges
+function quicksortNodes(arr, left, right) {
+    while (right - left > 20) {
+        // middle pivot splits already-sorted/reversed runs evenly; real ring-order-by-z data
+        // is non-adversarial, so the median-of-three guard isn't needed
+        const pivot = arr[(left + right) >> 1].z;
 
-    do {
-        let p = list;
-        let e;
-        list = null;
-        let tail = null;
-        numMerges = 0;
-
-        while (p) {
-            numMerges++;
-            let q = p;
-            let pSize = 0;
-            for (let i = 0; i < inSize; i++) {
-                pSize++;
-                q = q.nextZ;
-                if (!q) break;
-            }
-            let qSize = inSize;
-
-            while (pSize > 0 || (qSize > 0 && q)) {
-
-                if (pSize !== 0 && (qSize === 0 || !q || p.z <= q.z)) {
-                    e = p;
-                    p = p.nextZ;
-                    pSize--;
-                } else {
-                    e = q;
-                    q = q.nextZ;
-                    qSize--;
-                }
-
-                if (tail) tail.nextZ = e;
-                else list = e;
-
-                e.prevZ = tail;
-                tail = e;
-            }
-
-            p = q;
+        let i = left, j = right, t;
+        while (i <= j) {
+            while (arr[i].z < pivot) i++;
+            while (arr[j].z > pivot) j--;
+            if (i <= j) { t = arr[i]; arr[i] = arr[j]; arr[j] = t; i++; j--; }
         }
-
-        tail.nextZ = null;
-        inSize *= 2;
-
-    } while (numMerges > 1);
-
-    return list;
+        // recurse into the smaller half, loop on the larger to bound stack depth
+        if (j - left < right - i) {
+            quicksortNodes(arr, left, j);
+            left = i;
+        } else {
+            quicksortNodes(arr, i, right);
+            right = j;
+        }
+    }
+    // insertion sort the small remaining range
+    for (let i = left + 1; i <= right; i++) {
+        const node = arr[i], z = node.z;
+        let j = i - 1;
+        while (j >= left && arr[j].z > z) { arr[j + 1] = arr[j]; j--; }
+        arr[j + 1] = node;
+    }
 }
 
 // z-order of a point given coords and inverse of the longer side of data bbox
@@ -477,11 +587,6 @@ function pointInTriangle(ax, ay, bx, by, cx, cy, px, py) {
            (bx - px) * (cy - py) >= (cx - px) * (by - py);
 }
 
-// check if a point lies within a convex triangle but false if its equal to the first point of the triangle
-function pointInTriangleExceptFirst(ax, ay, bx, by, cx, cy, px, py) {
-    return !(ax === px && ay === py) && pointInTriangle(ax, ay, bx, by, cx, cy, px, py);
-}
-
 // check if a diagonal between two polygon nodes is valid (lies in polygon interior)
 function isValidDiagonal(a, b) {
     return a.next.i !== b.i && a.prev.i !== b.i && !intersectsPolygon(a, b) && // doesn't intersect other edges
@@ -502,10 +607,10 @@ function equals(p1, p2) {
 
 // check if two segments intersect
 function intersects(p1, q1, p2, q2) {
-    const o1 = sign(area(p1, q1, p2));
-    const o2 = sign(area(p1, q1, q2));
-    const o3 = sign(area(p2, q2, p1));
-    const o4 = sign(area(p2, q2, q1));
+    const o1 = Math.sign(area(p1, q1, p2));
+    const o2 = Math.sign(area(p1, q1, q2));
+    const o3 = Math.sign(area(p2, q2, p1));
+    const o4 = Math.sign(area(p2, q2, q1));
 
     if (o1 !== o2 && o3 !== o4) return true; // general case
 
@@ -522,17 +627,26 @@ function onSegment(p, q, r) {
     return q.x <= Math.max(p.x, r.x) && q.x >= Math.min(p.x, r.x) && q.y <= Math.max(p.y, r.y) && q.y >= Math.min(p.y, r.y);
 }
 
-function sign(num) {
-    return num > 0 ? 1 : num < 0 ? -1 : 0;
-}
-
 // check if a polygon diagonal intersects any polygon segments
 function intersectsPolygon(a, b) {
+    // diagonal bbox; an edge whose bbox can't overlap it can't intersect it, so
+    // skip the orientation test for those (the common case — the diagonal is short)
+    const minX = a.x < b.x ? a.x : b.x;
+    const maxX = a.x > b.x ? a.x : b.x;
+    const minY = a.y < b.y ? a.y : b.y;
+    const maxY = a.y > b.y ? a.y : b.y;
+
     let p = a;
     do {
-        if (p.i !== a.i && p.next.i !== a.i && p.i !== b.i && p.next.i !== b.i &&
-                intersects(p, p.next, a, b)) return true;
-        p = p.next;
+        const n = p.next;
+        if ((p.x > maxX && n.x > maxX) || (p.x < minX && n.x < minX) ||
+            (p.y > maxY && n.y > maxY) || (p.y < minY && n.y < minY)) {
+            p = n;
+            continue;
+        }
+        if (p.i !== a.i && n.i !== a.i && p.i !== b.i && n.i !== b.i &&
+                intersects(p, n, a, b)) return true;
+        p = n;
     } while (p !== a);
 
     return false;
@@ -607,6 +721,9 @@ function removeNode(p) {
 
     if (p.prevZ) p.prevZ.nextZ = p.nextZ;
     if (p.nextZ) p.nextZ.prevZ = p.prevZ;
+
+    // keep the hole-bridge index's block bboxes covering the healed prev->next edge
+    if (indexActive) growBlock(p.prev, p.next);
 }
 
 function createNode(i, x, y) {
@@ -615,10 +732,9 @@ function createNode(i, x, y) {
         x, y, // vertex coordinates
         prev: null, // previous and next vertex nodes in a polygon ring
         next: null,
-        z: 0, // z-order curve value
+        z: 0, // z-order curve value; doubles as owning block in the hole-bridge index during eliminateHoles
         prevZ: null, // previous and next nodes in z-order
-        nextZ: null,
-        steiner: false // indicates whether this is a steiner point
+        nextZ: null
     };
 }
 
