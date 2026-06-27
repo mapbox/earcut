@@ -410,6 +410,17 @@ function liveBlockStop(b) {
     return stop;
 }
 
+// the block's head node can be removed by filterPoints during merges; advance it to the next
+// live node so the walk doesn't start on (and immediately terminate at) a dead node. For the
+// single full-ring seed block (head === stop) the same forward advance keeps them equal, so the
+// do-while still laps the whole ring instead of collapsing to an empty walk.
+function liveBlockHead(b) {
+    let head = blockHead[b];
+    while (head.prev.next !== head) head = head.next;
+    blockHead[b] = head;
+    return head;
+}
+
 // David Eberly's algorithm for finding a bridge between hole and outer polygon
 function findHoleBridge(hole, outerNode) {
     let p = outerNode;
@@ -431,7 +442,7 @@ function findHoleBridge(hole, outerNode) {
         // ensure the walk's exclusive bound is live so we don't overrun into other blocks
         const stop = liveBlockStop(b);
 
-        p = blockHead[b];
+        p = liveBlockHead(b);
         do {
             if (p.prev.next === p) { // skip nodes removed by filterPoints (stale in the index)
                 if (equals(hole, p.next)) return p.next;
@@ -466,7 +477,7 @@ function findHoleBridge(hole, outerNode) {
 
         const stop = liveBlockStop(b);
 
-        p = blockHead[b];
+        p = liveBlockHead(b);
         do {
             if (p.prev.next === p && hx >= p.x && p.x >= mx && hx !== p.x && // skip dead nodes
                     pointInTriangle(hy < my ? hx : qx, hy, mx, my, hy < my ? qx : hx, hy, p.x, p.y)) {
