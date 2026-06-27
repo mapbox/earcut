@@ -1,8 +1,14 @@
 
+// single-vertex holes to preserve through filterPoints (steiner points); kept off the Node
+// shape since they're rare — the empty-set fast path means non-steiner inputs pay nothing
+const steiners = new Set();
+
 export default function earcut(data, holeIndices, dim = 2) {
 
     const hasHoles = holeIndices && holeIndices.length;
     const outerLen = hasHoles ? holeIndices[0] * dim : data.length;
+    if (steiners.size) steiners.clear();
+
     let outerNode = linkedList(data, 0, outerLen, dim, true);
     const triangles = [];
 
@@ -66,7 +72,7 @@ function filterPoints(start, end) {
     do {
         again = false;
 
-        if (!p.steiner && (equals(p, p.next) || area(p.prev, p, p.next) === 0)) {
+        if ((steiners.size === 0 || !steiners.has(p)) && (equals(p, p.next) || area(p.prev, p, p.next) === 0)) {
             removeNode(p);
             p = end = p.prev;
             if (p === p.next) break;
@@ -269,7 +275,7 @@ function eliminateHoles(data, holeIndices, outerNode, dim) {
         const start = holeIndices[i] * dim;
         const end = i < len - 1 ? holeIndices[i + 1] * dim : data.length;
         const list = linkedList(data, start, end, dim, false);
-        if (list === list.next) list.steiner = true;
+        if (list === list.next) steiners.add(list);
         queue.push(getLeftmost(list));
     }
 
@@ -728,7 +734,6 @@ function createNode(i, x, y) {
         z: 0, // z-order curve value
         prevZ: null, // previous and next nodes in z-order
         nextZ: null,
-        steiner: false, // indicates whether this is a steiner point
         block: 0 // owning block in the hole-bridge index (see indexSegment)
     };
 }
