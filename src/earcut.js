@@ -143,7 +143,9 @@ function isEar(ear) {
 
     // reflex check (area(a, b, c) >= 0) is hoisted into the earcutLinked caller to avoid non-inlined call here
 
-    // make sure we don't have other points inside the potential ear
+    // make sure we don't have other points inside the potential ear; the point-in-triangle
+    // test (false when the point coincides with the first vertex a) is inlined here and in
+    // isEarHashed rather than called — V8 doesn't inline it and the call sits in the hot loop
     const ax = a.x, bx = b.x, cx = c.x, ay = a.y, by = b.y, cy = c.y;
 
     // triangle bbox
@@ -155,7 +157,7 @@ function isEar(ear) {
     let p = c.next;
     while (p !== a) {
         if (p.x >= x0 && p.x <= x1 && p.y >= y0 && p.y <= y1 &&
-            pointInTriangleExceptFirst(ax, ay, bx, by, cx, cy, p.x, p.y) &&
+            !(ax === p.x && ay === p.y) && (cx - p.x) * (ay - p.y) >= (ax - p.x) * (cy - p.y) && (ax - p.x) * (by - p.y) >= (bx - p.x) * (ay - p.y) && (bx - p.x) * (cy - p.y) >= (cx - p.x) * (by - p.y) &&
             area(p.prev, p, p.next) >= 0) return false;
         p = p.next;
     }
@@ -188,25 +190,25 @@ function isEarHashed(ear, minX, minY, invSize) {
     // look for points inside the triangle in both directions
     while (p && p.z >= minZ && n && n.z <= maxZ) {
         if (p.x >= x0 && p.x <= x1 && p.y >= y0 && p.y <= y1 && p !== a && p !== c &&
-            pointInTriangleExceptFirst(ax, ay, bx, by, cx, cy, p.x, p.y) && area(p.prev, p, p.next) >= 0) return false;
+            !(ax === p.x && ay === p.y) && (cx - p.x) * (ay - p.y) >= (ax - p.x) * (cy - p.y) && (ax - p.x) * (by - p.y) >= (bx - p.x) * (ay - p.y) && (bx - p.x) * (cy - p.y) >= (cx - p.x) * (by - p.y) && area(p.prev, p, p.next) >= 0) return false;
         p = p.prevZ;
 
         if (n.x >= x0 && n.x <= x1 && n.y >= y0 && n.y <= y1 && n !== a && n !== c &&
-            pointInTriangleExceptFirst(ax, ay, bx, by, cx, cy, n.x, n.y) && area(n.prev, n, n.next) >= 0) return false;
+            !(ax === n.x && ay === n.y) && (cx - n.x) * (ay - n.y) >= (ax - n.x) * (cy - n.y) && (ax - n.x) * (by - n.y) >= (bx - n.x) * (ay - n.y) && (bx - n.x) * (cy - n.y) >= (cx - n.x) * (by - n.y) && area(n.prev, n, n.next) >= 0) return false;
         n = n.nextZ;
     }
 
     // look for remaining points in decreasing z-order
     while (p && p.z >= minZ) {
         if (p.x >= x0 && p.x <= x1 && p.y >= y0 && p.y <= y1 && p !== a && p !== c &&
-            pointInTriangleExceptFirst(ax, ay, bx, by, cx, cy, p.x, p.y) && area(p.prev, p, p.next) >= 0) return false;
+            !(ax === p.x && ay === p.y) && (cx - p.x) * (ay - p.y) >= (ax - p.x) * (cy - p.y) && (ax - p.x) * (by - p.y) >= (bx - p.x) * (ay - p.y) && (bx - p.x) * (cy - p.y) >= (cx - p.x) * (by - p.y) && area(p.prev, p, p.next) >= 0) return false;
         p = p.prevZ;
     }
 
     // look for remaining points in increasing z-order
     while (n && n.z <= maxZ) {
         if (n.x >= x0 && n.x <= x1 && n.y >= y0 && n.y <= y1 && n !== a && n !== c &&
-            pointInTriangleExceptFirst(ax, ay, bx, by, cx, cy, n.x, n.y) && area(n.prev, n, n.next) >= 0) return false;
+            !(ax === n.x && ay === n.y) && (cx - n.x) * (ay - n.y) >= (ax - n.x) * (cy - n.y) && (ax - n.x) * (by - n.y) >= (bx - n.x) * (ay - n.y) && (bx - n.x) * (cy - n.y) >= (cx - n.x) * (by - n.y) && area(n.prev, n, n.next) >= 0) return false;
         n = n.nextZ;
     }
 
@@ -576,11 +578,6 @@ function pointInTriangle(ax, ay, bx, by, cx, cy, px, py) {
     return (cx - px) * (ay - py) >= (ax - px) * (cy - py) &&
            (ax - px) * (by - py) >= (bx - px) * (ay - py) &&
            (bx - px) * (cy - py) >= (cx - px) * (by - py);
-}
-
-// check if a point lies within a convex triangle but false if its equal to the first point of the triangle
-function pointInTriangleExceptFirst(ax, ay, bx, by, cx, cy, px, py) {
-    return !(ax === px && ay === py) && pointInTriangle(ax, ay, bx, by, cx, cy, px, py);
 }
 
 // check if a diagonal between two polygon nodes is valid (lies in polygon interior)
