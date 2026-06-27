@@ -258,6 +258,9 @@ function splitEarcut(start, triangles, dim, minX, minY, invSize) {
     } while (a !== start);
 }
 
+// true only while eliminateHoles merges holes, so removeNode keeps the block index live (growBlock)
+let indexActive = false;
+
 // link every hole into the outer loop, producing a single-ring polygon without holes
 function eliminateHoles(data, holeIndices, outerNode, dim) {
     const queue = [];
@@ -277,10 +280,13 @@ function eliminateHoles(data, holeIndices, outerNode, dim) {
     buildBlockIndex(data.length / dim, holeIndices.length);
     indexSegment(outerNode, outerNode);
 
-    // process holes from left to right
+    // process holes from left to right; indexActive lets removeNode keep block bboxes live as
+    // filterPoints heals edges during merges (see growBlock)
+    indexActive = true;
     for (let i = 0; i < queue.length; i++) {
         outerNode = eliminateHole(queue[i], outerNode);
     }
+    indexActive = false;
 
     return outerNode;
 }
@@ -358,6 +364,7 @@ function indexSegment(head, stop) {
         let k = 0;
         do {
             const c = p.next; // edge p->c; bbox must bound both endpoints
+            p.block = b; // p's outgoing edge is owned by block b (see growBlock)
             if (p.x < minX) minX = p.x; if (p.x > maxX) maxX = p.x;
             if (p.y < minY) minY = p.y; if (p.y > maxY) maxY = p.y;
             if (c.x < minX) minX = c.x; if (c.x > maxX) maxX = c.x;
@@ -368,6 +375,17 @@ function indexSegment(head, stop) {
         const g = b * 4;
         blockBBox[g] = minX; blockBBox[g + 1] = minY; blockBBox[g + 2] = maxX; blockBBox[g + 3] = maxY;
     } while (p !== stop);
+}
+
+// when filterPoints heals an edge head->tail (removing the collinear node between them), the
+// healed edge can extend past head's frozen block bbox if its old far endpoint lived in another
+// block; grow head's block bbox to cover tail so the leftward-ray prune can't false-skip it.
+function growBlock(head, tail) {
+    const g = head.block * 4;
+    if (tail.x < blockBBox[g]) blockBBox[g] = tail.x;
+    if (tail.y < blockBBox[g + 1]) blockBBox[g + 1] = tail.y;
+    if (tail.x > blockBBox[g + 2]) blockBBox[g + 2] = tail.x;
+    if (tail.y > blockBBox[g + 3]) blockBBox[g + 3] = tail.y;
 }
 
 function liveBlockStop(b) {
@@ -696,6 +714,9 @@ function removeNode(p) {
 
     if (p.prevZ) p.prevZ.nextZ = p.nextZ;
     if (p.nextZ) p.nextZ.prevZ = p.prevZ;
+
+    // keep the hole-bridge index's block bboxes covering the healed prev->next edge
+    if (indexActive) growBlock(p.prev, p.next);
 }
 
 function createNode(i, x, y) {
@@ -707,7 +728,8 @@ function createNode(i, x, y) {
         z: 0, // z-order curve value
         prevZ: null, // previous and next nodes in z-order
         nextZ: null,
-        steiner: false // indicates whether this is a steiner point
+        steiner: false, // indicates whether this is a steiner point
+        block: 0 // owning block in the hole-bridge index (see indexSegment)
     };
 }
 
