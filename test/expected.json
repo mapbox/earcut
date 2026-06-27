@@ -9,6 +9,9 @@
         "water4": 705,
         "water-huge": 5177,
         "water-huge2": 4484,
+        "water-huge3": 15470,
+        "self-tangent-1": 23,
+        "self-tangent-2": 25,
         "degenerate": 0,
         "bad-hole": 42,
         "empty-square": 0,
@@ -69,6 +72,7 @@
     "errors-with-rotation": {
         "water-huge": 0.005,
         "water-huge2": 0.061,
+        "water-huge3": 1e-5,
         "bad-hole": 0.04,
         "issue16": 8e-16
     }
