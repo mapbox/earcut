@@ -370,7 +370,7 @@ function indexSegment(head, stop) {
         let k = 0;
         do {
             const c = p.next; // edge p->c; bbox must bound both endpoints
-            p.block = b; // p's outgoing edge is owned by block b (see growBlock)
+            p.z = b; // reuse z as the owning block during eliminateHoles (see growBlock)
             if (p.x < minX) minX = p.x; if (p.x > maxX) maxX = p.x;
             if (p.y < minY) minY = p.y; if (p.y > maxY) maxY = p.y;
             if (c.x < minX) minX = c.x; if (c.x > maxX) maxX = c.x;
@@ -387,7 +387,7 @@ function indexSegment(head, stop) {
 // healed edge can extend past head's frozen block bbox if its old far endpoint lived in another
 // block; grow head's block bbox to cover tail so the leftward-ray prune can't false-skip it.
 function growBlock(head, tail) {
-    const g = head.block * 4;
+    const g = head.z * 4;
     if (tail.x < blockBBox[g]) blockBBox[g] = tail.x;
     if (tail.y < blockBBox[g + 1]) blockBBox[g + 1] = tail.y;
     if (tail.x > blockBBox[g + 2]) blockBBox[g + 2] = tail.x;
@@ -491,7 +491,8 @@ function indexCurve(start, minX, minY, invSize) {
     let p = start;
     let n = 0;
     do {
-        if (p.z === 0) p.z = zOrder(p.x, p.y, minX, minY, invSize);
+        // always (re)compute: z may still hold a block index left over from eliminateHoles
+        p.z = zOrder(p.x, p.y, minX, minY, invSize);
         sortArr[n++] = p;
         p = p.next;
     } while (p !== start);
@@ -602,10 +603,10 @@ function equals(p1, p2) {
 
 // check if two segments intersect
 function intersects(p1, q1, p2, q2) {
-    const o1 = sign(area(p1, q1, p2));
-    const o2 = sign(area(p1, q1, q2));
-    const o3 = sign(area(p2, q2, p1));
-    const o4 = sign(area(p2, q2, q1));
+    const o1 = Math.sign(area(p1, q1, p2));
+    const o2 = Math.sign(area(p1, q1, q2));
+    const o3 = Math.sign(area(p2, q2, p1));
+    const o4 = Math.sign(area(p2, q2, q1));
 
     if (o1 !== o2 && o3 !== o4) return true; // general case
 
@@ -620,10 +621,6 @@ function intersects(p1, q1, p2, q2) {
 // for collinear points p, q, r, check if point q lies on segment pr
 function onSegment(p, q, r) {
     return q.x <= Math.max(p.x, r.x) && q.x >= Math.min(p.x, r.x) && q.y <= Math.max(p.y, r.y) && q.y >= Math.min(p.y, r.y);
-}
-
-function sign(num) {
-    return num > 0 ? 1 : num < 0 ? -1 : 0;
 }
 
 // check if a polygon diagonal intersects any polygon segments
@@ -731,10 +728,9 @@ function createNode(i, x, y) {
         x, y, // vertex coordinates
         prev: null, // previous and next vertex nodes in a polygon ring
         next: null,
-        z: 0, // z-order curve value
+        z: 0, // z-order curve value; doubles as owning block in the hole-bridge index during eliminateHoles
         prevZ: null, // previous and next nodes in z-order
-        nextZ: null,
-        block: 0 // owning block in the hole-bridge index (see indexSegment)
+        nextZ: null
     };
 }
 
