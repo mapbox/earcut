@@ -16,7 +16,11 @@ export default function earcut(data, holeIndices, dim = 2) {
 
     let minX, minY, invSize;
 
-    if (hasHoles) outerNode = eliminateHoles(data, holeIndices, outerNode, dim);
+    if (hasHoles) {
+        outerNode = eliminateHoles(data, holeIndices, outerNode, dim);
+        // collapse collinear/coincident points across the whole merged ring once before clipping
+        outerNode = filterPoints(outerNode);
+    }
 
     // if the shape is not too simple, we'll use z-order curve hash later; calculate polygon bbox
     if (data.length > 80 * dim) {
@@ -62,24 +66,28 @@ function linkedList(data, start, end, dim, clockwise) {
     return last;
 }
 
-// eliminate colinear or duplicate points
+// Remove collinear or coincident points; removability depends only on a node's immediate
+// neighbors, so we sweep forward and re-check the predecessor after each removal. With no `end`
+// we sweep the whole ring, lapping until nothing is removable (the fixpoint the clipper needs).
+// With an explicit `end` we heal only the dirty window around a bridge/diagonal cut, stopping at
+// `end` rather than lapping — O(window) instead of O(ring).
 function filterPoints(start, end) {
     if (!start) return start;
-    if (!end) end = start;
+    const full = !end;
+    if (full) end = start;
 
-    let p = start,
-        again;
+    let p = start, again;
     do {
         again = false;
-
-        if ((steiners.size === 0 || !steiners.has(p)) && (equals(p, p.next) || area(p.prev, p, p.next) === 0)) {
+        if (p !== p.next && (steiners.size === 0 || !steiners.has(p)) &&
+            (equals(p, p.next) || area(p.prev, p, p.next) === 0)) {
+            if (full || p === end) end = p.prev; // pull the stop bound back past the removal
             removeNode(p);
-            p = end = p.prev;
-            if (p === p.next) break;
+            p = p.prev;         // re-check the predecessor
             again = true;
-
-        } else {
+        } else if (full || p !== end) {
             p = p.next;
+            again = !full;      // local heal: keep looping until the sweep reaches end
         }
     } while (again || p !== end);
 
@@ -105,9 +113,8 @@ function earcutLinked(ear, triangles, dim, minX, minY, invSize, pass) {
 
             removeNode(ear);
 
-            // skipping the next vertex leads to less sliver triangles
-            ear = next.next;
-            stop = next.next;
+            ear = next;
+            stop = next;
 
             continue;
         }
@@ -330,7 +337,7 @@ function eliminateHole(hole, outerNode) {
     const bridge2 = bridgeReverse.next;
     indexSegment(bridge, bridge2.next);
 
-    // filter collinear points around the cuts
+    // heal collinear/coincident points around the two new slit edges
     filterPoints(bridgeReverse, bridgeReverse.next);
     return filterPoints(bridge, bridge.next);
 }
