@@ -195,25 +195,25 @@ function isEarHashed(ear, minX, minY, invSize) {
 
     // look for points inside the triangle in both directions
     while (p && p.z >= minZ && n && n.z <= maxZ) {
-        if (p.x >= x0 && p.x <= x1 && p.y >= y0 && p.y <= y1 && p !== a && p !== c &&
+        if (p.x >= x0 && p.x <= x1 && p.y >= y0 && p.y <= y1 && p !== c &&
             !(ax === p.x && ay === p.y) && (cx - p.x) * (ay - p.y) >= (ax - p.x) * (cy - p.y) && (ax - p.x) * (by - p.y) >= (bx - p.x) * (ay - p.y) && (bx - p.x) * (cy - p.y) >= (cx - p.x) * (by - p.y) && area(p.prev, p, p.next) >= 0) return false;
         p = p.prevZ;
 
-        if (n.x >= x0 && n.x <= x1 && n.y >= y0 && n.y <= y1 && n !== a && n !== c &&
+        if (n.x >= x0 && n.x <= x1 && n.y >= y0 && n.y <= y1 && n !== c &&
             !(ax === n.x && ay === n.y) && (cx - n.x) * (ay - n.y) >= (ax - n.x) * (cy - n.y) && (ax - n.x) * (by - n.y) >= (bx - n.x) * (ay - n.y) && (bx - n.x) * (cy - n.y) >= (cx - n.x) * (by - n.y) && area(n.prev, n, n.next) >= 0) return false;
         n = n.nextZ;
     }
 
     // look for remaining points in decreasing z-order
     while (p && p.z >= minZ) {
-        if (p.x >= x0 && p.x <= x1 && p.y >= y0 && p.y <= y1 && p !== a && p !== c &&
+        if (p.x >= x0 && p.x <= x1 && p.y >= y0 && p.y <= y1 && p !== c &&
             !(ax === p.x && ay === p.y) && (cx - p.x) * (ay - p.y) >= (ax - p.x) * (cy - p.y) && (ax - p.x) * (by - p.y) >= (bx - p.x) * (ay - p.y) && (bx - p.x) * (cy - p.y) >= (cx - p.x) * (by - p.y) && area(p.prev, p, p.next) >= 0) return false;
         p = p.prevZ;
     }
 
     // look for remaining points in increasing z-order
     while (n && n.z <= maxZ) {
-        if (n.x >= x0 && n.x <= x1 && n.y >= y0 && n.y <= y1 && n !== a && n !== c &&
+        if (n.x >= x0 && n.x <= x1 && n.y >= y0 && n.y <= y1 && n !== c &&
             !(ax === n.x && ay === n.y) && (cx - n.x) * (ay - n.y) >= (ax - n.x) * (cy - n.y) && (ax - n.x) * (by - n.y) >= (bx - n.x) * (ay - n.y) && (bx - n.x) * (cy - n.y) >= (cx - n.x) * (by - n.y) && area(n.prev, n, n.next) >= 0) return false;
         n = n.nextZ;
     }
@@ -229,7 +229,7 @@ function cureLocalIntersections(start, triangles) {
         const a = p.prev,
             b = p.next.next;
 
-        if (!equals(a, b) && intersects(a, p, p.next, b, false) && locallyInside(a, b) && locallyInside(b, a)) {
+        if (intersects(a, p, p.next, b, false) && locallyInside(a, b) && locallyInside(b, a)) {
 
             triangles.push(a.i, p.i, b.i);
 
@@ -306,18 +306,11 @@ function eliminateHoles(data, holeIndices, outerNode, dim) {
 }
 
 function compareXYSlope(a, b) {
-    let result = a.x - b.x;
     // when the left-most point of 2 holes meet at a vertex, sort the holes counterclockwise so that when we find
     // the bridge to the outer shell is always the point that they meet at.
-    if (result === 0) {
-        result = a.y - b.y;
-        if (result === 0) {
-            const aSlope = (a.next.y - a.y) / (a.next.x - a.x);
-            const bSlope = (b.next.y - b.y) / (b.next.x - b.x);
-            result = aSlope - bSlope;
-        }
-    }
-    return result;
+    return a.x - b.x || a.y - b.y ||
+        (a.next.y - a.y) / (a.next.x - a.x) -
+        (b.next.y - b.y) / (b.next.x - b.x);
 }
 
 // find a bridge between vertices that connects hole with an outer ring and link it
@@ -466,8 +459,8 @@ function findHoleBridge(hole, outerNode) {
 
     const mx = m.x;
     const my = m.y;
-    const tminY = hy < my ? hy : my; // the triangle's y span; x span is [mx, hx]
-    const tmaxY = hy < my ? my : hy;
+    const tminY = Math.min(hy, my); // the triangle's y span; x span is [mx, hx]
+    const tmaxY = Math.max(hy, my);
     let tanMin = Infinity;
 
     // scan the same blocks; skip any whose bbox can't overlap the triangle's [mx,hx]×[tminY,tmaxY] box
@@ -599,7 +592,7 @@ function pointInTriangle(ax, ay, bx, by, cx, cy, px, py) {
 
 // check if a diagonal between two polygon nodes is valid (lies in polygon interior)
 function isValidDiagonal(a, b) {
-    return a.next.i !== b.i && a.prev.i !== b.i && !intersectsPolygon(a, b) && // doesn't intersect other edges
+    return a.next.i !== b.i && !intersectsPolygon(a, b) && // doesn't intersect other edges
            (locallyInside(a, b) && locallyInside(b, a) && middleInside(a, b) && // locally visible
             (area(a.prev, a, b.prev) || area(a, b.prev, b)) || // does not create opposite-facing sectors
             equals(a, b) && area(a.prev, a, a.next) > 0 && area(b.prev, b, b.next) > 0); // special zero-length case
@@ -643,10 +636,10 @@ function onSegment(p, q, r) {
 function intersectsPolygon(a, b) {
     // diagonal bbox; an edge whose bbox can't overlap it can't intersect it, so
     // skip the orientation test for those (the common case — the diagonal is short)
-    const minX = a.x < b.x ? a.x : b.x;
-    const maxX = a.x > b.x ? a.x : b.x;
-    const minY = a.y < b.y ? a.y : b.y;
-    const maxY = a.y > b.y ? a.y : b.y;
+    const minX = Math.min(a.x, b.x);
+    const maxX = Math.max(a.x, b.x);
+    const minY = Math.min(a.y, b.y);
+    const maxY = Math.max(a.y, b.y);
 
     let p = a;
     do {
@@ -678,10 +671,10 @@ function middleInside(a, b) {
     const px = (a.x + b.x) / 2;
     const py = (a.y + b.y) / 2;
     do {
-        if (((p.y > py) !== (p.next.y > py)) && p.next.y !== p.y &&
-                (px < (p.next.x - p.x) * (py - p.y) / (p.next.y - p.y) + p.x))
+        const n = p.next;
+        if (((p.y > py) !== (n.y > py)) && (px < (n.x - p.x) * (py - p.y) / (n.y - p.y) + p.x))
             inside = !inside;
-        p = p.next;
+        p = n;
     } while (p !== a);
 
     return inside;
