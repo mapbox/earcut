@@ -77,6 +77,8 @@ earcut([10,0,1, 0,50,2, 60,60,3, 70,10,4], null, 3);
 
 If you pass a single vertex as a hole, Earcut treats it as a Steiner point.
 
+Output triangles always have a consistent **winding order** regardless of the input polygon's winding &mdash; counter-clockwise in a y-up coordinate system (clockwise in y-down/screen space). If you need the opposite orientation (e.g. for back-face culling or normals in 3D), call `.reverse()` on the result.
+
 Note that Earcut is a **2D** triangulation algorithm, and handles 3D data as if it was projected onto the XY plane (with Z component ignored).
 
 If your input is a multi-dimensional array (e.g. [GeoJSON Polygon](http://geojson.org/geojson-spec.html#polygon)),
