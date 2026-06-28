@@ -5,16 +5,18 @@
   "main": "src/earcut.js",
   "type": "module",
   "exports": "./src/earcut.js",
+  "types": "src/earcut.d.ts",
   "files": [
     "src/earcut.js",
+    "src/earcut.d.ts",
     "dist/earcut.min.js",
     "dist/earcut.dev.js"
   ],
   "scripts": {
-    "pretest": "eslint src test/test.js bench/*.js viz/viz.js",
+    "pretest": "eslint src test/test.js bench/*.js viz/viz.js && tsc",
     "test": "node --test",
     "build": "rollup -c",
-    "prepublishOnly": "npm run build",
+    "prepublishOnly": "npm test && npm run build",
     "cov": "node --test --experimental-test-coverage"
   },
   "author": "Volodymyr Agafonkin",
@@ -24,7 +26,8 @@
     "benchmark": "^2.1.4",
     "eslint": "^10.5.0",
     "eslint-config-mourner": "^5.0.1",
-    "rollup": "^4.62.2"
+    "rollup": "^4.62.2",
+    "typescript": "^6.0.3"
   },
   "repository": {
     "type": "git",
