@@ -1,6 +1,6 @@
 ## Earcut
 
-The fastest and smallest JavaScript polygon triangulation library. 3KB gzipped.
+The fastest and smallest JavaScript polygon triangulation library. 3.5KB gzipped.
 
 [![Node](https://github.com/mapbox/earcut/actions/workflows/node.yml/badge.svg)](https://github.com/mapbox/earcut/actions/workflows/node.yml)
 [![Average time to resolve an issue](http://isitmaintained.com/badge/resolution/mapbox/earcut.svg)](http://isitmaintained.com/project/mapbox/earcut "Average time to resolve an issue")
@@ -25,20 +25,30 @@ The aim of this project is to create a JS triangulation library
 that is **fast enough for real-time triangulation in the browser**,
 sacrificing triangulation quality for raw speed and simplicity,
 while being robust enough to handle most practical datasets without crashing or producing garbage.
-Some benchmarks using Node 0.12:
 
-(ops/sec)         | pts  | earcut    | libtess  | poly2tri | pnltri    | polyk
-------------------| ---- | --------- | -------- | -------- | --------- | ------
-OSM building      | 15   | _795,935_ | _50,640_ | _61,501_ | _122,966_ | _175,570_
-dude shape        | 94   | _35,658_  | _10,339_ | _8,784_  | _11,172_  | _13,557_
-holed dude shape  | 104  | _28,319_  | _8,883_  | _7,494_  | _2,130_   | n/a
-complex OSM water | 2523 | _543_     | _77.54_  | failure  | failure   | n/a
-huge OSM water    | 5667 | _95_      | _29.30_  | failure  | failure   | n/a
+The original use case it was created for is [Mapbox GL JS](https://www.mapbox.com/mapbox-gljs), WebGL-based interactive maps.
 
-The original use case it was created for is [Mapbox GL](https://www.mapbox.com/mapbox-gl), WebGL-based interactive maps.
+#### Performance
 
-If you want to get correct triangulation even on very bad data with lots of self-intersections
-and earcut is not precise enough, take a look at [libtess.js](https://github.com/brendankenny/libtess.js).
+Earcut is heavily optimized for its primary workload — triangulating polygons from
+[Mapbox Vector Tiles](https://github.com/mapbox/vector-tile-spec). On a representative
+benchmark of **119,680 real-world polygons (1.9M vertices)** drawn from a window of map tiles
+through zooms 4–16, it triangulates the whole set in **~480 ms** on a Macbook Pro M1 Pro (2021) —
+roughly **250,000 polygons/s** or **4M vertices/s**. You can run the benchmark yourself with
+`node bench/bench-tiles.js`.
+
+#### Robustness and alternatives
+
+Earcut does **not** guarantee a correct triangulation on arbitrary input — it trades quality
+for speed and aims to always produce an acceptable result on practical data without crashing or
+emitting garbage. It handles holes, twisted polygons, and degeneracies gracefully, but on
+self-intersecting or otherwise dirty input the result can be noticeably wrong — even a small
+self-intersection (especially around holes) can leave a sizable chunk of the polygon
+mistriangulated. Clean your input first if correctness matters.
+
+If you need a guaranteed-correct triangulation even on very bad data,
+[libtess.js](https://github.com/brendankenny/libtess.js) is the most widely used robust
+alternative (a port of the OpenGL GLU tessellator), at the cost of being slower and larger.
 
 #### Usage
 
