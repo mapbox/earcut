@@ -3,3 +3,4 @@ node_modules
 dist
 *.log
 src/earcut.d.ts
+bench/extract-tiles.mjs
