@@ -523,7 +523,9 @@ function findHoleBridge(hole, outerNode) {
 
                 const tan = Math.abs(hy - p.y) / (hx - p.x); // tangential
 
-                if (locallyInside(p, hole) &&
+                // if hole point sits on p's horizontal edge (T-junction touch): the bridge runs
+                // along that edge — locallyInside rejects it as collinear, but it's valid
+                if ((locallyInside(p, hole) || (p.y === hy && p.next.y === hy && p.next.x > hx)) &&
                     (tan < tanMin || (tan === tanMin && (p.x > m.x || (p.x === m.x && sectorContainsSector(m, p)))))) {
                     m = p;
                     tanMin = tan;
