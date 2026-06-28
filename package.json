@@ -1,6 +1,6 @@
 {
   "name": "earcut",
-  "version": "3.0.2",
+  "version": "3.1.0",
   "description": "The fastest and smallest JavaScript polygon triangulation library for your WebGL apps",
   "main": "src/earcut.js",
   "type": "module",
@@ -15,6 +15,7 @@
   "scripts": {
     "pretest": "eslint src test/test.js bench/*.js viz/viz.js && tsc",
     "test": "node --test",
+    "bench": "node bench/bench-tiles.js",
     "build": "rollup -c",
     "prepublishOnly": "npm test && npm run build",
     "cov": "node --test --experimental-test-coverage"
@@ -23,7 +24,7 @@
   "license": "ISC",
   "devDependencies": {
     "@rollup/plugin-terser": "^1.0.0",
-    "eslint": "^10.5.0",
+    "eslint": "^10.6.0",
     "eslint-config-mourner": "^5.0.1",
     "rollup": "^4.62.2",
     "typescript": "^6.0.3"
