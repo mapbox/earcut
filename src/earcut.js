@@ -20,6 +20,10 @@
 /** @type {Set<Node>} */
 const steiners = new Set();
 
+// set by filterPoints whenever it removes at least one node; read by earcutLinked's stall
+// handler to decide whether another clip pass is worth attempting before the costlier stages
+let filteredOut = false;
+
 /**
  * Triangulate a polygon given as a flat array of vertex coordinates.
  *
@@ -110,6 +114,7 @@ function filterPoints(start, end = start) {
         if (p !== p.next && (steiners.size === 0 || !steiners.has(p)) &&
             (equals(p, p.next) || area(p.prev, p, p.next) === 0)) {
             if (full || p === end) end = p.prev; // pull the stop bound back past the removal
+            filteredOut = true;
             removeNode(p);
             p = p.prev;         // re-check the predecessor
             again = true;
@@ -153,17 +158,20 @@ function earcutLinked(ear, triangles, dim, minX, minY, invSize, pass) {
 
         // if we looped through the whole remaining polygon and can't find any more ears
         if (ear === stop) {
-            // try filtering points and slicing again
-            if (!pass) {
-                earcutLinked(filterPoints(ear), triangles, dim, minX, minY, invSize, 1);
+            // try filtering collinear/coincident points and slicing again — repeat as long as
+            // filtering actually removes nodes, since each removal can expose new ears. only once
+            // filtering can make no further progress do we fall through to the costlier stages.
+            filteredOut = false;
+            ear = filterPoints(ear);
+            if (filteredOut) { stop = ear; continue; }
 
-            // if this didn't work, try curing all small self-intersections locally
-            } else if (pass === 1) {
-                ear = cureLocalIntersections(filterPoints(ear), triangles);
-                earcutLinked(ear, triangles, dim, minX, minY, invSize, 2);
+            // filtering is exhausted: cure small local self-intersections, then retry
+            if (!pass) {
+                ear = cureLocalIntersections(ear, triangles);
+                earcutLinked(ear, triangles, dim, minX, minY, invSize, 1);
 
             // as a last resort, try splitting the remaining polygon into two
-            } else if (pass === 2) {
+            } else {
                 splitEarcut(ear, triangles, dim, minX, minY, invSize);
             }
 
