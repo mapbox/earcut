@@ -20,10 +20,14 @@ test('empty', () => {
     assert.deepEqual(earcut([]), []);
 });
 
+// tracks the worst deviation across the three non-zero rotations per fixture,
+// so we can tell when the errors-with-rotation bound can be tightened
+const maxRotated = new Map();
+
 for (const id of Object.keys(expected.triangles)) {
 
     for (const rotation of [0, 90, 180, 270]) {
-        test(`${id} rotation ${rotation}`, () => {
+        test(`${id} rotation ${rotation}`, (t) => {
             const coords = JSON.parse(fs.readFileSync(new URL(`fixtures/${id}.json`, import.meta.url)));
             const theta = rotation * Math.PI / 180;
             const xx = Math.round(Math.cos(theta));
@@ -52,6 +56,20 @@ for (const id of Object.keys(expected.triangles)) {
 
             if (expectedTriangles > 0) {
                 assert.ok(err <= expectedDeviation, `deviation ${err} <= ${expectedDeviation}`);
+            }
+
+            // surface fixtures whose deviation is well below the recorded threshold (at least 3x),
+            // so improvements after a correctness fix are visible and the threshold can be tightened;
+            // for rotations, compare the worst of the three against the shared errors-with-rotation bound
+            if (rotation === 0) {
+                if (expectedDeviation > 0 && err * 3 < expectedDeviation) {
+                    t.diagnostic(`${id}: deviation ${err} < recorded ${expectedDeviation} (improved)`);
+                }
+            } else {
+                maxRotated.set(id, Math.max(maxRotated.get(id) || 0, err));
+                if (rotation === 270 && expectedDeviation > 0 && maxRotated.get(id) * 3 < expectedDeviation) {
+                    t.diagnostic(`${id} rotated: max deviation ${maxRotated.get(id)} < recorded ${expectedDeviation} (improved)`);
+                }
             }
         });
     }

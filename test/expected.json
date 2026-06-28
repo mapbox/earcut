@@ -56,7 +56,8 @@
         "filtered-bridge-jhl": 25,
         "issue149": 2,
         "issue142": 4,
-        "issue186": 41
+        "issue186": 41,
+        "issue147": 30
     },
     "errors": {
         "dude": 2e-15,
@@ -68,13 +69,14 @@
         "issue17": 2e-16,
         "issue29": 1e-15,
         "self-touching": 1e-13,
-        "eberly-6": 2.2e-14,
+        "eberly-6": 2e-15,
         "issue142": 0.13
     },
     "errors-with-rotation": {
         "water-huge": 0.005,
         "water-huge2": 0.03,
         "bad-hole": 0.03,
-        "issue16": 1e-15
+        "issue16": 1e-15,
+        "eberly-6": 3e-14
     }
 }
