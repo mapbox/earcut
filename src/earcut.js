@@ -1,8 +1,34 @@
 
+/**
+ * A vertex in a circular doubly linked list representing a polygon ring.
+ * `prev`/`next` are always linked (set immediately after {@link createNode}), so they're typed
+ * non-null; `prevZ`/`nextZ` are the z-order list links and are null at the ends.
+ *
+ * @typedef {object} Node
+ * @property {number} i vertex index in the coordinates array
+ * @property {number} x vertex x coordinate
+ * @property {number} y vertex y coordinate
+ * @property {Node} prev previous vertex node in the polygon ring
+ * @property {Node} next next vertex node in the polygon ring
+ * @property {number} z z-order curve value; doubles as the owning block index during eliminateHoles
+ * @property {Node | null} prevZ previous node in z-order
+ * @property {Node | null} nextZ next node in z-order
+ */
+
 // single-vertex holes to preserve through filterPoints (steiner points); kept off the Node
 // shape since they're rare — the empty-set fast path means non-steiner inputs pay nothing
+/** @type {Set<Node>} */
 const steiners = new Set();
 
+/**
+ * Triangulate a polygon given as a flat array of vertex coordinates.
+ *
+ * @param {ArrayLike<number>} data flat array of vertex coordinates
+ * @param {ArrayLike<number> | null} [holeIndices] indices (in vertices, not coordinates) where each hole ring starts
+ * @param {number} [dim=2] number of coordinates per vertex in `data`
+ * @returns {number[]} triangles as triplets of vertex indices into `data`
+ * @example earcut([10,0, 0,50, 60,60, 70,10]); // [1,0,3, 3,2,1]
+ */
 export default function earcut(data, holeIndices, dim = 2) {
 
     const hasHoles = holeIndices && holeIndices.length;
@@ -10,11 +36,12 @@ export default function earcut(data, holeIndices, dim = 2) {
     if (steiners.size) steiners.clear();
 
     let outerNode = linkedList(data, 0, outerLen, dim, true);
+    /** @type {number[]} */
     const triangles = [];
 
     if (!outerNode || outerNode.next === outerNode.prev) return triangles;
 
-    let minX, minY, invSize;
+    let minX = 0, minY = 0, invSize = 0;
 
     if (hasHoles) {
         outerNode = eliminateHoles(data, holeIndices, outerNode, dim);
@@ -49,8 +76,10 @@ export default function earcut(data, holeIndices, dim = 2) {
 }
 
 // create a circular doubly linked list from polygon points in the specified winding order
+/** @param {ArrayLike<number>} data @param {number} start @param {number} end @param {number} dim @param {boolean} clockwise @returns {Node | null} */
 function linkedList(data, start, end, dim, clockwise) {
-    let last;
+    /** @type {Node | null} */
+    let last = null;
 
     if (clockwise === (signedArea(data, start, end, dim) > 0)) {
         for (let i = start; i < end; i += dim) last = insertNode(i / dim | 0, data[i], data[i + 1], last);
@@ -71,8 +100,8 @@ function linkedList(data, start, end, dim, clockwise) {
 // we sweep the whole ring, lapping until nothing is removable (the fixpoint the clipper needs).
 // With an explicit `end` we heal only the dirty window around a bridge/diagonal cut, stopping at
 // `end` rather than lapping — O(window) instead of O(ring).
+/** @param {Node} start @param {Node} [end] @returns {Node} */
 function filterPoints(start, end = start) {
-    if (!start) return null;
     const full = end === start;
 
     let p = start, again;
@@ -94,6 +123,7 @@ function filterPoints(start, end = start) {
 }
 
 // main ear slicing loop which triangulates a polygon (given as a linked list)
+/** @param {Node | null} ear @param {number[]} triangles @param {number} dim @param {number} minX @param {number} minY @param {number} invSize @param {number} pass */
 function earcutLinked(ear, triangles, dim, minX, minY, invSize, pass) {
     if (!ear) return;
 
@@ -105,6 +135,7 @@ function earcutLinked(ear, triangles, dim, minX, minY, invSize, pass) {
     // iterate through ears, slicing them one by one
     while (ear.prev !== ear.next) {
         const prev = ear.prev;
+        /** @type {Node} */
         const next = ear.next;
 
         if (area(prev, ear, next) < 0 && (invSize ? isEarHashed(ear, minX, minY, invSize) : isEar(ear))) {
@@ -142,6 +173,7 @@ function earcutLinked(ear, triangles, dim, minX, minY, invSize, pass) {
 }
 
 // check whether a polygon node forms a valid ear with adjacent nodes
+/** @param {Node} ear @returns {boolean} */
 function isEar(ear) {
     const a = ear.prev,
         b = ear,
@@ -171,6 +203,7 @@ function isEar(ear) {
     return true;
 }
 
+/** @param {Node} ear @param {number} minX @param {number} minY @param {number} invSize @returns {boolean} */
 function isEarHashed(ear, minX, minY, invSize) {
     const a = ear.prev,
         b = ear,
@@ -222,6 +255,7 @@ function isEarHashed(ear, minX, minY, invSize) {
 }
 
 // go through all polygon nodes and cure small local self-intersections
+/** @param {Node} start @param {number[]} triangles @returns {Node} */
 function cureLocalIntersections(start, triangles) {
     let p = start;
     let cured = false;
@@ -247,6 +281,7 @@ function cureLocalIntersections(start, triangles) {
 }
 
 // try splitting polygon into two and triangulate them independently
+/** @param {Node} start @param {number[]} triangles @param {number} dim @param {number} minX @param {number} minY @param {number} invSize */
 function splitEarcut(start, triangles, dim, minX, minY, invSize) {
     // look for a valid diagonal that divides the polygon into two
     let a = start;
@@ -276,13 +311,14 @@ function splitEarcut(start, triangles, dim, minX, minY, invSize) {
 let indexActive = false;
 
 // link every hole into the outer loop, producing a single-ring polygon without holes
+/** @param {ArrayLike<number>} data @param {ArrayLike<number>} holeIndices @param {Node} outerNode @param {number} dim @returns {Node} */
 function eliminateHoles(data, holeIndices, outerNode, dim) {
     const queue = [];
 
     for (let i = 0, len = holeIndices.length; i < len; i++) {
         const start = holeIndices[i] * dim;
         const end = i < len - 1 ? holeIndices[i + 1] * dim : data.length;
-        const list = linkedList(data, start, end, dim, false);
+        const list = /** @type {Node} */ (linkedList(data, start, end, dim, false));
         if (list === list.next) steiners.add(list);
         queue.push(getLeftmost(list));
     }
@@ -305,6 +341,7 @@ function eliminateHoles(data, holeIndices, outerNode, dim) {
     return outerNode;
 }
 
+/** @param {Node} a @param {Node} b @returns {number} */
 function compareXYSlope(a, b) {
     // when the left-most point of 2 holes meet at a vertex, sort the holes counterclockwise so that when we find
     // the bridge to the outer shell is always the point that they meet at.
@@ -314,6 +351,7 @@ function compareXYSlope(a, b) {
 }
 
 // find a bridge between vertices that connects hole with an outer ring and link it
+/** @param {Node} hole @param {Node} outerNode @returns {Node} */
 function eliminateHole(hole, outerNode) {
     const bridge = findHoleBridge(hole, outerNode);
     if (!bridge) {
@@ -349,9 +387,12 @@ const K = 16; // edges per block
 
 let blockBBox = new Float64Array(0); // [minX,minY,maxX,maxY] per block
 let numBlocks = 0;
+/** @type {Node[]} */
 const blockHead = []; // first node of each block's segment
+/** @type {Node[]} */
 const blockStop = []; // node just past each block's segment (exclusive walk bound)
 
+/** @param {number} maxNodes @param {number} numHoles */
 function buildBlockIndex(maxNodes, numHoles) {
     // upper bound: every input node indexed once, +2 bridge nodes per hole, plus a partial
     // trailing block per appended segment (outer ring + one per hole)
@@ -362,6 +403,7 @@ function buildBlockIndex(maxNodes, numHoles) {
 
 // index the ring run head..stop (exclusive) as ceil(len / K) blocks; head === stop means
 // the whole ring. each block's bbox covers both endpoints of every edge it owns.
+/** @param {Node} head @param {Node} stop */
 function indexSegment(head, stop) {
     let p = head;
     do {
@@ -387,6 +429,7 @@ function indexSegment(head, stop) {
 // when filterPoints heals an edge head->tail (removing the collinear node between them), the
 // healed edge can extend past head's frozen block bbox if its old far endpoint lived in another
 // block; grow head's block bbox to cover tail so the leftward-ray prune can't false-skip it.
+/** @param {Node} head @param {Node} tail */
 function growBlock(head, tail) {
     const g = head.z * 4;
     if (tail.x < blockBBox[g]) blockBBox[g] = tail.x;
@@ -395,6 +438,7 @@ function growBlock(head, tail) {
     if (tail.y > blockBBox[g + 3]) blockBBox[g + 3] = tail.y;
 }
 
+/** @param {number} b @returns {Node} */
 function liveBlockStop(b) {
     let stop = blockStop[b];
     while (stop.prev.next !== stop) stop = stop.next;
@@ -406,6 +450,7 @@ function liveBlockStop(b) {
 // live node so the walk doesn't start on (and immediately terminate at) a dead node. For the
 // single full-ring seed block (head === stop) the same forward advance keeps them equal, so the
 // do-while still laps the whole ring instead of collapsing to an empty walk.
+/** @param {number} b @returns {Node} */
 function liveBlockHead(b) {
     let head = blockHead[b];
     while (head.prev.next !== head) head = head.next;
@@ -414,11 +459,13 @@ function liveBlockHead(b) {
 }
 
 // David Eberly's algorithm for finding a bridge between hole and outer polygon
+/** @param {Node} hole @param {Node} outerNode @returns {Node | null} */
 function findHoleBridge(hole, outerNode) {
     let p = outerNode;
     const hx = hole.x;
     const hy = hole.y;
     let qx = -Infinity;
+    /** @type {Node | undefined} */
     let m;
 
     // find a segment intersected by a ray from the hole's leftmost point to the left;
@@ -491,14 +538,17 @@ function findHoleBridge(hole, outerNode) {
 }
 
 // whether sector in vertex m contains sector in vertex p in the same coordinates
+/** @param {Node} m @param {Node} p @returns {boolean} */
 function sectorContainsSector(m, p) {
     return area(m.prev, m, p.prev) < 0 && area(p.next, m, m.next) < 0;
 }
 
 // scratch array of node refs, reused across calls and grown on demand
+/** @type {Node[]} */
 const sortArr = [];
 
 // interlink polygon nodes in z-order: collect into an array, quicksort by z, relink
+/** @param {Node} start @param {number} minX @param {number} minY @param {number} invSize */
 function indexCurve(start, minX, minY, invSize) {
     let p = start;
     let n = 0;
@@ -511,6 +561,7 @@ function indexCurve(start, minX, minY, invSize) {
 
     quicksortNodes(sortArr, 0, n - 1);
 
+    /** @type {Node | null} */
     let prev = null;
     for (let i = 0; i < n; i++) {
         const node = sortArr[i];
@@ -518,10 +569,11 @@ function indexCurve(start, minX, minY, invSize) {
         if (prev) prev.nextZ = node;
         prev = node;
     }
-    prev.nextZ = null;
+    /** @type {Node} */ (prev).nextZ = null;
 }
 
 // quicksort an array of nodes by z; middle-element pivot + insertion sort for small ranges
+/** @param {Node[]} arr @param {number} left @param {number} right */
 function quicksortNodes(arr, left, right) {
     while (right - left > 20) {
         // middle pivot splits already-sorted/reversed runs evenly; real ring-order-by-z data
@@ -553,6 +605,7 @@ function quicksortNodes(arr, left, right) {
 }
 
 // z-order of a point given coords and inverse of the longer side of data bbox
+/** @param {number} x @param {number} y @param {number} minX @param {number} minY @param {number} invSize @returns {number} */
 function zOrder(x, y, minX, minY, invSize) {
     // coords are transformed into non-negative 15-bit integer range
     x = (x - minX) * invSize | 0;
@@ -572,6 +625,7 @@ function zOrder(x, y, minX, minY, invSize) {
 }
 
 // find the leftmost node of a polygon ring
+/** @param {Node} start @returns {Node} */
 function getLeftmost(start) {
     let p = start,
         leftmost = start;
@@ -584,6 +638,7 @@ function getLeftmost(start) {
 }
 
 // check if a point lies within a convex triangle
+/** @param {number} ax @param {number} ay @param {number} bx @param {number} by @param {number} cx @param {number} cy @param {number} px @param {number} py @returns {boolean} */
 function pointInTriangle(ax, ay, bx, by, cx, cy, px, py) {
     return (cx - px) * (ay - py) >= (ax - px) * (cy - py) &&
            (ax - px) * (by - py) >= (bx - px) * (ay - py) &&
@@ -591,24 +646,28 @@ function pointInTriangle(ax, ay, bx, by, cx, cy, px, py) {
 }
 
 // check if a diagonal between two polygon nodes is valid (lies in polygon interior)
+/** @param {Node} a @param {Node} b @returns {boolean} true when the diagonal is valid */
 function isValidDiagonal(a, b) {
     return a.next.i !== b.i && !intersectsPolygon(a, b) && // doesn't intersect other edges
            (locallyInside(a, b) && locallyInside(b, a) && middleInside(a, b) && // locally visible
-            (area(a.prev, a, b.prev) || area(a, b.prev, b)) || // does not create opposite-facing sectors
+            (area(a.prev, a, b.prev) !== 0 || area(a, b.prev, b) !== 0) || // does not create opposite-facing sectors
             equals(a, b) && area(a.prev, a, a.next) > 0 && area(b.prev, b, b.next) > 0); // special zero-length case
 }
 
 // signed area of a triangle
+/** @param {Node} p @param {Node} q @param {Node} r @returns {number} */
 function area(p, q, r) {
     return (q.y - p.y) * (r.x - q.x) - (q.x - p.x) * (r.y - q.y);
 }
 
 // check if two points are equal
+/** @param {Node} p1 @param {Node} p2 @returns {boolean} */
 function equals(p1, p2) {
     return p1.x === p2.x && p1.y === p2.y;
 }
 
 // check if two segments intersect; by default includes collinear boundary touches
+/** @param {Node} p1 @param {Node} q1 @param {Node} p2 @param {Node} q2 @param {boolean} [includeBoundary] @returns {boolean} */
 function intersects(p1, q1, p2, q2, includeBoundary = true) {
     const o1 = area(p1, q1, p2);
     const o2 = area(p1, q1, q2);
@@ -628,11 +687,13 @@ function intersects(p1, q1, p2, q2, includeBoundary = true) {
 }
 
 // for collinear points p, q, r, check if point q lies on segment pr
+/** @param {Node} p @param {Node} q @param {Node} r @returns {boolean} */
 function onSegment(p, q, r) {
     return q.x <= Math.max(p.x, r.x) && q.x >= Math.min(p.x, r.x) && q.y <= Math.max(p.y, r.y) && q.y >= Math.min(p.y, r.y);
 }
 
 // check if a polygon diagonal intersects any polygon segments
+/** @param {Node} a @param {Node} b @returns {boolean} */
 function intersectsPolygon(a, b) {
     // diagonal bbox; an edge whose bbox can't overlap it can't intersect it, so
     // skip the orientation test for those (the common case — the diagonal is short)
@@ -658,6 +719,7 @@ function intersectsPolygon(a, b) {
 }
 
 // check if a polygon diagonal is locally inside the polygon
+/** @param {Node} a @param {Node} b @returns {boolean} */
 function locallyInside(a, b) {
     return area(a.prev, a, a.next) < 0 ?
         area(a, b, a.next) >= 0 && area(a, a.prev, b) >= 0 :
@@ -665,6 +727,7 @@ function locallyInside(a, b) {
 }
 
 // check if the middle point of a polygon diagonal is inside the polygon
+/** @param {Node} a @param {Node} b @returns {boolean} */
 function middleInside(a, b) {
     let p = a;
     let inside = false;
@@ -682,6 +745,7 @@ function middleInside(a, b) {
 
 // link two polygon vertices with a bridge; if the vertices belong to the same ring, it splits polygon into two;
 // if one belongs to the outer ring and another to a hole, it merges it into a single ring
+/** @param {Node} a @param {Node} b @returns {Node} */
 function splitPolygon(a, b) {
     const a2 = createNode(a.i, a.x, a.y),
         b2 = createNode(b.i, b.x, b.y),
@@ -704,6 +768,7 @@ function splitPolygon(a, b) {
 }
 
 // create a node and optionally link it with previous one (in a circular doubly linked list)
+/** @param {number} i @param {number} x @param {number} y @param {Node | null} last @returns {Node} */
 function insertNode(i, x, y, last) {
     const p = createNode(i, x, y);
 
@@ -720,6 +785,7 @@ function insertNode(i, x, y, last) {
     return p;
 }
 
+/** @param {Node} p */
 function removeNode(p) {
     p.next.prev = p.prev;
     p.prev.next = p.next;
@@ -731,8 +797,10 @@ function removeNode(p) {
     if (indexActive) growBlock(p.prev, p.next);
 }
 
+/** @param {number} i @param {number} x @param {number} y @returns {Node} */
 function createNode(i, x, y) {
-    return {
+    // prev/next are assigned by the caller before any read, so the null init is cast away here
+    return /** @type {Node} */ (/** @type {unknown} */ ({
         i, // vertex index in coordinates array
         x, y, // vertex coordinates
         prev: null, // previous and next vertex nodes in a polygon ring
@@ -740,11 +808,20 @@ function createNode(i, x, y) {
         z: 0, // z-order curve value; doubles as owning block in the hole-bridge index during eliminateHoles
         prevZ: null, // previous and next nodes in z-order
         nextZ: null
-    };
+    }));
 }
 
-// return a percentage difference between the polygon area and its triangulation area;
-// used to verify correctness of triangulation
+/**
+ * Return the relative difference between the polygon area and the area of its triangulation —
+ * a value near 0 means a correct triangulation. Useful for verifying output in tests.
+ *
+ * @param {ArrayLike<number>} data
+ * @param {ArrayLike<number> | null} holeIndices
+ * @param {number} dim number of coordinates per vertex in `data`
+ * @param {ArrayLike<number>} triangles output of {@link earcut}
+ * @returns {number}
+ * @example deviation(data, holes, dim, earcut(data, holes, dim)); // ~0 if correct
+ */
 export function deviation(data, holeIndices, dim, triangles) {
     const hasHoles = holeIndices && holeIndices.length;
     const outerLen = hasHoles ? holeIndices[0] * dim : data.length;
@@ -772,6 +849,7 @@ export function deviation(data, holeIndices, dim, triangles) {
         Math.abs((trianglesArea - polygonArea) / polygonArea);
 }
 
+/** @param {ArrayLike<number>} data @param {number} start @param {number} end @param {number} dim @returns {number} */
 function signedArea(data, start, end, dim) {
     let sum = 0;
     for (let i = start, j = end - dim; i < end; i += dim) {
@@ -781,7 +859,13 @@ function signedArea(data, start, end, dim) {
     return sum;
 }
 
-// turn a polygon in a multi-dimensional array form (e.g. as in GeoJSON) into a form Earcut accepts
+/**
+ * Turn a polygon in multi-dimensional array form (e.g. as in GeoJSON) into the flat form Earcut accepts.
+ *
+ * @param {ReadonlyArray<ReadonlyArray<ArrayLike<number>>>} data array of rings; the first ring is the outer contour, the rest are holes
+ * @returns {{vertices: number[], holes: number[], dimensions: number}}
+ * @example const {vertices, holes, dimensions} = flatten(geojson.coordinates);
+ */
 export function flatten(data) {
     const vertices = [];
     const holes = [];

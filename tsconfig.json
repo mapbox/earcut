@@ -1,0 +1,15 @@
+{
+    "compilerOptions": {
+        "allowJs": true,
+        "checkJs": true,
+        "strict": true,
+        "emitDeclarationOnly": true,
+        "declaration": true,
+        "target": "esnext",
+        "module": "nodenext",
+        "moduleResolution": "nodenext"
+    },
+    "files": [
+        "src/earcut.js"
+    ]
+}
