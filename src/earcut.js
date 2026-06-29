@@ -658,10 +658,10 @@ function pointInTriangle(ax, ay, bx, by, cx, cy, px, py) {
 // check if a diagonal between two polygon nodes is valid (lies in polygon interior)
 /** @param {Node} a @param {Node} b @returns {boolean} true when the diagonal is valid */
 function isValidDiagonal(a, b) {
-    return a.next.i !== b.i && !intersectsPolygon(a, b) && // doesn't intersect other edges
-           (locallyInside(a, b) && locallyInside(b, a) && middleInside(a, b) && // locally visible
-            (area(a.prev, a, b.prev) !== 0 || area(a, b.prev, b) !== 0) || // does not create opposite-facing sectors
-            equals(a, b) && area(a.prev, a, a.next) > 0 && area(b.prev, b, b.next) > 0); // special zero-length case
+    const zeroLength = equals(a, b) && area(a.prev, a, a.next) > 0 && area(b.prev, b, b.next) > 0; // degenerate case
+    return a.next.i !== b.i && (zeroLength || locallyInside(a, b) && locallyInside(b, a) && // // locally visible
+        (area(a.prev, a, b.prev) !== 0 || area(a, b.prev, b) !== 0)) && // no opposite-facing sectors
+        !intersectsPolygon(a, b) && (zeroLength || middleInside(a, b)); // doesn't intersect other edges, diagonal inside polygon
 }
 
 // signed area of a triangle
