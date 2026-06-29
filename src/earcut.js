@@ -1,4 +1,3 @@
-
 /**
  * A vertex in a circular doubly linked list representing a polygon ring.
  * `prev`/`next` are always linked (set immediately after {@link createNode}), so they're typed
@@ -47,11 +46,7 @@ export default function earcut(data, holeIndices, dim = 2) {
 
     let minX = 0, minY = 0, invSize = 0;
 
-    if (hasHoles) {
-        outerNode = eliminateHoles(data, holeIndices, outerNode, dim);
-        // collapse collinear/coincident points across the whole merged ring once before clipping
-        outerNode = filterPoints(outerNode);
-    }
+    if (hasHoles) outerNode = eliminateHoles(data, holeIndices, outerNode, dim);
 
     // if the shape is not too simple, we'll use z-order curve hash later; calculate polygon bbox
     if (data.length > 80 * dim) {
@@ -74,7 +69,7 @@ export default function earcut(data, holeIndices, dim = 2) {
         invSize = invSize !== 0 ? 32767 / invSize : 0;
     }
 
-    earcutLinked(outerNode, triangles, dim, minX, minY, invSize, 0);
+    earcutLinked(outerNode, triangles, minX, minY, invSize);
 
     return triangles;
 }
@@ -128,14 +123,12 @@ function filterPoints(start, end = start) {
 }
 
 // main ear slicing loop which triangulates a polygon (given as a linked list)
-/** @param {Node | null} ear @param {number[]} triangles @param {number} dim @param {number} minX @param {number} minY @param {number} invSize @param {number} pass */
-function earcutLinked(ear, triangles, dim, minX, minY, invSize, pass) {
-    if (!ear) return;
-
+/** @param {Node} ear @param {number[]} triangles @param {number} minX @param {number} minY @param {number} invSize */
+function earcutLinked(ear, triangles, minX, minY, invSize) {
     // interlink polygon nodes in z-order
-    if (!pass && invSize) indexCurve(ear, minX, minY, invSize);
+    if (invSize) indexCurve(ear, minX, minY, invSize);
 
-    let stop = ear;
+    let stop = ear, cured = false;
 
     // iterate through ears, slicing them one by one
     while (ear.prev !== ear.next) {
@@ -159,22 +152,21 @@ function earcutLinked(ear, triangles, dim, minX, minY, invSize, pass) {
         // if we looped through the whole remaining polygon and can't find any more ears
         if (ear === stop) {
             // try filtering collinear/coincident points and slicing again — repeat as long as
-            // filtering actually removes nodes, since each removal can expose new ears. only once
-            // filtering can make no further progress do we fall through to the costlier stages.
+            // filtering actually removes nodes, since each removal can expose new ears
             filteredOut = false;
             ear = filterPoints(ear);
             if (filteredOut) { stop = ear; continue; }
 
-            // filtering is exhausted: cure small local self-intersections, then retry
-            if (!pass) {
+            // filtering is exhausted: cure small local self-intersections once, then retry
+            if (!cured) {
                 ear = cureLocalIntersections(ear, triangles);
-                earcutLinked(ear, triangles, dim, minX, minY, invSize, 1);
-
-            // as a last resort, try splitting the remaining polygon into two
-            } else {
-                splitEarcut(ear, triangles, dim, minX, minY, invSize);
+                stop = ear;
+                cured = true;
+                continue;
             }
 
+            // as a last resort, try splitting the remaining polygon into two
+            splitEarcut(ear, triangles, minX, minY, invSize);
             break;
         }
     }
@@ -257,8 +249,8 @@ function cureLocalIntersections(start, triangles) {
 }
 
 // try splitting polygon into two and triangulate them independently
-/** @param {Node} start @param {number[]} triangles @param {number} dim @param {number} minX @param {number} minY @param {number} invSize */
-function splitEarcut(start, triangles, dim, minX, minY, invSize) {
+/** @param {Node} start @param {number[]} triangles @param {number} minX @param {number} minY @param {number} invSize */
+function splitEarcut(start, triangles, minX, minY, invSize) {
     // look for a valid diagonal that divides the polygon into two
     let a = start;
     do {
@@ -273,8 +265,8 @@ function splitEarcut(start, triangles, dim, minX, minY, invSize) {
                 c = filterPoints(c, c.next);
 
                 // run earcut on each half
-                earcutLinked(a, triangles, dim, minX, minY, invSize, 0);
-                earcutLinked(c, triangles, dim, minX, minY, invSize, 0);
+                earcutLinked(a, triangles, minX, minY, invSize);
+                earcutLinked(c, triangles, minX, minY, invSize);
                 return;
             }
             b = b.next;
@@ -314,7 +306,8 @@ function eliminateHoles(data, holeIndices, outerNode, dim) {
     }
     indexActive = false;
 
-    return outerNode;
+    // collapse collinear/coincident points across the whole merged ring once before clipping
+    return filterPoints(outerNode);
 }
 
 /** @param {Node} a @param {Node} b @returns {number} */
