@@ -183,82 +183,50 @@ function earcutLinked(ear, triangles, dim, minX, minY, invSize, pass) {
 // check whether a polygon node forms a valid ear with adjacent nodes
 /** @param {Node} ear @returns {boolean} */
 function isEar(ear) {
-    const a = ear.prev,
-        b = ear,
-        c = ear.next;
-
     // reflex check (area(a, b, c) >= 0) is hoisted into the earcutLinked caller to avoid non-inlined call here
-
-    // make sure we don't have other points inside the potential ear; the point-in-triangle
-    // test (false when the point coincides with the first vertex a) is inlined here and in
-    // isEarHashed rather than called — V8 doesn't inline it and the call sits in the hot loop
-    const ax = a.x, bx = b.x, cx = c.x, ay = a.y, by = b.y, cy = c.y;
-
-    // triangle bbox
-    const x0 = Math.min(ax, bx, cx),
+    const a = ear.prev, b = ear, c = ear.next,
+        ax = a.x, bx = b.x, cx = c.x, ay = a.y, by = b.y, cy = c.y,
+        x0 = Math.min(ax, bx, cx), // triangle bbox
         y0 = Math.min(ay, by, cy),
         x1 = Math.max(ax, bx, cx),
         y1 = Math.max(ay, by, cy);
 
+    // make sure we don't have other points inside the potential ear
     let p = c.next;
     while (p !== a) {
         if (p.x >= x0 && p.x <= x1 && p.y >= y0 && p.y <= y1 &&
-            !(ax === p.x && ay === p.y) && (cx - p.x) * (ay - p.y) >= (ax - p.x) * (cy - p.y) && (ax - p.x) * (by - p.y) >= (bx - p.x) * (ay - p.y) && (bx - p.x) * (cy - p.y) >= (cx - p.x) * (by - p.y) &&
+            !(ax === p.x && ay === p.y) && pointInTriangle(ax, ay, bx, by, cx, cy, p.x, p.y) &&
             area(p.prev, p, p.next) >= 0) return false;
         p = p.next;
     }
-
     return true;
 }
 
 /** @param {Node} ear @param {number} minX @param {number} minY @param {number} invSize @returns {boolean} */
 function isEarHashed(ear, minX, minY, invSize) {
-    const a = ear.prev,
-        b = ear,
-        c = ear.next;
-
     // reflex check is hoisted into the earcutLinked caller (see isEar)
-
-    const ax = a.x, bx = b.x, cx = c.x, ay = a.y, by = b.y, cy = c.y;
-
-    // triangle bbox
-    const x0 = Math.min(ax, bx, cx),
+    const a = ear.prev, b = ear, c = ear.next,
+        ax = a.x, bx = b.x, cx = c.x, ay = a.y, by = b.y, cy = c.y,
+        x0 = Math.min(ax, bx, cx), // triangle bbox
         y0 = Math.min(ay, by, cy),
         x1 = Math.max(ax, bx, cx),
-        y1 = Math.max(ay, by, cy);
-
-    // z-order range for the current triangle bbox;
-    const minZ = zOrder(x0, y0, minX, minY, invSize),
+        y1 = Math.max(ay, by, cy),
+        minZ = zOrder(x0, y0, minX, minY, invSize), // z-order range for the current triangle bbox;
         maxZ = zOrder(x1, y1, minX, minY, invSize);
 
     let p = ear.prevZ,
         n = ear.nextZ;
 
-    // look for points inside the triangle in both directions
-    while (p && p.z >= minZ && n && n.z <= maxZ) {
+    while (p && p.z >= minZ) { // look for points inside the triangle in decreasing z-order
         if (p.x >= x0 && p.x <= x1 && p.y >= y0 && p.y <= y1 && p !== c &&
-            !(ax === p.x && ay === p.y) && (cx - p.x) * (ay - p.y) >= (ax - p.x) * (cy - p.y) && (ax - p.x) * (by - p.y) >= (bx - p.x) * (ay - p.y) && (bx - p.x) * (cy - p.y) >= (cx - p.x) * (by - p.y) && area(p.prev, p, p.next) >= 0) return false;
-        p = p.prevZ;
-
-        if (n.x >= x0 && n.x <= x1 && n.y >= y0 && n.y <= y1 && n !== c &&
-            !(ax === n.x && ay === n.y) && (cx - n.x) * (ay - n.y) >= (ax - n.x) * (cy - n.y) && (ax - n.x) * (by - n.y) >= (bx - n.x) * (ay - n.y) && (bx - n.x) * (cy - n.y) >= (cx - n.x) * (by - n.y) && area(n.prev, n, n.next) >= 0) return false;
-        n = n.nextZ;
-    }
-
-    // look for remaining points in decreasing z-order
-    while (p && p.z >= minZ) {
-        if (p.x >= x0 && p.x <= x1 && p.y >= y0 && p.y <= y1 && p !== c &&
-            !(ax === p.x && ay === p.y) && (cx - p.x) * (ay - p.y) >= (ax - p.x) * (cy - p.y) && (ax - p.x) * (by - p.y) >= (bx - p.x) * (ay - p.y) && (bx - p.x) * (cy - p.y) >= (cx - p.x) * (by - p.y) && area(p.prev, p, p.next) >= 0) return false;
+            !(ax === p.x && ay === p.y) && pointInTriangle(ax, ay, bx, by, cx, cy, p.x, p.y) && area(p.prev, p, p.next) >= 0) return false;
         p = p.prevZ;
     }
-
-    // look for remaining points in increasing z-order
-    while (n && n.z <= maxZ) {
+    while (n && n.z <= maxZ) { // look for points in increasing z-order
         if (n.x >= x0 && n.x <= x1 && n.y >= y0 && n.y <= y1 && n !== c &&
-            !(ax === n.x && ay === n.y) && (cx - n.x) * (ay - n.y) >= (ax - n.x) * (cy - n.y) && (ax - n.x) * (by - n.y) >= (bx - n.x) * (ay - n.y) && (bx - n.x) * (cy - n.y) >= (cx - n.x) * (by - n.y) && area(n.prev, n, n.next) >= 0) return false;
+            !(ax === n.x && ay === n.y) && pointInTriangle(ax, ay, bx, by, cx, cy, n.x, n.y) && area(n.prev, n, n.next) >= 0) return false;
         n = n.nextZ;
     }
-
     return true;
 }
 
