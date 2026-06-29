@@ -140,10 +140,8 @@ function earcutLinked(ear, triangles, minX, minY, invSize) {
             triangles.push(prev.i, ear.i, next.i); // cut off the triangle
 
             removeNode(ear);
-
             ear = next;
             stop = next;
-
             continue;
         }
 
@@ -186,9 +184,8 @@ function isEar(ear) {
     // make sure we don't have other points inside the potential ear
     let p = c.next;
     while (p !== a) {
-        if (p.x >= x0 && p.x <= x1 && p.y >= y0 && p.y <= y1 &&
-            !(ax === p.x && ay === p.y) && pointInTriangle(ax, ay, bx, by, cx, cy, p.x, p.y) &&
-            area(p.prev, p, p.next) >= 0) return false;
+        if (p.x >= x0 && p.x <= x1 && p.y >= y0 && p.y <= y1 && !(ax === p.x && ay === p.y) &&
+            pointInTriangle(ax, ay, bx, by, cx, cy, p.x, p.y) && area(p.prev, p, p.next) >= 0) return false;
         p = p.next;
     }
     return true;
@@ -206,17 +203,16 @@ function isEarHashed(ear, minX, minY, invSize) {
         minZ = zOrder(x0, y0, minX, minY, invSize), // z-order range for the current triangle bbox;
         maxZ = zOrder(x1, y1, minX, minY, invSize);
 
-    let p = ear.prevZ,
-        n = ear.nextZ;
-
+    let p = ear.prevZ;
     while (p && p.z >= minZ) { // look for points inside the triangle in decreasing z-order
-        if (p.x >= x0 && p.x <= x1 && p.y >= y0 && p.y <= y1 && p !== c &&
-            !(ax === p.x && ay === p.y) && pointInTriangle(ax, ay, bx, by, cx, cy, p.x, p.y) && area(p.prev, p, p.next) >= 0) return false;
+        if (p.x >= x0 && p.x <= x1 && p.y >= y0 && p.y <= y1 && p !== c && !(ax === p.x && ay === p.y) &&
+            pointInTriangle(ax, ay, bx, by, cx, cy, p.x, p.y) && area(p.prev, p, p.next) >= 0) return false;
         p = p.prevZ;
     }
+    let n = ear.nextZ;
     while (n && n.z <= maxZ) { // look for points in increasing z-order
-        if (n.x >= x0 && n.x <= x1 && n.y >= y0 && n.y <= y1 && n !== c &&
-            !(ax === n.x && ay === n.y) && pointInTriangle(ax, ay, bx, by, cx, cy, n.x, n.y) && area(n.prev, n, n.next) >= 0) return false;
+        if (n.x >= x0 && n.x <= x1 && n.y >= y0 && n.y <= y1 && n !== c && !(ax === n.x && ay === n.y) &&
+            pointInTriangle(ax, ay, bx, by, cx, cy, n.x, n.y) && area(n.prev, n, n.next) >= 0) return false;
         n = n.nextZ;
     }
     return true;
@@ -514,11 +510,19 @@ function sectorContainsSector(m, p) {
     return area(m.prev, m, p.prev) < 0 && area(p.next, m, m.next) < 0;
 }
 
-// scratch array of node refs, reused across calls and grown on demand
+// scratch buffers reused across calls and grown on demand: two node-ref arrays that
+// ping-pong during the radix passes, plus parallel z-value arrays so the passes read
+// z from contiguous memory instead of dereferencing each node. 256-entry histogram for
+// 8-bit digits; the small histogram keeps per-call setup cheap (most rings are short)
 /** @type {Node[]} */
 const sortArr = [];
+/** @type {Node[]} */
+let sortBuf = [];
+let zArr = new Uint32Array(0);
+let zBuf = new Uint32Array(0);
+const counts = new Uint32Array(256);
 
-// interlink polygon nodes in z-order: collect into an array, quicksort by z, relink
+// interlink polygon nodes in z-order: collect into an array, sort by z, relink
 /** @param {Node} start @param {number} minX @param {number} minY @param {number} invSize */
 function indexCurve(start, minX, minY, invSize) {
     let p = start;
@@ -530,7 +534,7 @@ function indexCurve(start, minX, minY, invSize) {
         p = p.next;
     } while (p !== start);
 
-    quicksortNodes(sortArr, 0, n - 1);
+    sortNodes(n);
 
     /** @type {Node | null} */
     let prev = null;
@@ -543,35 +547,48 @@ function indexCurve(start, minX, minY, invSize) {
     /** @type {Node} */ (prev).nextZ = null;
 }
 
-// quicksort an array of nodes by z; middle-element pivot + insertion sort for small ranges
-/** @param {Node[]} arr @param {number} left @param {number} right */
-function quicksortNodes(arr, left, right) {
-    while (right - left > 20) {
-        // middle pivot splits already-sorted/reversed runs evenly; real ring-order-by-z data
-        // is non-adversarial, so the median-of-three guard isn't needed
-        const pivot = arr[(left + right) >> 1].z;
-
-        let i = left, j = right, t;
-        while (i <= j) {
-            while (arr[i].z < pivot) i++;
-            while (arr[j].z > pivot) j--;
-            if (i <= j) { t = arr[i]; arr[i] = arr[j]; arr[j] = t; i++; j--; }
+// sort the first n nodes of sortArr by z, in place: insertion sort for small n (cheaper
+// than histogram setup), else LSD radix in four 8-bit passes (covering z's 30 bits)
+/** @param {number} n */
+function sortNodes(n) {
+    if (n <= 32) {
+        for (let i = 1; i < n; i++) {
+            const node = sortArr[i], z = node.z;
+            let j = i - 1;
+            while (j >= 0 && sortArr[j].z > z) { sortArr[j + 1] = sortArr[j]; j--; }
+            sortArr[j + 1] = node;
         }
-        // recurse into the smaller half, loop on the larger to bound stack depth
-        if (j - left < right - i) {
-            quicksortNodes(arr, left, j);
-            left = i;
-        } else {
-            quicksortNodes(arr, i, right);
-            right = j;
-        }
+        return;
     }
-    // insertion sort the small remaining range
-    for (let i = left + 1; i <= right; i++) {
-        const node = arr[i], z = node.z;
-        let j = i - 1;
-        while (j >= left && arr[j].z > z) { arr[j + 1] = arr[j]; j--; }
-        arr[j + 1] = node;
+
+    if (zArr.length < n) {
+        zArr = new Uint32Array(n);
+        zBuf = new Uint32Array(n);
+        sortBuf = new Array(n);
+    }
+    for (let i = 0; i < n; i++) zArr[i] = sortArr[i].z;
+
+    // even pass count lands the sorted result back in sortArr
+    radixPass(n, sortArr, zArr, sortBuf, zBuf, 0);
+    radixPass(n, sortBuf, zBuf, sortArr, zArr, 8);
+    radixPass(n, sortArr, zArr, sortBuf, zBuf, 16);
+    radixPass(n, sortBuf, zBuf, sortArr, zArr, 24);
+}
+
+// one LSD radix pass: stably scatter the first n nodes (and their z) from src to dst,
+// bucketed by the 8-bit digit of z at the given bit shift
+/** @param {number} n @param {Node[]} src @param {Uint32Array} srcZ @param {Node[]} dst @param {Uint32Array} dstZ @param {number} shift */
+function radixPass(n, src, srcZ, dst, dstZ, shift) {
+    counts.fill(0);
+    for (let i = 0; i < n; i++) counts[(srcZ[i] >>> shift) & 0xff]++;
+    // turn per-bucket counts into start offsets (prefix sum)
+    let sum = 0;
+    for (let b = 0; b < 256; b++) { const c = counts[b]; counts[b] = sum; sum += c; }
+    for (let i = 0; i < n; i++) {
+        const z = srcZ[i];
+        const pos = counts[(z >>> shift) & 0xff]++;
+        dst[pos] = src[i];
+        dstZ[pos] = z;
     }
 }
 
