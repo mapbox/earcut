@@ -1,6 +1,6 @@
 /*eslint @stylistic/comma-spacing: 0, no-unused-vars: 0 */
 
-import earcut, {flatten, deviation} from '../src/earcut.js';
+import earcut, {flatten, deviation, refine} from '../src/earcut.js';
 
 (async function () {
     const params = new URLSearchParams(window.location.search.substring(1));
@@ -57,6 +57,10 @@ import earcut, {flatten, deviation} from '../src/earcut.js';
     console.time('earcut');
     const result = earcut(data.vertices, data.holes, data.dimensions);
     console.timeEnd('earcut');
+
+    console.time('refine');
+    refine(result, data.vertices, data.dimensions);
+    console.timeEnd('refine');
 
     console.log(`deviation: ${deviation(data.vertices, data.holes, data.dimensions, result)}`);
 
