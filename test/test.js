@@ -1,7 +1,7 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import earcut, {flatten, deviation} from '../src/earcut.js';
+import earcut, {flatten, deviation, refine} from '../src/earcut.js';
 import fs from 'fs';
 import expected from './expected.json' with {type: 'json'};
 import {readTilesFixture} from '../bench/tiles-fixture.js';
@@ -23,6 +23,23 @@ test('empty', () => {
 // tracks the worst deviation across the three non-zero rotations per fixture,
 // so we can tell when the errors-with-rotation bound can be tightened
 const maxRotated = new Map();
+
+function trianglePerimeter(triangles, vertices, dim = 2) {
+    let perimeter = 0;
+    for (let i = 0; i < triangles.length; i += 3) {
+        const ax = vertices[triangles[i] * dim],
+            ay = vertices[triangles[i] * dim + 1],
+            bx = vertices[triangles[i + 1] * dim],
+            by = vertices[triangles[i + 1] * dim + 1],
+            cx = vertices[triangles[i + 2] * dim],
+            cy = vertices[triangles[i + 2] * dim + 1];
+
+        perimeter += Math.hypot(ax - bx, ay - by) +
+            Math.hypot(bx - cx, by - cy) +
+            Math.hypot(cx - ax, cy - ay);
+    }
+    return perimeter;
+}
 
 for (const id of Object.keys(expected.triangles)) {
 
@@ -79,7 +96,42 @@ test('infinite-loop', () => {
     earcut([1, 2, 2, 2, 1, 2, 1, 1, 1, 2, 4, 1, 5, 1, 3, 2, 4, 2, 4, 1], [5], 2);
 });
 
-test('mvt fixture has zero deviation', () => {
+test('refine improves a bad quad diagonal', () => {
+    const vertices = [0, 0, 3, 0, 10, 1, 0, 2];
+    const triangles = [2, 3, 0, 2, 0, 1];
+    const beforePerimeter = trianglePerimeter(triangles, vertices);
+    refine(triangles, vertices);
+    const afterPerimeter = trianglePerimeter(triangles, vertices);
+
+    assert.deepEqual(triangles, [2, 3, 1, 3, 0, 1]);
+    assert.ok(afterPerimeter < beforePerimeter * 0.7);
+    assert.equal(deviation(vertices, null, 2, triangles), 0);
+});
+
+test('refine leaves a good quad diagonal alone', () => {
+    const vertices = [0, 0, 5, 0, 4, 1, 0, 4];
+    const triangles = [2, 3, 0, 2, 0, 1];
+
+    refine(triangles, vertices);
+
+    assert.deepEqual(triangles, [2, 3, 0, 2, 0, 1]);
+    assert.equal(deviation(vertices, null, 2, triangles), 0);
+});
+
+test('refine preserves a concave polygon', () => {
+    const vertices = [0, 0, 4, 0, 4, 1, 1, 1, 1, 4, 0, 4];
+    const triangles = earcut(vertices);
+    const length = triangles.length;
+    const beforePerimeter = trianglePerimeter(triangles, vertices);
+    refine(triangles, vertices);
+    const afterPerimeter = trianglePerimeter(triangles, vertices);
+
+    assert.equal(triangles.length, length);
+    assert.ok(afterPerimeter < beforePerimeter * 0.9);
+    assert.equal(deviation(vertices, null, 2, triangles), 0);
+});
+
+test('mvt fixture has zero deviation and refined quality', () => {
     const polys = readTilesFixture();
     let nonzero = 0;
     let firstIndex = -1;
@@ -87,10 +139,21 @@ test('mvt fixture has zero deviation', () => {
     let worstIndex = -1;
     let worstDev = 0;
     let sumDev = 0;
+    let refinedNonzero = 0;
+    let refinedFirstIndex = -1;
+    let refinedFirstDev = 0;
+    let refinedWorstIndex = -1;
+    let refinedWorstDev = 0;
+    let refinedSumDev = 0;
+    let lengthChanged = 0;
+    let basePerimeter = 0;
+    let refinedPerimeter = 0;
 
     for (let i = 0; i < polys.length; i++) {
         const data = polys[i];
         const triangles = earcut(data.vertices, data.holes, data.dimensions);
+        const length = triangles.length;
+        basePerimeter += trianglePerimeter(triangles, data.vertices, data.dimensions);
         const dev = deviation(data.vertices, data.holes, data.dimensions, triangles);
         if (dev !== 0) {
             if (firstIndex < 0) {
@@ -104,12 +167,37 @@ test('mvt fixture has zero deviation', () => {
                 worstDev = dev;
             }
         }
+
+        refine(triangles, data.vertices, data.dimensions);
+        refinedPerimeter += trianglePerimeter(triangles, data.vertices, data.dimensions);
+        if (triangles.length !== length) lengthChanged++;
+
+        const refinedDev = deviation(data.vertices, data.holes, data.dimensions, triangles);
+        if (refinedDev !== 0) {
+            if (refinedFirstIndex < 0) {
+                refinedFirstIndex = i;
+                refinedFirstDev = refinedDev;
+            }
+            refinedNonzero++;
+            refinedSumDev += refinedDev;
+            if (refinedDev > refinedWorstDev) {
+                refinedWorstIndex = i;
+                refinedWorstDev = refinedDev;
+            }
+        }
     }
 
     assert.equal(polys.length, 119680);
     assert.equal(nonzero, 0,
         `${nonzero} polygons with nonzero deviation; first ${firstIndex}: ${firstDev}, ` +
         `worst ${worstIndex}: ${worstDev}, sum ${sumDev}`);
+
+    assert.equal(lengthChanged, 0, `${lengthChanged} refined triangulations changed triangle count`);
+    assert.equal(refinedNonzero, 0,
+        `${refinedNonzero} refined polygons with nonzero deviation; first ${refinedFirstIndex}: ${refinedFirstDev}, ` +
+        `worst ${refinedWorstIndex}: ${refinedWorstDev}, sum ${refinedSumDev}`);
+
+    assert.ok(refinedPerimeter < basePerimeter * 0.76, `refined perimeter ratio ${refinedPerimeter / basePerimeter} < 0.76`);
 });
 
 // Regression for the hole-bridge block index (issue #183): a collinear-rich outer ring
