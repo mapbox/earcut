@@ -1,14 +1,43 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>debug page</title>
+    <title>earcut demo</title>
     <meta charset='utf-8'>
     <style>
-        body { margin: 0; padding: 0;}
+        * { box-sizing: border-box; }
+        html, body { margin: 0; height: 100%; font: 12px/1.4 monospace; }
+        #app { display: flex; height: 100%; }
+        #sidebar {
+            width: 200px; flex: none; height: 100%; display: flex; flex-direction: column;
+            border-right: 1px solid #ddd; background: #fafafa;
+        }
+        #header { flex: none; padding: 10px; border-bottom: 1px solid #ddd; }
+        #header a { color: #0076DD; font-weight: bold; }
+        header a:visited { color: #0060A0; }
+        .control { display: flex; align-items: center; gap: 6px; margin: 10px 0; user-select: none; }
+        .control input { margin: 0; }
+        #stats div { display: flex; justify-content: space-between; }
+        #stats .label { color: #888; }
+        #fixtures { flex: 1; overflow-y: auto; list-style: none; margin: 0; padding: 6px 0; }
+        #fixtures li { padding: 2px 10px; cursor: pointer; white-space: nowrap; }
+        #fixtures li:hover { background: #eee; }
+        #fixtures li.active { background: #0076DD; color: #fff; }
+        #canvas-area { flex: 1; min-width: 0; position: relative; }
+        #canvas { display: block; }
     </style>
 </head>
 <body>
-    <canvas id="canvas"></canvas>
+    <div id="app">
+        <div id="sidebar">
+            <div id="header">
+                <a href="https://github.com/mapbox/earcut">mapbox/earcut</a>
+                <label class="control"><input type="checkbox" id="refine"> refine</label>
+                <div id="stats"></div>
+            </div>
+            <ul id="fixtures"></ul>
+        </div>
+        <div id="canvas-area"><canvas id="canvas"></canvas></div>
+    </div>
     <script type="module" src='viz.js'></script>
 </body>
 </html>
