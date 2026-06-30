@@ -1,20 +1,24 @@
 import earcut, {flatten, deviation, refine} from '../src/earcut.js';
 
 const params = new URLSearchParams(window.location.search.substring(1));
-const rotation = +(params.get('rotation') || 0);
 
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 const area = document.getElementById('canvas-area');
 const fixturesEl = document.getElementById('fixtures');
 const refineEl = document.getElementById('refine');
+const rotationEl = document.getElementById('rotation');
 const statsEl = document.getElementById('stats');
 
 const defaultFixture = 'water-huge3';
+const rotations = [0, 90, 180, 270];
 let current = params.get('fixture') || defaultFixture;
+let rotation = +params.get('rotation') || 0;
 let state = null; // computed data for the current fixture, reused across redraws/toggles
 let loadToken = 0;
 let frame = 0;
+
+if (!rotations.includes(rotation)) rotation = 0;
 
 // build the fixture list from the names in expected.json
 const expected = await (await fetch('../test/expected.json')).json();
@@ -37,6 +41,17 @@ refineEl.onchange = () => {
     updateURL();
     update();
 };
+for (const value of rotations) {
+    const option = document.createElement('option');
+    option.textContent = `${value}°`;
+    option.value = value;
+    rotationEl.appendChild(option);
+}
+rotationEl.value = rotation;
+rotationEl.onchange = () => {
+    rotation = +rotationEl.value;
+    select();
+};
 addEventListener('resize', scheduleDraw);
 
 select();
@@ -55,6 +70,8 @@ function updateURL() {
     const url = new URL(location);
     if (current === defaultFixture) url.searchParams.delete('fixture');
     else url.searchParams.set('fixture', current);
+    if (rotation) url.searchParams.set('rotation', rotation);
+    else url.searchParams.delete('rotation');
     if (refineEl.checked) url.searchParams.set('refine', '1');
     else url.searchParams.delete('refine');
     history.replaceState(null, '', url);
@@ -127,7 +144,7 @@ function ringBounds(ring) {
 
 function draw() {
     if (!state) return;
-    const pad = 10;
+    const pad = 15;
     const W = area.clientWidth, H = area.clientHeight;
     const {minX, minY, w, h} = state.bounds;
     const scale = Math.min((W - 2 * pad) / w, (H - 2 * pad) / h);
@@ -168,12 +185,15 @@ function draw() {
     ctx.clearRect(0, 0, W, H);
     ctx.lineJoin = 'round';
 
-    ctx.fillStyle = 'rgba(255,255,0,0.2)';
-    ctx.strokeStyle = 'rgba(255,0,0,0.4)';
+    ctx.fillStyle = '#fffbd6';
     ctx.fill(paths.outline, 'evenodd');
+
+    ctx.lineWidth = 0.5;
+    ctx.strokeStyle = '#f24a4a';
     ctx.stroke(paths[meshKey]);
 
-    ctx.strokeStyle = 'black';
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = '#333';
     ctx.stroke(paths.outline);
 }
 
