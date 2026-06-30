@@ -16,12 +16,15 @@
         header a:visited { color: #0060A0; }
         .control { display: flex; align-items: center; gap: 6px; margin: 10px 0; user-select: none; }
         .control input { margin: 0; }
+        #stats { min-height: 7em; }
         #stats div { display: flex; justify-content: space-between; }
         #stats .label { color: #888; }
-        #fixtures { flex: 1; overflow-y: auto; list-style: none; margin: 0; padding: 6px 0; }
-        #fixtures li { padding: 2px 10px; cursor: pointer; white-space: nowrap; }
-        #fixtures li:hover { background: #eee; }
-        #fixtures li.active { background: #0076DD; color: #fff; }
+        #fixtures {
+            flex: 1; overflow-y: auto; margin: 0; padding: 6px 0; border: 0;
+            font: inherit; scrollbar-width: none;
+        }
+        #fixtures::-webkit-scrollbar { display: none; }
+        #fixtures option { padding: 2px 10px; cursor: pointer; white-space: nowrap; }
         #canvas-area { flex: 1; min-width: 0; position: relative; }
         #canvas { display: block; }
     </style>
@@ -34,7 +37,7 @@
                 <label class="control"><input type="checkbox" id="refine"> refine</label>
                 <div id="stats"></div>
             </div>
-            <ul id="fixtures"></ul>
+            <select id="fixtures" size="20" aria-label="Fixtures"></select>
         </div>
         <div id="canvas-area"><canvas id="canvas"></canvas></div>
     </div>

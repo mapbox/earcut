@@ -10,40 +10,61 @@ const fixturesEl = document.getElementById('fixtures');
 const refineEl = document.getElementById('refine');
 const statsEl = document.getElementById('stats');
 
-let current = params.get('fixture') || 'water';
+const defaultFixture = 'water-huge3';
+let current = params.get('fixture') || defaultFixture;
 let state = null; // computed data for the current fixture, reused across redraws/toggles
+let loadToken = 0;
+let frame = 0;
 
 // build the fixture list from the names in expected.json
 const expected = await (await fetch('../test/expected.json')).json();
-for (const name of Object.keys(expected.triangles)) {
-    const li = document.createElement('li');
-    li.textContent = name;
-    li.dataset.name = name;
-    fixturesEl.appendChild(li);
+const fixtureNames = Object.keys(expected.triangles);
+if (!fixtureNames.includes(current)) current = defaultFixture;
+
+for (const name of fixtureNames) {
+    const option = document.createElement('option');
+    option.textContent = name;
+    option.value = name;
+    fixturesEl.appendChild(option);
 }
-fixturesEl.onclick = (e) => {
-    if (!e.target.dataset.name) return;
-    current = e.target.dataset.name;
+fixturesEl.oninput = () => {
+    current = fixturesEl.value;
     select();
 };
 
 refineEl.checked = params.get('refine') === '1';
-refineEl.onchange = update;
-addEventListener('resize', draw);
+refineEl.onchange = () => {
+    updateURL();
+    update();
+};
+addEventListener('resize', scheduleDraw);
 
 select();
 
 function select() {
-    for (const li of fixturesEl.children) li.classList.toggle('active', li.dataset.name === current);
+    fixturesEl.value = current;
+    updateURL();
+    state = null;
+    drawLoadingStats();
+    const token = ++loadToken;
+    const name = current;
+    requestAnimationFrame(() => load(name, token));
+}
+
+function updateURL() {
     const url = new URL(location);
-    url.searchParams.set('fixture', current);
+    if (current === defaultFixture) url.searchParams.delete('fixture');
+    else url.searchParams.set('fixture', current);
+    if (refineEl.checked) url.searchParams.set('refine', '1');
+    else url.searchParams.delete('refine');
     history.replaceState(null, '', url);
-    load();
 }
 
 // load + triangulate the current fixture from scratch (base triangulation only)
-async function load() {
-    const rings = rotate(await (await fetch(`../test/fixtures/${current}.json`)).json(), rotation);
+async function load(name, token) {
+    const rings = rotate(await (await fetch(`../test/fixtures/${name}.json`)).json(), rotation);
+    if (token !== loadToken) return;
+
     const data = flatten(rings);
 
     const base = earcut(data.vertices, data.holes, data.dimensions);
@@ -56,11 +77,15 @@ async function load() {
         bounds: ringBounds(rings[0]),
         paths: null // {key, outline, baseMesh, refinedMesh} — cached Path2Ds, rebuilt on resize
     };
-    update();
+    if (token === loadToken) update();
 }
 
 // refine on demand and cache it, so toggling back and forth is instant
 function update() {
+    if (!state) {
+        drawLoadingStats();
+        return;
+    }
     if (refineEl.checked && !state.refined) {
         const {vertices, dimensions} = state.data;
         state.refined = state.base.slice();
@@ -69,7 +94,15 @@ function update() {
         state.refineTime = bench(() => refine(state.base.slice(), vertices, dimensions));
     }
     drawStats();
-    draw();
+    scheduleDraw();
+}
+
+function scheduleDraw() {
+    if (frame) return;
+    frame = requestAnimationFrame(() => {
+        frame = 0;
+        draw();
+    });
 }
 
 function rotate(rings, deg) {
@@ -173,19 +206,29 @@ function bench(fn) {
     return (performance.now() - start) / runs;
 }
 
-// ~3 significant figures across scales
 function ms(t) {
-    const digits = t >= 100 ? 0 : t >= 10 ? 1 : t >= 1 ? 2 : t >= 0.1 ? 3 : 4;
-    return `${t.toFixed(digits)} ms`;
+    return `${Math.round(1e3 * t) / 1e3} ms`;
+}
+
+function statsRow(label, value) {
+    return `<div><span class="label">${label}</span><span>${value}</span></div>`;
+}
+
+function drawLoadingStats() {
+    statsEl.innerHTML =
+        statsRow('vertices', '...') +
+        statsRow('triangles', '...') +
+        statsRow('earcut', '...') +
+        statsRow('refine', refineEl.checked ? '...' : '–') +
+        statsRow('deviation', '...');
 }
 
 function drawStats() {
     const result = refineEl.checked ? state.refined : state.base;
-    const row = (label, value) => `<div><span class="label">${label}</span><span>${value}</span></div>`;
     statsEl.innerHTML =
-        row('vertices', (state.data.vertices.length / state.data.dimensions).toLocaleString()) +
-        row('triangles', (result.length / 3).toLocaleString()) +
-        row('earcut', ms(state.baseTime)) +
-        row('refine', refineEl.checked ? ms(state.refineTime) : '–') +
-        row('deviation', state.deviation ? state.deviation.toExponential(2) : '0');
+        statsRow('vertices', (state.data.vertices.length / state.data.dimensions).toLocaleString()) +
+        statsRow('triangles', (result.length / 3).toLocaleString()) +
+        statsRow('earcut', ms(state.baseTime)) +
+        statsRow('refine', refineEl.checked ? ms(state.refineTime) : '–') +
+        statsRow('deviation', state.deviation ? state.deviation.toExponential(2) : '0');
 }
