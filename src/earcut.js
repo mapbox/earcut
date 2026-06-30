@@ -873,3 +873,122 @@ export function flatten(data) {
     }
     return {vertices, holes, dimensions};
 }
+
+// Optional Delaunay refinement: legalize every interior edge of a triangulation in place via
+// Lawson flips, maximizing the min angle and removing most slivers. Works on any manifold mesh,
+// not just earcut output. The scratch arrays are allocated lazily so this whole block tree-shakes
+// away for callers who don't import `refine`. Adapted from delaunator's _legalize, with two
+// polygon-specific tweaks: inCircle is negated to match earcut's CCW winding (delaunator's sign
+// builds the anti-Delaunay mesh), and a `> 0` convexity guard prevents flipping across a reflex
+// quad (which would push triangles outside the polygon). Predicates are non-robust: float input
+// is fine, a near-degenerate test just means "not perfectly Delaunay", never an invalid mesh.
+
+/** @param {number} ax @param {number} ay @param {number} bx @param {number} by @param {number} cx @param {number} cy */
+const orient = (ax, ay, bx, by, cx, cy) => (bx - ax) * (cy - ay) - (by - ay) * (cx - ax);
+
+/** @param {number} ax @param {number} ay @param {number} bx @param {number} by @param {number} cx @param {number} cy @param {number} px @param {number} py */
+function inCircle(ax, ay, bx, by, cx, cy, px, py) {
+    const dx = ax - px, dy = ay - py, ex = bx - px, ey = by - py, fx = cx - px, fy = cy - py;
+    const ap = dx * dx + dy * dy, bp = ex * ex + ey * ey, cp = fx * fx + fy * fy;
+    return dx * (ey * cp - bp * fy) - dy * (ex * cp - bp * fx) + ap * (ex * fy - ey * fx) < 0;
+}
+
+/** @param {number} e */
+const nextHE = e => e - e % 3 + (e + 1) % 3; // next half-edge within the same triangle
+
+// reusable module-level scratch, grown on demand (like earcut's z-order arrays):
+//   he      = twin half-edge of each edge, or -1 on the polygon boundary
+//   hTable  = open-addressing hash, slot -> half-edge index, valid iff hStamp[slot] === gen
+/** @type {Int32Array} */ let EDGE_STACK;
+/** @type {Int32Array} */ let he;
+/** @type {Int32Array} */ let hTable;
+/** @type {Int32Array} */ let hStamp;
+let hMask = 0, gen = 0;
+
+/** @param {number} n */
+function ensureScratch(n) {
+    if (!EDGE_STACK) EDGE_STACK = new Int32Array(512);
+    if (!he || he.length < n) he = new Int32Array(n);
+    let size = 1;
+    while (size < n * 4) size <<= 1; // power-of-two table, load factor <= 0.25
+    if (!hTable || hTable.length < size) { hTable = new Int32Array(size); hStamp = new Int32Array(size); }
+    hMask = size - 1;
+}
+
+/**
+ * Refine a triangulation in place toward the constrained Delaunay triangulation, maximizing the
+ * minimum angle and removing most slivers. Optional post-pass for {@link earcut} output (or any
+ * manifold triangle-index array indexing into `coords`).
+ *
+ * @param {number[]} triangles triangle indices, as returned by {@link earcut}; mutated in place
+ * @param {ArrayLike<number>} coords the flat vertex coordinates passed to {@link earcut}
+ * @param {number} [dim=2] number of coordinates per vertex in `coords`
+ * @example refine(earcut(data), data);
+ */
+export function refine(triangles, coords, dim = 2) {
+    const t = triangles;
+    const n = t.length;
+    const V = coords.length / dim;
+    ensureScratch(n);
+    gen++;              // bumping the generation logically empties the hash (no clearing)
+    he.fill(-1, 0, n);
+
+    // build half-edge twins: key each edge on its UNDIRECTED endpoints (min, max), so a
+    // single hash walk both finds an existing entry and ends on the free insert slot.
+    // The two half-edges of an interior edge share a key: the first inserts, the second
+    // finds it and links the pair (manifold input => at most two per undirected edge).
+    for (let e = 0; e < n; e++) {
+        const a = t[e], b = t[nextHE(e)];
+        const lo = a < b ? a : b, hi = a < b ? b : a;
+        let h = ((hi * V + lo) * 0x9e3779b1 >>> 0) & hMask;
+        while (hStamp[h] === gen) {
+            const s = hTable[h];
+            // s === -1 marks a consumed slot (a pair already linked) — skip past it
+            if (s !== -1) {
+                const sa = t[s], sb = t[nextHE(s)];
+                if ((sa === lo && sb === hi) || (sa === hi && sb === lo)) {
+                    he[e] = s; he[s] = e; hTable[h] = -1; // link, then consume the slot
+                    break;
+                }
+            }
+            h = (h + 1) & hMask;
+        }
+        if (hStamp[h] !== gen) { hTable[h] = e; hStamp[h] = gen; } // first occurrence: insert
+    }
+
+    for (let e0 = 0; e0 < n; e0++) {
+        if (he[e0] === -1) continue;
+        let i = 0, a = e0;
+        while (true) {
+            const b = he[a];
+            const a0 = a - a % 3;
+            const ar = a0 + (a + 2) % 3;
+            if (b === -1) { if (i === 0) break; a = EDGE_STACK[--i]; continue; }
+
+            const b0 = b - b % 3;
+            const al = a0 + (a + 1) % 3;
+            const bl = b0 + (b + 2) % 3;
+            const p0 = t[ar], pr = t[a], pl = t[al], p1 = t[bl];
+
+            const x0 = coords[p0 * dim], y0 = coords[p0 * dim + 1];
+            const xr = coords[pr * dim], yr = coords[pr * dim + 1];
+            const xl = coords[pl * dim], yl = coords[pl * dim + 1];
+            const x1 = coords[p1 * dim], y1 = coords[p1 * dim + 1];
+
+            // the two triangles formed by the new diagonal p0-p1 must both be CCW (convex quad)
+            const convex = orient(x0, y0, xr, yr, x1, y1) > 0 && orient(x0, y0, x1, y1, xl, yl) > 0;
+
+            if (convex && !inCircle(x0, y0, xr, yr, xl, yl, x1, y1)) {
+                t[a] = p1; t[b] = p0;
+                const hbl = he[bl], har = he[ar];
+                he[a] = hbl; if (hbl !== -1) he[hbl] = a;
+                he[b] = har; if (har !== -1) he[har] = b;
+                he[ar] = bl; he[bl] = ar;
+                if (i < EDGE_STACK.length) EDGE_STACK[i++] = b0 + (b + 1) % 3;
+            } else {
+                if (i === 0) break;
+                a = EDGE_STACK[--i];
+            }
+        }
+    }
+}
