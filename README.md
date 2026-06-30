@@ -22,6 +22,8 @@ import earcut from 'earcut';
 const triangles = earcut([10,0, 0,50, 60,60, 70,10]); // returns [1,0,3, 3,2,1]
 ```
 
+## [Demo](https://mapbox.github.io/earcut/viz/)
+
 ## Algorithm
 
 The library implements a modified ear slicing algorithm,
