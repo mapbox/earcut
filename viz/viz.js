@@ -10,7 +10,7 @@ const refineEl = document.getElementById('refine');
 const rotationEl = document.getElementById('rotation');
 const statsEl = document.getElementById('stats');
 
-const defaultFixture = 'water-huge3';
+const defaultFixture = 'earcut';
 const rotations = [0, 90, 180, 270];
 let current = params.get('fixture') || defaultFixture;
 let rotation = +params.get('rotation') || 0;
@@ -145,11 +145,12 @@ function ringBounds(ring) {
 function draw() {
     if (!state) return;
     const pad = 15;
-    const W = area.clientWidth, H = area.clientHeight;
+    const areaW = area.clientWidth, areaH = area.clientHeight;
     const {minX, minY, w, h} = state.bounds;
-    const scale = Math.min((W - 2 * pad) / w, (H - 2 * pad) / h);
-    // center within the canvas area
-    const ox = (W - w * scale) / 2, oy = (H - h * scale) / 2;
+    const scale = Math.max(0, Math.min((areaW - 2 * pad) / w, (areaH - 2 * pad) / h));
+    const W = Math.ceil(w * scale + 2 * pad);
+    const H = Math.ceil(h * scale + 2 * pad);
+    const ox = pad, oy = pad;
 
     // (re)build the Path2Ds only when the projection changes; toggling refine then just rasterizes
     const key = `${W}x${H}`;
@@ -193,7 +194,7 @@ function draw() {
     ctx.stroke(paths[meshKey]);
 
     ctx.lineWidth = 1;
-    ctx.strokeStyle = '#333';
+    ctx.strokeStyle = 'black';
     ctx.stroke(paths.outline);
 }
 

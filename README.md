@@ -1,19 +1,19 @@
 # Earcut
 
-The fastest and smallest JavaScript **polygon triangulation** library. 3.5KB gzipped.
-
-It is designed to be fast enough for real-time triangulation in the browser,
-sacrificing triangulation quality for raw speed and simplicity,
-while being robust enough to handle most practical datasets without crashing or producing garbage.
-Originally built for [Mapbox GL JS](https://www.mapbox.com/mapbox-gljs) (WebGL-based interactive maps),
-it's now also used by [Three.js](https://threejs.org/) and many other projects.
+The fastest and smallest JavaScript **polygon triangulation** library. 4KB gzipped.
+[![Node](https://github.com/mapbox/earcut/actions/workflows/node.yml/badge.svg)](https://github.com/mapbox/earcut/actions/workflows/node.yml)
+[![](https://img.shields.io/badge/simply-awesome-brightgreen.svg)](https://github.com/mourner/projects)
 
 ![Earcut triangulation example](earcut.png)
 
-[![Node](https://github.com/mapbox/earcut/actions/workflows/node.yml/badge.svg)](https://github.com/mapbox/earcut/actions/workflows/node.yml)
-[![Average time to resolve an issue](http://isitmaintained.com/badge/resolution/mapbox/earcut.svg)](http://isitmaintained.com/project/mapbox/earcut "Average time to resolve an issue")
-[![Percentage of issues still open](http://isitmaintained.com/badge/open/mapbox/earcut.svg)](http://isitmaintained.com/project/mapbox/earcut "Percentage of issues still open")
-[![](https://img.shields.io/badge/simply-awesome-brightgreen.svg)](https://github.com/mourner/projects)
+Earcut is designed to be fast enough for real-time [triangulation](https://en.wikipedia.org/wiki/Polygon_triangulation) in the browser,
+favoring raw speed and simplicity over triangulation quality,
+while being robust enough to handle most practical datasets without crashing or producing garbage,
+with an option to refine the result to [Delaunay](https://en.wikipedia.org/wiki/Delaunay_triangulation) quality at a small cost.
+Originally built for [Mapbox GL JS](https://www.mapbox.com/mapbox-gljs) (WebGL-based interactive maps),
+it's now also used by [Three.js](https://threejs.org/) and many other projects.
+
+## [Demo](https://mapbox.github.io/earcut/viz/)
 
 ## Usage
 
@@ -21,8 +21,6 @@ it's now also used by [Three.js](https://threejs.org/) and many other projects.
 import earcut from 'earcut';
 const triangles = earcut([10,0, 0,50, 60,60, 70,10]); // returns [1,0,3, 3,2,1]
 ```
-
-## [Demo](https://mapbox.github.io/earcut/viz/)
 
 ## Algorithm
 
@@ -41,7 +39,8 @@ and [Triangulation by Ear Clipping](http://www.geometrictools.com/Documentation/
 Earcut is heavily optimized for its primary workload — triangulating polygons from
 [Mapbox Vector Tiles](https://github.com/mapbox/vector-tile-spec). On a representative
 benchmark of **119,680 real-world polygons** (1.9M vertices) drawn from a window of map tiles
-through zooms 4–16, it triangulates the whole set in **~480 ms** on a Macbook Pro M1 Pro (2021).
+through zooms 4–16, it triangulates the whole set in **~445 ms** on a Macbook Pro M1 Pro (2021),
+with optional Delaunay refinement taking additional **~184 ms**.
 You can run the benchmark yourself with `npm run bench`.
 
 ## Robustness
