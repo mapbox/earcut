@@ -62,7 +62,7 @@ conforming mesh, [remove T-junctions in a post-process](https://github.com/mapbo
 Install with NPM: `npm install earcut`, then import as a module:
 
 ```js
-import earcut, {flatten, deviation} from 'earcut';
+import earcut, {flatten, deviation, refine} from 'earcut';
 ```
 
 Or use as a module directly in the browser with [jsDelivr](https://www.jsdelivr.com/esm):
@@ -103,6 +103,23 @@ earcut([10,0,1, 0,50,2, 60,60,3, 70,10,4], null, 3);
 If you pass a single vertex as a hole, Earcut treats it as a Steiner point.
 
 Output triangles always have a consistent **winding order** regardless of the input polygon's winding &mdash; counter-clockwise in a y-up coordinate system (clockwise in y-down/screen space). If you need the opposite orientation (e.g. for back-face culling or normals in 3D), call `.reverse()` on the result.
+
+### `refine(triangles, vertices[, dimensions = 2])`
+
+If triangle quality matters, you can run an optional refinement pass after triangulation:
+
+```js
+const triangles = earcut(vertices, holes, dimensions);
+refine(triangles, vertices, dimensions);
+```
+
+This mutates `triangles` in place, legalizing interior edges with Delaunay flips while preserving
+the polygon boundary and holes. It keeps the same number of triangles and the same index format,
+but usually removes many skinny triangles and reduces total triangle edge length.
+
+Refinement is a post-process, so it doesn't affect the speed of normal `earcut` calls unless you
+explicitly call it. It assumes a valid manifold triangulation, such as the output of `earcut`, and
+doesn't repair invalid polygon input or make the mesh conforming.
 
 ### `flatten(data)`
 

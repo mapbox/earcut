@@ -4,6 +4,7 @@
   "description": "The fastest and smallest JavaScript polygon triangulation library for your WebGL apps",
   "main": "src/earcut.js",
   "type": "module",
+  "sideEffects": false,
   "exports": "./src/earcut.js",
   "types": "src/earcut.d.ts",
   "files": [
