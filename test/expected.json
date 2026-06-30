@@ -1,5 +1,6 @@
 {
     "triangles": {
+        "earcut": 548,
         "building": 13,
         "dude": 106,
         "water": 2482,
