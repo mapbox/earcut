@@ -54,7 +54,7 @@ async function load() {
         refined: null, refineTime: 0,
         deviation: deviation(data.vertices, data.holes, data.dimensions, base),
         bounds: ringBounds(rings[0]),
-        paths: null // {key, outline, base, refined} — cached Path2Ds, rebuilt on resize
+        paths: null // {key, outline, baseMesh, refinedMesh} — cached Path2Ds, rebuilt on resize
     };
     update();
 }
@@ -106,21 +106,12 @@ function draw() {
     if (!state.paths || state.paths.key !== key) state.paths = {key};
     const paths = state.paths;
     const which = refineEl.checked ? 'refined' : 'base';
+    const meshKey = `${which}Mesh`;
     const px = x => (x - minX) * scale + ox;
     const py = y => (y - minY) * scale + oy;
 
-    if (!paths[which]) {
-        const p = new Path2D();
-        const result = refineEl.checked ? state.refined : state.base;
-        const dim = state.data.dimensions, v = state.data.vertices;
-        for (let i = 0; i < result.length; i += 3) {
-            const a = result[i], b = result[i + 1], c = result[i + 2];
-            p.moveTo(px(v[a * dim]), py(v[a * dim + 1]));
-            p.lineTo(px(v[b * dim]), py(v[b * dim + 1]));
-            p.lineTo(px(v[c * dim]), py(v[c * dim + 1]));
-            p.closePath();
-        }
-        paths[which] = p;
+    if (!paths[meshKey]) {
+        paths[meshKey] = meshPath(refineEl.checked ? state.refined : state.base, state.data, px, py);
     }
     if (!paths.outline) {
         const p = new Path2D();
@@ -132,21 +123,41 @@ function draw() {
     }
 
     const dpr = devicePixelRatio || 1;
-    canvas.width = W * dpr;
-    canvas.height = H * dpr;
-    canvas.style.width = `${W}px`;
-    canvas.style.height = `${H}px`;
+    const cw = Math.round(W * dpr);
+    const ch = Math.round(H * dpr);
+    if (canvas.width !== cw || canvas.height !== ch) {
+        canvas.width = cw;
+        canvas.height = ch;
+        canvas.style.width = `${W}px`;
+        canvas.style.height = `${H}px`;
+    }
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, W, H);
     ctx.lineJoin = 'round';
 
     ctx.fillStyle = 'rgba(255,255,0,0.2)';
     ctx.strokeStyle = 'rgba(255,0,0,0.4)';
-    ctx.fill(paths[which]);
-    ctx.stroke(paths[which]);
+    ctx.fill(paths.outline, 'evenodd');
+    ctx.stroke(paths[meshKey]);
 
     ctx.strokeStyle = 'black';
     ctx.stroke(paths.outline);
+}
+
+function meshPath(result, data, px, py) {
+    const p = new Path2D();
+    const dim = data.dimensions, v = data.vertices;
+
+    for (let i = 0; i < result.length; i += 3) {
+        const ai = result[i] * dim;
+        const bi = result[i + 1] * dim;
+        const ci = result[i + 2] * dim;
+        p.moveTo(px(v[ai]), py(v[ai + 1]));
+        p.lineTo(px(v[bi]), py(v[bi + 1]));
+        p.lineTo(px(v[ci]), py(v[ci + 1]));
+        p.lineTo(px(v[ai]), py(v[ai + 1]));
+    }
+    return p;
 }
 
 // performance.now() is clamped to ~100µs in browsers, so a single run of a fast fixture
