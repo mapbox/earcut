@@ -89,7 +89,9 @@ async function load(name, token) {
 
     state = {
         rings, data, base, baseTime,
+        baseQuality: triangleQuality(base, data),
         refined: null, refineTime: 0,
+        refinedQuality: null,
         deviation: deviation(data.vertices, data.holes, data.dimensions, base),
         bounds: ringBounds(rings[0]),
         paths: null // {key, outline, baseMesh, refinedMesh} — cached Path2Ds, rebuilt on resize
@@ -107,6 +109,7 @@ function update() {
         const {vertices, dimensions} = state.data;
         state.refined = state.base.slice();
         refine(state.refined, vertices, dimensions);
+        state.refinedQuality = triangleQuality(state.refined, state.data);
         // re-refine fresh copies of the base triangulation to time it in isolation
         state.refineTime = bench(() => refine(state.base.slice(), vertices, dimensions));
     }
@@ -214,6 +217,34 @@ function meshPath(result, data, px, py) {
     return p;
 }
 
+// Normalized triangle quality q = 4√3·area / Σ edge² is 1 for equilateral triangles and 0 for degenerate ones.
+function triangleQuality(result, data) {
+    const dim = data.dimensions, v = data.vertices;
+    let perimeter = 0, meanQ = 0;
+
+    for (let i = 0; i < result.length; i += 3) {
+        const ai = result[i] * dim;
+        const bi = result[i + 1] * dim;
+        const ci = result[i + 2] * dim;
+        const ax = v[ai], ay = v[ai + 1];
+        const bx = v[bi], by = v[bi + 1];
+        const cx = v[ci], cy = v[ci + 1];
+        const abx = ax - bx, aby = ay - by;
+        const bcx = bx - cx, bcy = by - cy;
+        const cax = cx - ax, cay = cy - ay;
+        const ab = abx * abx + aby * aby;
+        const bc = bcx * bcx + bcy * bcy;
+        const ca = cax * cax + cay * cay;
+        const sumSq = ab + bc + ca;
+
+        perimeter += Math.sqrt(ab) + Math.sqrt(bc) + Math.sqrt(ca);
+        meanQ += sumSq ? 2 * Math.sqrt(3) * Math.abs((bx - ax) * (cy - ay) - (by - ay) * (cx - ax)) / sumSq : 0;
+    }
+
+    const count = result.length / 3;
+    return {perimeter, meanQ: count ? meanQ / count : 0};
+}
+
 // performance.now() is clamped to ~100µs in browsers, so a single run of a fast fixture
 // reads 0; repeat until we've accumulated enough wall time and return the mean per run
 function bench(fn) {
@@ -231,6 +262,10 @@ function ms(t) {
     return `${Math.round(1e3 * t) / 1e3} ms`;
 }
 
+function number(x) {
+    return x ? x.toLocaleString(undefined, {maximumSignificantDigits: 3}) : '0';
+}
+
 function statsRow(label, value) {
     return `<div><span class="label">${label}</span><span>${value}</span></div>`;
 }
@@ -241,15 +276,20 @@ function drawLoadingStats() {
         statsRow('triangles', '...') +
         statsRow('earcut', '...') +
         statsRow('refine', refineEl.checked ? '...' : '–') +
+        statsRow('perimeter', '...') +
+        statsRow('mean quality', '...') +
         statsRow('deviation', '...');
 }
 
 function drawStats() {
     const result = refineEl.checked ? state.refined : state.base;
+    const quality = refineEl.checked ? state.refinedQuality : state.baseQuality;
     statsEl.innerHTML =
         statsRow('vertices', (state.data.vertices.length / state.data.dimensions).toLocaleString()) +
         statsRow('triangles', (result.length / 3).toLocaleString()) +
         statsRow('earcut', ms(state.baseTime)) +
         statsRow('refine', refineEl.checked ? ms(state.refineTime) : '–') +
+        statsRow('perimeter', number(quality.perimeter)) +
+        statsRow('mean quality', quality.meanQ.toFixed(3)) +
         statsRow('deviation', state.deviation ? state.deviation.toExponential(2) : '0');
 }
