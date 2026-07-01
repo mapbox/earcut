@@ -881,6 +881,7 @@ export function flatten(data) {
 /** @type {Int32Array} */ let he;
 /** @type {Int32Array} */ let hTable;
 /** @type {Uint32Array} */ let hStamp;
+/** @type {Uint32Array} */ let edgeStamp;
 let hMask = 0, gen = 0;
 
 /**
@@ -925,41 +926,47 @@ export function refine(triangles, coords, dim = 2) {
         if (hStamp[h] !== gen) { hTable[h] = e; hStamp[h] = gen; } // first occurrence: insert
     }
 
-    for (let e0 = 0; e0 < n; e0++) {
-        if (he[e0] === -1) continue;
-        let i = 0, a = e0;
-        while (true) {
-            const b = he[a];
-            const a0 = a - a % 3;
-            const ar = a0 + (a + 2) % 3;
-            if (b === -1) { if (i === 0) break; a = edgeStack[--i]; continue; }
+    let i = 0;
+    for (let e = 0; e < n; e++) {
+        const b = he[e];
+        if (b !== -1 && e < b) i = pushEdge(e, i);
+    }
 
-            const b0 = b - b % 3;
-            const al = a0 + (a + 1) % 3;
-            const bl = b0 + (b + 2) % 3;
-            const p0 = t[ar], pr = t[a], pl = t[al], p1 = t[bl];
+    while (i > 0) {
+        const a = edgeStack[--i];
+        edgeStamp[a] = 0;
+        const b = he[a];
+        if (b === -1) continue;
 
-            const x0 = coords[p0 * dim], y0 = coords[p0 * dim + 1];
-            const xr = coords[pr * dim], yr = coords[pr * dim + 1];
-            const xl = coords[pl * dim], yl = coords[pl * dim + 1];
-            const x1 = coords[p1 * dim], y1 = coords[p1 * dim + 1];
+        const a0 = a - a % 3;
+        const b0 = b - b % 3;
+        const ar = a0 + (a + 2) % 3;
+        const al = a0 + (a + 1) % 3;
+        const bl = b0 + (b + 2) % 3;
+        const br = b0 + (b + 1) % 3;
+        const p0 = t[ar], pr = t[a], pl = t[al], p1 = t[bl];
 
-            // Both triangles of the flipped diagonal p0-p1 must be CCW (i.e. the quad is convex).
-            // Flipping a reflex quad would push a triangle outside the polygon; this guards against
-            // it. Boundary/hole edges need no guard — they self-protect via he === -1.
-            const convex = orient(x0, y0, xr, yr, x1, y1) > 0 && orient(x0, y0, x1, y1, xl, yl) > 0;
+        const x0 = coords[p0 * dim], y0 = coords[p0 * dim + 1];
+        const xr = coords[pr * dim], yr = coords[pr * dim + 1];
+        const xl = coords[pl * dim], yl = coords[pl * dim + 1];
+        const x1 = coords[p1 * dim], y1 = coords[p1 * dim + 1];
 
-            if (convex && !inCircle(x0, y0, xr, yr, xl, yl, x1, y1)) {
-                t[a] = p1; t[b] = p0;
-                const hbl = he[bl], har = he[ar];
-                he[a] = hbl; if (hbl !== -1) he[hbl] = a;
-                he[b] = har; if (har !== -1) he[har] = b;
-                he[ar] = bl; he[bl] = ar;
-                if (i < edgeStack.length) edgeStack[i++] = b0 + (b + 1) % 3;
-            } else {
-                if (i === 0) break;
-                a = edgeStack[--i];
-            }
+        // Both triangles of the flipped diagonal p0-p1 must be CCW (i.e. the quad is convex).
+        // Flipping a reflex quad would push a triangle outside the polygon; this guards against
+        // it. Boundary/hole edges need no guard — they self-protect via he === -1.
+        const convex = orient(x0, y0, xr, yr, x1, y1) > 0 && orient(x0, y0, x1, y1, xl, yl) > 0;
+
+        if (convex && !inCircle(x0, y0, xr, yr, xl, yl, x1, y1)) {
+            t[a] = p1; t[b] = p0;
+            const hbl = he[bl], har = he[ar];
+            he[a] = hbl; if (hbl !== -1) he[hbl] = a;
+            he[b] = har; if (har !== -1) he[har] = b;
+            he[ar] = bl; he[bl] = ar;
+
+            i = pushEdge(a, i);
+            i = pushEdge(b, i);
+            i = pushEdge(al, i);
+            i = pushEdge(br, i);
         }
     }
 }
@@ -969,13 +976,14 @@ function orient(ax, ay, bx, by, cx, cy) {
     return (bx - ax) * (cy - ay) - (by - ay) * (cx - ax);
 }
 
-// Whether p is inside the circumcircle of triangle (a, b, c). Sign is negated vs the usual
-// predicate to match earcut's CCW winding — the standard sign would build the anti-Delaunay mesh.
+// Whether p is inside or exactly on the circumcircle of triangle (a, b, c). Sign is negated vs the
+// usual predicate to match earcut's CCW winding — the standard sign would build the anti-Delaunay
+// mesh. Cocircular quads are legal ties, so refine only flips when this returns false.
 /** @param {number} ax @param {number} ay @param {number} bx @param {number} by @param {number} cx @param {number} cy @param {number} px @param {number} py */
 function inCircle(ax, ay, bx, by, cx, cy, px, py) {
     const dx = ax - px, dy = ay - py, ex = bx - px, ey = by - py, fx = cx - px, fy = cy - py;
     const ap = dx * dx + dy * dy, bp = ex * ex + ey * ey, cp = fx * fx + fy * fy;
-    return dx * (ey * cp - bp * fy) - dy * (ex * cp - bp * fx) + ap * (ex * fy - ey * fx) < 0;
+    return dx * (ey * cp - bp * fy) - dy * (ex * cp - bp * fx) + ap * (ex * fy - ey * fx) <= 0;
 }
 
 /** @param {number} e */
@@ -987,10 +995,25 @@ function nextHE(e) { // next half-edge within the same triangle
 // than at module load lets the whole refine() block tree-shake away for callers who don't use it.
 /** @param {number} n */
 function ensureScratch(n) {
-    if (!edgeStack) edgeStack = new Int32Array(512);
+    if (!edgeStack || edgeStack.length < n) edgeStack = new Int32Array(n);
     if (!he || he.length < n) he = new Int32Array(n);
+    if (!edgeStamp || edgeStamp.length < n) edgeStamp = new Uint32Array(n);
     let size = 1;
     while (size < n * 4) size <<= 1; // power-of-two table, load factor <= 0.25
     if (!hTable || hTable.length < size) { hTable = new Int32Array(size); hStamp = new Uint32Array(size); }
     hMask = size - 1;
+}
+
+/** @param {number} e @param {number} i */
+function pushEdge(e, i) {
+    if (he[e] !== -1 && edgeStamp[e] !== gen) {
+        if (i === edgeStack.length) {
+            const next = new Int32Array(edgeStack.length << 1);
+            next.set(edgeStack);
+            edgeStack = next;
+        }
+        edgeStamp[e] = gen;
+        edgeStack[i++] = e;
+    }
+    return i;
 }

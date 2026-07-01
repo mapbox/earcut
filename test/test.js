@@ -41,6 +41,62 @@ function trianglePerimeter(triangles, vertices, dim = 2) {
     return perimeter;
 }
 
+function countIllegalEdges(triangles, vertices, dim = 2) {
+    const halfEdges = new Int32Array(triangles.length);
+    halfEdges.fill(-1);
+    const edges = new Map();
+
+    for (let e = 0; e < triangles.length; e++) {
+        const a = triangles[e];
+        const b = triangles[nextHalfEdge(e)];
+        const key = a < b ? `${a},${b}` : `${b},${a}`;
+        const twin = edges.get(key);
+        if (twin !== undefined) {
+            halfEdges[e] = twin;
+            halfEdges[twin] = e;
+            edges.delete(key);
+        } else {
+            edges.set(key, e);
+        }
+    }
+
+    let illegal = 0;
+    for (let a = 0; a < triangles.length; a++) {
+        const b = halfEdges[a];
+        if (b === -1 || a > b) continue;
+
+        const a0 = a - a % 3;
+        const b0 = b - b % 3;
+        const ar = a0 + (a + 2) % 3;
+        const al = a0 + (a + 1) % 3;
+        const bl = b0 + (b + 2) % 3;
+        const p0 = triangles[ar], pr = triangles[a], pl = triangles[al], p1 = triangles[bl];
+
+        const x0 = vertices[p0 * dim], y0 = vertices[p0 * dim + 1];
+        const xr = vertices[pr * dim], yr = vertices[pr * dim + 1];
+        const xl = vertices[pl * dim], yl = vertices[pl * dim + 1];
+        const x1 = vertices[p1 * dim], y1 = vertices[p1 * dim + 1];
+        const convex = orient(x0, y0, xr, yr, x1, y1) > 0 && orient(x0, y0, x1, y1, xl, yl) > 0;
+
+        if (convex && !inCircle(x0, y0, xr, yr, xl, yl, x1, y1)) illegal++;
+    }
+    return illegal;
+}
+
+function nextHalfEdge(e) {
+    return e - e % 3 + (e + 1) % 3;
+}
+
+function orient(ax, ay, bx, by, cx, cy) {
+    return (bx - ax) * (cy - ay) - (by - ay) * (cx - ax);
+}
+
+function inCircle(ax, ay, bx, by, cx, cy, px, py) {
+    const dx = ax - px, dy = ay - py, ex = bx - px, ey = by - py, fx = cx - px, fy = cy - py;
+    const ap = dx * dx + dy * dy, bp = ex * ex + ey * ey, cp = fx * fx + fy * fy;
+    return dx * (ey * cp - bp * fy) - dy * (ex * cp - bp * fx) + ap * (ex * fy - ey * fx) <= 0;
+}
+
 for (const id of Object.keys(expected.triangles)) {
 
     for (const rotation of [0, 90, 180, 270]) {
@@ -131,6 +187,17 @@ test('refine preserves a concave polygon', () => {
     assert.equal(deviation(vertices, null, 2, triangles), 0);
 });
 
+test('refine legalizes all convex interior edges in earcut fixture', () => {
+    const coords = JSON.parse(fs.readFileSync(new URL('fixtures/earcut.json', import.meta.url)));
+    const data = flatten(coords);
+    const triangles = earcut(data.vertices, data.holes, data.dimensions);
+
+    refine(triangles, data.vertices, data.dimensions);
+
+    assert.equal(countIllegalEdges(triangles, data.vertices, data.dimensions), 0);
+    assert.equal(deviation(data.vertices, data.holes, data.dimensions, triangles), 0);
+});
+
 test('mvt fixture has zero deviation and refined quality', () => {
     const polys = readTilesFixture();
     let nonzero = 0;
@@ -197,7 +264,7 @@ test('mvt fixture has zero deviation and refined quality', () => {
         `${refinedNonzero} refined polygons with nonzero deviation; first ${refinedFirstIndex}: ${refinedFirstDev}, ` +
         `worst ${refinedWorstIndex}: ${refinedWorstDev}, sum ${refinedSumDev}`);
 
-    assert.ok(refinedPerimeter < basePerimeter * 0.76, `refined perimeter ratio ${refinedPerimeter / basePerimeter} < 0.76`);
+    assert.ok(refinedPerimeter < basePerimeter * 0.72, `refined perimeter ratio ${refinedPerimeter / basePerimeter} < 0.72`);
 });
 
 // Regression for the hole-bridge block index (issue #183): a collinear-rich outer ring
