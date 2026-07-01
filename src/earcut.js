@@ -903,7 +903,6 @@ export function refine(triangles, coords, dim = 2) {
     const t = triangles;
     const n = t.length;
     if (n < 6) return;
-    const V = coords.length / dim;
     ensureScratch(n);
     gen++;              // bumping the generation logically empties the hash (no clearing)
     he.fill(-1, 0, n);
@@ -917,7 +916,7 @@ export function refine(triangles, coords, dim = 2) {
     for (let e = 0; e < n; e++) {
         const a = t[e], b = t[nextHE(e)];
         const lo = a < b ? a : b, hi = a < b ? b : a;
-        let h = ((hi * V + lo) * 0x9e3779b1 >>> 0) & hMask;
+        let h = (Math.imul(lo, 0x9e3779b1) ^ Math.imul(hi, 0x85ebca6b)) & hMask;
         while (hStamp[h] === gen) {
             const s = hTable[h];
             // s === -1 marks a consumed slot (a pair already linked) — skip past it
@@ -967,8 +966,8 @@ export function refine(triangles, coords, dim = 2) {
 
             // re-check the quad's four outer edges; skip boundary edges (he === -1) and any
             // already queued (edgeStamp), which also keeps the stack bounded by n.
-            if (he[a]  !== -1 && edgeStamp[a]  === 0) { edgeStamp[a]  = 1; edgeStack[i++] = a; }
-            if (he[b]  !== -1 && edgeStamp[b]  === 0) { edgeStamp[b]  = 1; edgeStack[i++] = b; }
+            if (hbl    !== -1 && edgeStamp[a]  === 0) { edgeStamp[a]  = 1; edgeStack[i++] = a; }
+            if (har    !== -1 && edgeStamp[b]  === 0) { edgeStamp[b]  = 1; edgeStack[i++] = b; }
             if (he[al] !== -1 && edgeStamp[al] === 0) { edgeStamp[al] = 1; edgeStack[i++] = al; }
             if (he[br] !== -1 && edgeStamp[br] === 0) { edgeStamp[br] = 1; edgeStack[i++] = br; }
         }
