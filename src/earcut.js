@@ -877,11 +877,12 @@ export function flatten(data) {
 // Reusable module-level scratch for refine():
 //   he      = twin half-edge of each edge, or -1 on the polygon boundary
 //   hTable  = open-addressing hash, slot -> half-edge index, valid iff hStamp[slot] === gen
+//   edgeStamp = pending-in-stack flag, cleared when the edge is popped
 /** @type {Int32Array} */ let edgeStack;
 /** @type {Int32Array} */ let he;
 /** @type {Int32Array} */ let hTable;
 /** @type {Uint32Array} */ let hStamp;
-/** @type {Uint32Array} */ let edgeStamp;
+/** @type {Uint8Array} */ let edgeStamp;
 let hMask = 0, gen = 0;
 
 /**
@@ -901,6 +902,7 @@ let hMask = 0, gen = 0;
 export function refine(triangles, coords, dim = 2) {
     const t = triangles;
     const n = t.length;
+    if (n < 6) return;
     const V = coords.length / dim;
     ensureScratch(n);
     gen++;              // bumping the generation logically empties the hash (no clearing)
@@ -995,9 +997,9 @@ function nextHE(e) { // next half-edge within the same triangle
 // than at module load lets the whole refine() block tree-shake away for callers who don't use it.
 /** @param {number} n */
 function ensureScratch(n) {
-    if (!edgeStack || edgeStack.length < n) edgeStack = new Int32Array(n);
+    if (!edgeStack) edgeStack = new Int32Array(512);
     if (!he || he.length < n) he = new Int32Array(n);
-    if (!edgeStamp || edgeStamp.length < n) edgeStamp = new Uint32Array(n);
+    if (!edgeStamp || edgeStamp.length < n) edgeStamp = new Uint8Array(n);
     let size = 1;
     while (size < n * 4) size <<= 1; // power-of-two table, load factor <= 0.25
     if (!hTable || hTable.length < size) { hTable = new Int32Array(size); hStamp = new Uint32Array(size); }
@@ -1006,13 +1008,13 @@ function ensureScratch(n) {
 
 /** @param {number} e @param {number} i */
 function pushEdge(e, i) {
-    if (he[e] !== -1 && edgeStamp[e] !== gen) {
+    if (he[e] !== -1 && edgeStamp[e] === 0) {
         if (i === edgeStack.length) {
             const next = new Int32Array(edgeStack.length << 1);
             next.set(edgeStack);
             edgeStack = next;
         }
-        edgeStamp[e] = gen;
+        edgeStamp[e] = 1;
         edgeStack[i++] = e;
     }
     return i;
