@@ -908,7 +908,12 @@ export function refine(triangles, coords, dim = 2) {
     gen++;              // bumping the generation logically empties the hash (no clearing)
     he.fill(-1, 0, n);
 
-    // Build half-edge twins with an undirected-edge hash; consumed slots mark linked pairs.
+    // Build half-edge twins with an undirected-edge hash; consumed slots mark linked pairs. As each
+    // pair is linked we seed the stack with one representative (s, the earlier-inserted edge) — this
+    // fuses the initial "push every interior edge" pass into the build, saving a full O(n) scan.
+    // edgeStamp is all-zero here (balanced push/pop leaves it clean) and each pair links once, so
+    // the seed write needs no dedup guard.
+    let i = 0;
     for (let e = 0; e < n; e++) {
         const a = t[e], b = t[nextHE(e)];
         const lo = a < b ? a : b, hi = a < b ? b : a;
@@ -920,18 +925,13 @@ export function refine(triangles, coords, dim = 2) {
                 const sa = t[s], sb = t[nextHE(s)];
                 if ((sa === lo && sb === hi) || (sa === hi && sb === lo)) {
                     he[e] = s; he[s] = e; hTable[h] = -1; // link, then consume the slot
+                    edgeStamp[s] = 1; edgeStack[i++] = s; // seed the interior edge for the cascade
                     break;
                 }
             }
             h = (h + 1) & hMask;
         }
         if (hStamp[h] !== gen) { hTable[h] = e; hStamp[h] = gen; } // first occurrence: insert
-    }
-
-    let i = 0;
-    for (let e = 0; e < n; e++) {
-        const b = he[e];
-        if (b !== -1 && e < b) i = pushEdge(e, i);
     }
 
     while (i > 0) {
@@ -953,22 +953,24 @@ export function refine(triangles, coords, dim = 2) {
         const xl = coords[pl * dim], yl = coords[pl * dim + 1];
         const x1 = coords[p1 * dim], y1 = coords[p1 * dim + 1];
 
-        // Both triangles of the flipped diagonal p0-p1 must be CCW (i.e. the quad is convex).
-        // Flipping a reflex quad would push a triangle outside the polygon; this guards against
-        // it. Boundary/hole edges need no guard — they self-protect via he === -1.
-        const convex = orient(x0, y0, xr, yr, x1, y1) > 0 && orient(x0, y0, x1, y1, xl, yl) > 0;
-
-        if (convex && !inCircle(x0, y0, xr, yr, xl, yl, x1, y1)) {
+        // Test inCircle first: most interior edges are already Delaunay (inCircle true → no flip),
+        // so this short-circuits before the two convexity orients on the common path. The quad must
+        // also be convex (both new triangles CCW) — flipping a reflex quad would push a triangle
+        // outside the polygon. Boundary/hole edges need no guard — they self-protect via he === -1.
+        if (!inCircle(x0, y0, xr, yr, xl, yl, x1, y1) &&
+            orient(x0, y0, xr, yr, x1, y1) > 0 && orient(x0, y0, x1, y1, xl, yl) > 0) {
             t[a] = p1; t[b] = p0;
             const hbl = he[bl], har = he[ar];
             he[a] = hbl; if (hbl !== -1) he[hbl] = a;
             he[b] = har; if (har !== -1) he[har] = b;
             he[ar] = bl; he[bl] = ar;
 
-            i = pushEdge(a, i);
-            i = pushEdge(b, i);
-            i = pushEdge(al, i);
-            i = pushEdge(br, i);
+            // re-check the quad's four outer edges; skip boundary edges (he === -1) and any
+            // already queued (edgeStamp), which also keeps the stack bounded by n.
+            if (he[a]  !== -1 && edgeStamp[a]  === 0) { edgeStamp[a]  = 1; edgeStack[i++] = a; }
+            if (he[b]  !== -1 && edgeStamp[b]  === 0) { edgeStamp[b]  = 1; edgeStack[i++] = b; }
+            if (he[al] !== -1 && edgeStamp[al] === 0) { edgeStamp[al] = 1; edgeStack[i++] = al; }
+            if (he[br] !== -1 && edgeStamp[br] === 0) { edgeStamp[br] = 1; edgeStack[i++] = br; }
         }
     }
 }
@@ -997,25 +999,13 @@ function nextHE(e) { // next half-edge within the same triangle
 // than at module load lets the whole refine() block tree-shake away for callers who don't use it.
 /** @param {number} n */
 function ensureScratch(n) {
-    if (!edgeStack) edgeStack = new Int32Array(512);
+    // edgeStack holds at most one entry per half-edge (edgeStamp dedups), so n is a safe cap —
+    // sizing it up front lets the cascade push without a bounds/grow check.
+    if (!edgeStack || edgeStack.length < n) edgeStack = new Int32Array(n);
     if (!he || he.length < n) he = new Int32Array(n);
     if (!edgeStamp || edgeStamp.length < n) edgeStamp = new Uint8Array(n);
     let size = 1;
     while (size < n * 4) size <<= 1; // power-of-two table, load factor <= 0.25
     if (!hTable || hTable.length < size) { hTable = new Int32Array(size); hStamp = new Uint32Array(size); }
     hMask = size - 1;
-}
-
-/** @param {number} e @param {number} i */
-function pushEdge(e, i) {
-    if (he[e] !== -1 && edgeStamp[e] === 0) {
-        if (i === edgeStack.length) {
-            const next = new Int32Array(edgeStack.length << 1);
-            next.set(edgeStack);
-            edgeStack = next;
-        }
-        edgeStamp[e] = 1;
-        edgeStack[i++] = e;
-    }
-    return i;
 }

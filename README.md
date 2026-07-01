@@ -40,7 +40,7 @@ Earcut is heavily optimized for its primary workload — triangulating polygons 
 [Mapbox Vector Tiles](https://github.com/mapbox/vector-tile-spec). On a representative
 benchmark of **119,680 real-world polygons** (1.9M vertices) drawn from a window of map tiles
 through zooms 4–16, it triangulates the whole set in **~445 ms** on a Macbook Pro M1 Pro (2021),
-with optional Delaunay refinement taking additional **~222 ms**.
+with optional Delaunay refinement taking additional **~176 ms**.
 You can run the benchmark yourself with `npm run bench`.
 
 ## Robustness

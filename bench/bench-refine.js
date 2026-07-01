@@ -1,35 +1,51 @@
 // Benchmark the optional Delaunay refinement post-pass (refine() in src/earcut.js)
 // over the same realistic MVT fixture as bench-tiles.js. Measures the added cost of
 // refine() relative to earcut alone, and reports the resulting triangle quality.
+//
+// earcut is run ONCE per polygon at startup (untimed) and its index arrays are cached;
+// refine() mutates its input in place, so the timed pass resets a reusable copy from the
+// cache and refines that. This keeps earcut out of both the timing and the profile, so a
+// `flamebearer-node bench/bench-refine.js` flame graph is dominated by refine() itself
+// rather than burying it under two earcut passes.
 import earcut, {refine} from '../src/earcut.js';
 import {readTilesFixture} from './tiles-fixture.js';
 
 const polys = readTilesFixture();
 const totalVerts = polys.reduce((s, d) => s + d.vertices.length / d.dimensions, 0);
 
-// pre-triangulate once per poly so the timed paths only measure their own work;
-// refine mutates the index array, so each timed pass re-triangulates a fresh copy.
-function triOnly(d)    { return earcut(d.vertices, d.holes, d.dimensions).length; }
-function triRefine(d)  { const t = earcut(d.vertices, d.holes, d.dimensions); refine(t, d.vertices, d.dimensions); return t.length; }
+// earcut output cached once (untimed). `work` holds reusable copies refine() mutates in place.
+const base = polys.map(d => earcut(d.vertices, d.holes, d.dimensions));
+const work = base.map(t => t.slice());
 
-function run(fn) { let s = 0; for (const d of polys) s += fn(d); return s; }
-
-// interleaved A/B (ABAB): cancels thermal drift instead of attributing it to one side.
-function timeAB(a, b) {
-    let ba = Infinity, bb = Infinity;
-    for (let i = 0; i < 7; i++) {
-        let s = performance.now(); run(a); ba = Math.min(ba, performance.now() - s);
-        s = performance.now(); run(b); bb = Math.min(bb, performance.now() - s);
+// restore every work array to pristine earcut output (each timed refine must start from it)
+function reset() {
+    for (let i = 0; i < base.length; i++) {
+        const w = work[i], b = base[i];
+        for (let j = 0; j < b.length; j++) w[j] = b[j];
     }
-    return {a: ba, b: bb};
+}
+function earcutAll() { let s = 0; for (const d of polys) s += earcut(d.vertices, d.holes, d.dimensions).length; return s; }
+function refineAll() { let s = 0; for (let i = 0; i < work.length; i++) { refine(work[i], polys[i].vertices, polys[i].dimensions); s += work[i].length; } return s; }
+
+// median wall time over 5 runs, matching bench-tiles' timeSet. `prep` (if given) runs untimed
+// before each timed run — refine needs it to restore fresh earcut output into `work`, so the
+// reported number is pure refine, no copy-cost pollution.
+function timeSet(fn, prep) {
+    const t = [];
+    for (let i = 0; i < 5; i++) {
+        if (prep) prep();
+        const s = performance.now(); fn(); t.push(performance.now() - s);
+    }
+    t.sort((a, b) => a - b);
+    return {median: t[2], lo: t[0], hi: t[4]};
 }
 
 // --- triangle quality (normalized q = 4√3·area / Σ edge², in [0,1]) ---
-function quality(getIndices) {
-    let slivers = 0, tinyAngle = 0, perim = 0, sumQ = 0, tris = 0;
-    for (const d of polys) {
-        const c = d.vertices, dim = d.dimensions;
-        const idx = getIndices(d);
+function quality(tris) {
+    let slivers = 0, tinyAngle = 0, perim = 0, sumQ = 0, count = 0;
+    for (let p = 0; p < polys.length; p++) {
+        const c = polys[p].vertices, dim = polys[p].dimensions;
+        const idx = tris[p];
         for (let i = 0; i < idx.length; i += 3) {
             const ax = c[idx[i] * dim], ay = c[idx[i] * dim + 1];
             const bx = c[idx[i + 1] * dim], by = c[idx[i + 1] * dim + 1];
@@ -48,24 +64,34 @@ function quality(getIndices) {
             const minAng = Math.min(angA, angB, Math.PI - angA - angB) * 180 / Math.PI;
             if (minAng < 1) tinyAngle++;
             perim += la + lb + lc;
-            sumQ += q; tris++;
+            sumQ += q; count++;
         }
     }
-    return {slivers, tinyAngle, perim, meanQ: sumQ / tris, tris};
+    return {slivers, tinyAngle, perim, meanQ: sumQ / count, tris: count};
 }
 
 // warm both paths
-run(triOnly); run(triRefine);
+earcutAll(); reset(); refineAll();
 
-const {a: tEarcut, b: tRefine} = timeAB(triOnly, triRefine);
-const overhead = (tRefine - tEarcut) / tEarcut * 100;
+// Profiling mode: `REFINE_PROFILE=1 flamebearer-node bench/bench-refine.js` loops refine() only
+// (no earcut, no quality pass) so the flame graph is ~all refine. reset() restores earcut output
+// between reps and shows as a small, clearly-labeled copy loop.
+if (process.env.REFINE_PROFILE) {
+    for (let i = 0; i < 40; i++) { reset(); refineAll(); }
+    process.exit(0);
+}
+
+const tEarcut = timeSet(earcutAll);
+const tRefine = timeSet(refineAll, reset);
+const overhead = tRefine.median / tEarcut.median * 100;
 
 console.log(`fixture:  ${polys.length.toLocaleString()} polygons, ${totalVerts.toLocaleString()} vertices`);
-console.log(`\nearcut:          ${tEarcut.toFixed(1)} ms`);
-console.log(`earcut+refine:   ${tRefine.toFixed(1)} ms   (+${overhead.toFixed(0)}%, ${(tRefine - tEarcut).toFixed(1)} ms refine)`);
+console.log(`\nearcut:          ${tEarcut.median.toFixed(0)} ms   (${tEarcut.lo.toFixed(0)}–${tEarcut.hi.toFixed(0)} ms over 5 runs)`);
+console.log(`refine:          ${tRefine.median.toFixed(0)} ms   (+${overhead.toFixed(0)}% over earcut, ${tRefine.lo.toFixed(0)}–${tRefine.hi.toFixed(0)} ms)`);
 
-const qa = quality(d => earcut(d.vertices, d.holes, d.dimensions));
-const qb = quality((d) => { const t = earcut(d.vertices, d.holes, d.dimensions); refine(t, d.vertices, d.dimensions); return t; });
+// `base` is pristine earcut output; `work` was refined by the last timed pass.
+const qa = quality(base);
+const qb = quality(work);
 const pct = (x, y) => `${((y - x) / x * 100).toFixed(0)}%`;
 console.log('\nquality:              earcut     refined    delta');
 console.log(`  slivers (q<0.1)   ${String(qa.slivers).padStart(8)}  ${String(qb.slivers).padStart(8)}    ${pct(qa.slivers, qb.slivers)}`);
