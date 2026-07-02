@@ -933,7 +933,14 @@ export function refine(triangles, coords, dim = 2) {
         if (hStamp[h] !== gen) { hTable[h] = e; hStamp[h] = gen; } // first occurrence: insert
     }
 
-    while (i > 0) {
+    // Cap total flips: with non-robust inCircle, roundoff can make a quad and its flip both test
+    // as illegal, so a cascade can cycle forever (a legalized edge gets re-queued and flipped back).
+    // A converging cascade needs O(triangles) flips in practice, so a generous multiple of the
+    // half-edge count bounds legitimate work while breaking float-induced cycles; the worst case is
+    // then a few not-quite-Delaunay edges, never a hang.
+    let budget = 25 * n;
+
+    while (i > 0 && budget-- > 0) {
         const a = edgeStack[--i];
         edgeStamp[a] = 0;
         const b = he[a];
