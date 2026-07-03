@@ -152,3 +152,4 @@ Returns the relative difference between the total area of triangles and the area
 - [measuredweighed/SwiftEarcut](https://github.com/measuredweighed/SwiftEarcut) (Swift)
 - [goswinr/Earcut](https://github.com/goswinr/Earcut/) (F# / .NET)
 - [tenyoru/earcut.zig](https://github.com/tenyoru/earcut.zig) (Zig)
+- [MichaCo/Earcut](https://github.com/MichaCo/Earcut) (C# / .NET)
