@@ -374,13 +374,11 @@ function indexSegment(head, stop) {
     do {
         const b = numBlocks++;
         blockHead[b] = p;
-        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        let minX = p.x, minY = p.y, maxX = p.x, maxY = p.y;
         let k = 0;
         do {
             const c = p.next; // edge p->c; bbox must bound both endpoints
             p.z = b; // reuse z as the owning block during eliminateHoles (see growBlock)
-            if (p.x < minX) minX = p.x; if (p.x > maxX) maxX = p.x;
-            if (p.y < minY) minY = p.y; if (p.y > maxY) maxY = p.y;
             if (c.x < minX) minX = c.x; if (c.x > maxX) maxX = c.x;
             if (c.y < minY) minY = c.y; if (c.y > maxY) maxY = c.y;
             p = c;
