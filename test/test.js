@@ -152,6 +152,18 @@ test('infinite-loop', () => {
     earcut([1, 2, 2, 2, 1, 2, 1, 1, 1, 2, 4, 1, 5, 1, 3, 2, 4, 2, 4, 1], [5], 2);
 });
 
+test('deviation is zero for a degenerate collinear polygon', () => {
+    // Four collinear points (on the line y = 2x) form a zero-area ring, so earcut
+    // produces no triangles and the deviation is 0. The non-robust shoelace leaves a
+    // tiny residual (~1.78e-15) for a non-axis-aligned collinear ring, so deviation()
+    // treats a polygon area within that floating-point noise as zero instead of
+    // dividing by it.
+    const vertices = [0.1, 0.2, 1.3, 2.6, 2.5, 5.0, 3.7, 7.4];
+    const triangles = earcut(vertices);
+    assert.equal(triangles.length, 0);
+    assert.equal(deviation(vertices, null, 2, triangles), 0);
+});
+
 test('refine improves a bad quad diagonal', () => {
     const vertices = [0, 0, 3, 0, 10, 1, 0, 2];
     const triangles = [2, 3, 0, 2, 0, 1];

@@ -812,12 +812,16 @@ export function deviation(data, holeIndices, dim, triangles) {
     const hasHoles = holeIndices && holeIndices.length;
     const outerLen = hasHoles ? holeIndices[0] * dim : data.length;
 
-    let polygonArea = Math.abs(signedArea(data, 0, outerLen, dim));
+    const outer = signedAreaWithError(data, 0, outerLen, dim);
+    let polygonArea = Math.abs(outer.sum);
+    let polygonAreaError = outer.error;
     if (hasHoles) {
         for (let i = 0, len = holeIndices.length; i < len; i++) {
             const start = holeIndices[i] * dim;
             const end = i < len - 1 ? holeIndices[i + 1] * dim : data.length;
-            polygonArea -= Math.abs(signedArea(data, start, end, dim));
+            const hole = signedAreaWithError(data, start, end, dim);
+            polygonArea -= Math.abs(hole.sum);
+            polygonAreaError += hole.error;
         }
     }
 
@@ -831,7 +835,7 @@ export function deviation(data, holeIndices, dim, triangles) {
             (data[a] - data[b]) * (data[c + 1] - data[a + 1]));
     }
 
-    return polygonArea === 0 && trianglesArea === 0 ? 0 :
+    return Math.abs(polygonArea) <= polygonAreaError && trianglesArea === 0 ? 0 :
         Math.abs((trianglesArea - polygonArea) / polygonArea);
 }
 
@@ -843,6 +847,20 @@ function signedArea(data, start, end, dim) {
         j = i;
     }
     return sum;
+}
+
+/** @param {ArrayLike<number>} data @param {number} start @param {number} end @param {number} dim @returns {{sum: number, error: number}} signed area and its floating-point error bound */
+function signedAreaWithError(data, start, end, dim) {
+    let sum = 0, scale = 0;
+    for (let i = start, j = end - dim; i < end; i += dim) {
+        const term = (data[j] - data[i]) * (data[i + 1] + data[j + 1]);
+        sum += term;
+        scale += Math.abs(term);
+        j = i;
+    }
+    // worst-case shoelace roundoff bound: (n + 2)·u, with u = EPSILON/2 and n = (end - start) / dim
+    const error = scale * ((end - start) / dim + 2) * Number.EPSILON / 2;
+    return {sum, error};
 }
 
 /**
