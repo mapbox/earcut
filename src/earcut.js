@@ -831,8 +831,14 @@ export function deviation(data, holeIndices, dim, triangles) {
             (data[a] - data[b]) * (data[c + 1] - data[a + 1]));
     }
 
-    return polygonArea === 0 && trianglesArea === 0 ? 0 :
-        Math.abs((trianglesArea - polygonArea) / polygonArea);
+    // with no triangles, a polygon area within shoelace roundoff of zero (which scales with the
+    // squared coordinate magnitude) means the input was degenerate rather than mistriangulated
+    if (trianglesArea === 0) {
+        let max = 0;
+        for (let i = 0; i < data.length; i += dim) max = Math.max(max, Math.abs(data[i]), Math.abs(data[i + 1]));
+        return Math.abs(polygonArea) <= data.length * max * max * Number.EPSILON ? 0 : 1;
+    }
+    return Math.abs((trianglesArea - polygonArea) / polygonArea);
 }
 
 /** @param {ArrayLike<number>} data @param {number} start @param {number} end @param {number} dim @returns {number} */

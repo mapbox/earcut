@@ -152,6 +152,13 @@ test('infinite-loop', () => {
     earcut([1, 2, 2, 2, 1, 2, 1, 1, 1, 2, 4, 1, 5, 1, 3, 2, 4, 2, 4, 1], [5], 2);
 });
 
+test('collinear polygon has zero deviation despite shoelace roundoff', () => {
+    const vertices = [0.1, 0.2, 1.3, 2.6, 2.5, 5.0, 3.7, 7.4]; // on the line y = 2x
+    const triangles = earcut(vertices);
+    assert.equal(triangles.length, 0);
+    assert.equal(deviation(vertices, null, 2, triangles), 0);
+});
+
 test('refine improves a bad quad diagonal', () => {
     const vertices = [0, 0, 3, 0, 10, 1, 0, 2];
     const triangles = [2, 3, 0, 2, 0, 1];
