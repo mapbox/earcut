@@ -543,6 +543,9 @@ function indexCurve(start, minX, minY, invSize) {
         prev = node;
     }
     /** @type {Node} */ (prev).nextZ = null;
+
+    sortArr.fill(/** @type {Node} */ (/** @type {unknown} */ (null)), 0, n);
+    sortBuf.fill(/** @type {Node} */ (/** @type {unknown} */ (null)), 0, n);
 }
 
 // sort the first n nodes of sortArr by z, in place: insertion sort for small n (cheaper
