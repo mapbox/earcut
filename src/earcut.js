@@ -544,6 +544,8 @@ function indexCurve(start, minX, minY, invSize) {
     }
     /** @type {Node} */ (prev).nextZ = null;
 
+    // drop the node refs but keep the capacity: setting length to 0 leaves sortBuf unresized
+    // (its growth is gated on zArr), so the radix scatter regrows it out of order every call
     sortArr.fill(/** @type {Node} */ (/** @type {unknown} */ (null)), 0, n);
     sortBuf.fill(/** @type {Node} */ (/** @type {unknown} */ (null)), 0, n);
 }
