@@ -122,13 +122,17 @@ function filterPoints(start, end = start) {
     return end;
 }
 
+// longest fan of ears cut in a row before the hashed loop steps past its apex (see earcutLinked); shorter fans
+// cost little, and leaving them alone keeps the output for typical polygons unchanged
+const MAX_FAN = 32;
+
 // main ear slicing loop which triangulates a polygon (given as a linked list)
 /** @param {Node} ear @param {number[]} triangles @param {number} minX @param {number} minY @param {number} invSize */
 function earcutLinked(ear, triangles, minX, minY, invSize) {
     // interlink polygon nodes in z-order
     if (invSize) indexCurve(ear, minX, minY, invSize);
 
-    let stop = ear, cured = false;
+    let stop = ear, cured = false, fan = 0;
 
     // iterate through ears, slicing them one by one
     while (ear.prev !== ear.next) {
@@ -141,10 +145,20 @@ function earcutLinked(ear, triangles, minX, minY, invSize) {
 
             removeNode(ear);
             ear = next;
-            stop = next;
+
+            // ears cut in a row share the vertex `prev` and form a fan of long thin triangles (e.g. on a circle);
+            // the z-order range of such a triangle spans a large part of the polygon, so each hashed ear check
+            // becomes O(n) and triangulation O(n^2). Stepping one vertex ahead breaks the fan and keeps triangles
+            // local; only past a convex vertex, since a reflex one makes the loop walk the whole ring to the next ear
+            if (invSize && ++fan >= MAX_FAN && area(next, next.next, next.next.next) < 0) {
+                ear = next.next;
+                fan = 0;
+            }
+            stop = ear;
             continue;
         }
 
+        fan = 0;
         ear = next;
 
         // if we looped through the whole remaining polygon and can't find any more ears
