@@ -152,18 +152,14 @@ test('infinite-loop', () => {
     earcut([1, 2, 2, 2, 1, 2, 1, 1, 1, 2, 4, 1, 5, 1, 3, 2, 4, 2, 4, 1], [5], 2);
 });
 
-test('regular polygon is not triangulated as one fan', () => {
-    // a fan from one vertex makes every hashed ear check scan a large part of the z-order list (quadratic time)
-    const n = 10000, vertices = [];
+test('large convex polygon', () => {
+    // a strictly convex ring skips the point checks of ear slicing; with them, each hashed check of its fan of long
+    // triangles scans a large part of the ring, and this takes seconds instead of milliseconds
+    const n = 100000, vertices = [];
     for (let i = 0; i < n; i++) vertices.push(Math.cos(2 * Math.PI * i / n), Math.sin(2 * Math.PI * i / n));
     const triangles = earcut(vertices);
     assert.equal(triangles.length / 3, n - 2);
     assert.ok(deviation(vertices, null, 2, triangles) < 1e-12);
-
-    const uses = new Uint32Array(n);
-    let maxUses = 0;
-    for (const i of triangles) maxUses = Math.max(maxUses, ++uses[i]);
-    assert.ok(maxUses < 100, `${maxUses} triangles share one vertex`);
 });
 
 test('collinear polygon has zero deviation despite shoelace roundoff', () => {
