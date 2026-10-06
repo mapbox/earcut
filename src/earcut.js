@@ -128,7 +128,9 @@ function earcutLinked(ear, triangles, minX, minY, invSize) {
     // interlink polygon nodes in z-order
     if (invSize) indexCurve(ear, minX, minY, invSize);
 
-    let stop = ear, cured = false;
+    // a strictly convex ring has no vertex that could block an ear, so skip the point checks until a candidate fails;
+    // without this, a big convex ring is cut as one fan of long triangles and each hashed check scans O(n) points
+    let stop = ear, cured = false, convex = invSize ? isConvex(ear) : false;
 
     // iterate through ears, slicing them one by one
     while (ear.prev !== ear.next) {
@@ -136,7 +138,7 @@ function earcutLinked(ear, triangles, minX, minY, invSize) {
         /** @type {Node} */
         const next = ear.next;
 
-        if (area(prev, ear, next) < 0 && (invSize ? isEarHashed(ear, minX, minY, invSize) : isEar(ear))) {
+        if (area(prev, ear, next) < 0 && (convex || (invSize ? isEarHashed(ear, minX, minY, invSize) : isEar(ear)))) {
             triangles.push(prev.i, ear.i, next.i); // cut off the triangle
 
             removeNode(ear);
@@ -145,6 +147,7 @@ function earcutLinked(ear, triangles, minX, minY, invSize) {
             continue;
         }
 
+        convex = false;
         ear = next;
 
         // if we looped through the whole remaining polygon and can't find any more ears
@@ -168,6 +171,17 @@ function earcutLinked(ear, triangles, minX, minY, invSize) {
             break;
         }
     }
+}
+
+// check whether every vertex of a ring is strictly convex
+/** @param {Node} start @returns {boolean} */
+function isConvex(start) {
+    let p = start;
+    do {
+        if (area(p.prev, p, p.next) >= 0) return false;
+        p = p.next;
+    } while (p !== start);
+    return true;
 }
 
 // check whether a polygon node forms a valid ear with adjacent nodes
