@@ -25,9 +25,9 @@
   "license": "ISC",
   "devDependencies": {
     "@rollup/plugin-terser": "^1.0.0",
-    "eslint": "^10.11.0",
+    "eslint": "^10.12.0",
     "eslint-config-mourner": "^5.0.1",
-    "rollup": "^4.63.4",
+    "rollup": "^4.64.0",
     "typescript": "^7.0.2"
   },
   "repository": {
