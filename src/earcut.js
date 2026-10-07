@@ -882,17 +882,13 @@ export function flatten(data) {
     const holes = [];
     const dimensions = data[0][0].length;
     let holeIndex = 0;
-    let prevLen = 0;
 
     for (const ring of data) {
         for (const p of ring) {
             for (let d = 0; d < dimensions; d++) vertices.push(p[d]);
         }
-        if (prevLen) {
-            holeIndex += prevLen;
-            holes.push(holeIndex);
-        }
-        prevLen = ring.length;
+        if (holeIndex && ring.length) holes.push(holeIndex);
+        holeIndex += ring.length;
     }
     return {vertices, holes, dimensions};
 }
