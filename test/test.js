@@ -1,6 +1,7 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {Worker} from 'node:worker_threads';
 import earcut, {flatten, deviation, refine} from '../src/earcut.js';
 import fs from 'fs';
 import expected from './expected.json' with {type: 'json'};
@@ -167,6 +168,35 @@ test('large convex polygon', () => {
     const triangles = earcut(vertices);
     assert.equal(triangles.length / 3, n - 2);
     assert.ok(deviation(vertices, null, 2, triangles) < 1e-12);
+});
+
+test('nested splits do not overflow the call stack', async () => {
+    // a square ring with n small self-crossing loops per side, 4 vertices each (4096 vertices).
+    // Splits nest one level deeper with each loop, so splitting by recursion needs a deep call stack
+    const n = 256, vertices = [];
+    const corners = [[10 * n, 0], [0, 10 * n], [-10 * n, 0], [0, -10 * n]];
+    for (let e = 0; e < 4; e++) {
+        const [x0, y0] = corners[e], [x1, y1] = corners[(e + 1) % 4];
+        const tx = (x1 - x0) / (10 * n), ty = (y1 - y0) / (10 * n);
+        for (let i = 0; i < n; i++) {
+            const x = x0 + 10 * tx * i, y = y0 + 10 * ty * i;
+            vertices.push(x, y, x + 3 * tx + 2 * ty, y + 3 * ty - 2 * tx, x + 4 * ty, y - 4 * tx, x - 3 * tx + 2 * ty, y - 3 * ty - 2 * tx);
+        }
+    }
+    // with the default stack, the size at which recursion overflows depends on the Node version and the JIT,
+    // so earcut runs in a worker with a fixed small stack. 0.35 MB leaves enough room for the worker to start,
+    // and the recursive version overflows it on this input. The worker code is inline because node --test treats
+    // every .js file in test/ as a test
+    const url = new URL('../src/earcut.js', import.meta.url).href;
+    const worker = new Worker(`
+        const {parentPort, workerData: {url, vertices}} = require('node:worker_threads');
+        import(url).then(({default: earcut}) => parentPort.postMessage(earcut(vertices).length / 3));
+    `, {eval: true, workerData: {url, vertices}, resourceLimits: {stackSizeMb: 0.35}});
+    const triangles = await new Promise((resolve, reject) => {
+        worker.on('message', resolve).on('error', reject);
+        worker.on('exit', code => reject(new Error(`worker exited with code ${code}`)));
+    });
+    assert.equal(triangles, 2055);
 });
 
 test('collinear polygon has zero deviation despite shoelace roundoff', () => {

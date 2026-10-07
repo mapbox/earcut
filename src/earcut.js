@@ -258,6 +258,11 @@ function cureLocalIntersections(start, triangles) {
     return cured ? filterPoints(p) : p;
 }
 
+// halves of split polygons waiting to be triangulated, so that the call stack doesn't grow with the split depth
+// (the outermost splitEarcut drains it, and nested splits only push to it)
+/** @type {Node[] | null} */
+let splitQueue = null;
+
 // try splitting polygon into two and triangulate them independently
 /** @param {Node} start @param {number[]} triangles @param {number} minX @param {number} minY @param {number} invSize */
 function splitEarcut(start, triangles, minX, minY, invSize) {
@@ -274,9 +279,17 @@ function splitEarcut(start, triangles, minX, minY, invSize) {
                 a = filterPoints(a, a.next);
                 c = filterPoints(c, c.next);
 
-                // run earcut on each half
-                earcutLinked(a, triangles, minX, minY, invSize);
-                earcutLinked(c, triangles, minX, minY, invSize);
+                // run earcut on each half (a first, as in recursive order)
+                if (splitQueue) {
+                    splitQueue.push(c, a);
+                    return;
+                }
+                const queue = splitQueue = [c, a];
+                try {
+                    while (queue.length) earcutLinked(/** @type {Node} */ (queue.pop()), triangles, minX, minY, invSize);
+                } finally {
+                    splitQueue = null;
+                }
                 return;
             }
             b = b.next;
