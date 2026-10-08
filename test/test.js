@@ -20,6 +20,13 @@ test('empty', () => {
     assert.deepEqual(earcut([]), []);
 });
 
+test('flatten skips empty rings', () => {
+    const outer = [[0, 0], [10, 0], [10, 10], [0, 10]], hole = [[2, 2], [4, 2], [3, 4]];
+    assert.deepEqual(flatten([outer, hole, []]), flatten([outer, hole]));
+    const {vertices, holes, dimensions} = flatten([outer, []]);
+    assert.deepEqual(earcut(vertices, holes, dimensions), earcut(flatten([outer]).vertices));
+});
+
 // tracks the worst deviation across the three non-zero rotations per fixture,
 // so we can tell when the errors-with-rotation bound can be tightened
 const maxRotated = new Map();
