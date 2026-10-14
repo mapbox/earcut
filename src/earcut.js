@@ -460,15 +460,13 @@ function findHoleBridge(hole, outerNode) {
 
         p = liveBlockHead(b);
         do {
-            if (p.prev.next === p) { // skip nodes removed by filterPoints (stale in the index)
-                if (equals(hole, p.next)) return p.next;
-                else if (hy <= p.y && hy >= p.next.y && p.next.y !== p.y) {
-                    const x = p.x + (hy - p.y) * (p.next.x - p.x) / (p.next.y - p.y);
-                    if (x <= hx && x > qx) {
-                        qx = x;
-                        m = p.x < p.next.x ? p : p.next;
-                        if (x === hx) return m; // hole touches outer segment; pick leftmost endpoint
-                    }
+            if (equals(hole, p.next)) return p.next;
+            else if (hy <= p.y && hy >= p.next.y && p.next.y !== p.y) {
+                const x = p.x + (hy - p.y) * (p.next.x - p.x) / (p.next.y - p.y);
+                if (x <= hx && x > qx) {
+                    qx = x;
+                    m = p.x < p.next.x ? p : p.next;
+                    if (x === hx) return m; // hole touches outer segment; pick leftmost endpoint
                 }
             }
             p = p.next;
@@ -495,7 +493,7 @@ function findHoleBridge(hole, outerNode) {
 
         p = liveBlockHead(b);
         do {
-            if (p.prev.next === p && hx >= p.x && p.x >= mx && hx !== p.x && // skip dead nodes
+            if (hx >= p.x && p.x >= mx && hx !== p.x &&
                     pointInTriangle(hy < my ? hx : qx, hy, mx, my, hy < my ? qx : hx, hy, p.x, p.y)) {
 
                 const tan = Math.abs(hy - p.y) / (hx - p.x); // tangential
