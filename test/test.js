@@ -188,6 +188,16 @@ test('refine improves a bad quad diagonal', () => {
     assert.equal(deviation(vertices, null, 2, triangles), 0);
 });
 
+test('refine improves a clockwise quad diagonal', () => {
+    const vertices = [0, 0, 1, 0, 4, 1, 0, 2];
+    const triangles = earcut(vertices).reverse();
+
+    refine(triangles, vertices);
+
+    assert.deepEqual(triangles, [1, 3, 2, 0, 3, 1]);
+    assert.equal(deviation(vertices, null, 2, triangles), 0);
+});
+
 test('refine leaves a good quad diagonal alone', () => {
     const vertices = [0, 0, 5, 0, 4, 1, 0, 4];
     const triangles = [2, 3, 0, 2, 0, 1];

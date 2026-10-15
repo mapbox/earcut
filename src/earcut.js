@@ -968,13 +968,14 @@ export function refine(triangles, coords, dim = 2) {
         const xr = coords[pr * dim], yr = coords[pr * dim + 1];
         const xl = coords[pl * dim], yl = coords[pl * dim + 1];
         const x1 = coords[p1 * dim], y1 = coords[p1 * dim + 1];
+        const winding = orient(x0, y0, xr, yr, xl, yl) < 0 ? -1 : 1;
 
         // Test inCircle first: most interior edges are already Delaunay (inCircle true → no flip),
         // so this short-circuits before the two convexity orients on the common path. The quad must
-        // also be convex (both new triangles CCW) — flipping a reflex quad would push a triangle
+        // also be convex (both new triangles keep the winding) — flipping a reflex quad would push a triangle
         // outside the polygon. Boundary/hole edges need no guard — they self-protect via he === -1.
-        if (!inCircle(x0, y0, xr, yr, xl, yl, x1, y1) &&
-            orient(x0, y0, xr, yr, x1, y1) > 0 && orient(x0, y0, x1, y1, xl, yl) > 0) {
+        if (!inCircle(x0, y0, xr, yr, xl, yl, x1, y1, winding) &&
+            orient(x0, y0, xr, yr, x1, y1) * winding > 0 && orient(x0, y0, x1, y1, xl, yl) * winding > 0) {
             t[a] = p1; t[b] = p0;
             const hbl = he[bl], har = he[ar];
             he[a] = hbl; if (hbl !== -1) he[hbl] = a;
@@ -996,11 +997,10 @@ function orient(ax, ay, bx, by, cx, cy) {
     return (bx - ax) * (cy - ay) - (by - ay) * (cx - ax);
 }
 
-// Whether p is inside or exactly on the circumcircle of triangle (a, b, c). Sign is negated vs the
-// usual predicate to match earcut's CCW winding — the standard sign would build the anti-Delaunay
-// mesh. Cocircular quads are legal ties, so refine only flips when this returns false.
-/** @param {number} ax @param {number} ay @param {number} bx @param {number} by @param {number} cx @param {number} cy @param {number} px @param {number} py */
-function inCircle(ax, ay, bx, by, cx, cy, px, py) {
+// Whether p is outside or exactly on the circumcircle of triangle (a, b, c), for either winding.
+// Cocircular quads are legal ties, so refine only flips when this returns false.
+/** @param {number} ax @param {number} ay @param {number} bx @param {number} by @param {number} cx @param {number} cy @param {number} px @param {number} py @param {number} winding */
+function inCircle(ax, ay, bx, by, cx, cy, px, py, winding) {
     const dx = ax - px, dy = ay - py, ex = bx - px, ey = by - py, fx = cx - px, fy = cy - py;
     const ap = dx * dx + dy * dy, bp = ex * ex + ey * ey, cp = fx * fx + fy * fy;
     // A near-cocircular quad is a legal Delaunay tie, but roundoff can flag both an edge and its
@@ -1009,7 +1009,7 @@ function inCircle(ax, ay, bx, by, cx, cy, px, py) {
     // below 9e-16·(ap + bp + cp)² (Shewchuk-style bound), so the margin guarantees every executed
     // flip is illegal in exact arithmetic, and Lawson flipping always terminates.
     const s = ap + bp + cp;
-    return dx * (ey * cp - bp * fy) - dy * (ex * cp - bp * fx) + ap * (ex * fy - ey * fx) <= 1e-13 * s * s;
+    return (dx * (ey * cp - bp * fy) - dy * (ex * cp - bp * fx) + ap * (ex * fy - ey * fx)) * winding <= 1e-13 * s * s;
 }
 
 /** @param {number} e */
