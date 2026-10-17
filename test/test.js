@@ -1,6 +1,7 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {Worker} from 'node:worker_threads';
 import earcut, {flatten, deviation, refine} from '../src/earcut.js';
 import fs from 'fs';
 import expected from './expected.json' with {type: 'json'};
@@ -167,6 +168,31 @@ test('large convex polygon', () => {
     const triangles = earcut(vertices);
     assert.equal(triangles.length / 3, n - 2);
     assert.ok(deviation(vertices, null, 2, triangles) < 1e-12);
+});
+
+test('nested splits do not overflow a small call stack', async () => {
+    // a rectangle with k small triangular holes, each one step right and down from the previous; every hole adds a
+    // level of nested splits. Runs in a worker with a fixed small stack (like a browser worker's) that recursive
+    // splitting overflows from k ≈ 400; the worker code is inline because node --test runs every .js file in test/
+    const url = new URL('../src/earcut.js', import.meta.url).href;
+    const worker = new Worker(`
+        const {parentPort, workerData: {url, k}} = require('node:worker_threads');
+        const vertices = [-1, -k, 2 * k + 1, -k, 2 * k + 1, 7, -1, 7], holes = [];
+        for (let i = 0; i < k; i++) {
+            holes.push(vertices.length / 2);
+            vertices.push(1 + 2 * i, -i, 2 * i, 6 - i, 2 + 2 * i, 6 - i);
+        }
+        import(url).then(({default: earcut, deviation}) => {
+            const triangles = earcut(vertices, holes);
+            parentPort.postMessage([triangles.length / 3, deviation(vertices, holes, 2, triangles)]);
+        });
+    `, {eval: true, workerData: {url, k: 600}, resourceLimits: {stackSizeMb: 0.35}});
+    const [count, dev] = await new Promise((resolve, reject) => {
+        worker.on('message', resolve).on('error', reject);
+        worker.on('exit', code => reject(new Error(`worker exited with code ${code}`)));
+    });
+    assert.equal(count, 3002);
+    assert.equal(dev, 0);
 });
 
 test('collinear polygon has zero deviation despite shoelace roundoff', () => {

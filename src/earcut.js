@@ -19,6 +19,11 @@
 /** @type {Set<Node>} */
 const steiners = new Set();
 
+// halves of split polygons waiting to be triangulated, drained by earcut in a loop so that the
+// call stack doesn't grow with the nesting depth of splits
+/** @type {Node[]} */
+const splitStack = [];
+
 // set by filterPoints whenever it removes at least one node; read by earcutLinked's stall
 // handler to decide whether another clip pass is worth attempting before the costlier stages
 let filteredOut = false;
@@ -70,6 +75,7 @@ export default function earcut(data, holeIndices, dim = 2) {
     }
 
     earcutLinked(outerNode, triangles, minX, minY, invSize);
+    while (splitStack.length) earcutLinked(/** @type {Node} */ (splitStack.pop()), triangles, minX, minY, invSize);
 
     return triangles;
 }
@@ -167,7 +173,7 @@ function earcutLinked(ear, triangles, minX, minY, invSize) {
             }
 
             // as a last resort, try splitting the remaining polygon into two
-            splitEarcut(ear, triangles, minX, minY, invSize);
+            splitEarcut(ear);
             break;
         }
     }
@@ -259,8 +265,8 @@ function cureLocalIntersections(start, triangles) {
 }
 
 // try splitting polygon into two and triangulate them independently
-/** @param {Node} start @param {number[]} triangles @param {number} minX @param {number} minY @param {number} invSize */
-function splitEarcut(start, triangles, minX, minY, invSize) {
+/** @param {Node} start */
+function splitEarcut(start) {
     // look for a valid diagonal that divides the polygon into two
     let a = start;
     do {
@@ -274,9 +280,8 @@ function splitEarcut(start, triangles, minX, minY, invSize) {
                 a = filterPoints(a, a.next);
                 c = filterPoints(c, c.next);
 
-                // run earcut on each half
-                earcutLinked(a, triangles, minX, minY, invSize);
-                earcutLinked(c, triangles, minX, minY, invSize);
+                // queue both halves for earcut, a on top so it's triangulated first
+                splitStack.push(c, a);
                 return;
             }
             b = b.next;
