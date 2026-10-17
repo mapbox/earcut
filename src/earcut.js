@@ -351,8 +351,9 @@ function eliminateHole(hole, outerNode) {
     const bridge2 = bridgeReverse.next;
     indexSegment(bridge, bridge2.next);
 
-    // heal collinear/coincident points around the two new slit edges
-    filterPoints(bridgeReverse, bridgeReverse.next);
+    // heal collinear/coincident points around the two new slit edges, but leave bridge2 alone: dropping it as collinear
+    // would leave bridge lying on the healed edge, where a later hole could bridge into it from outside its sector
+    filterPoints(bridgeReverse.prev, bridgeReverse);
     return filterPoints(bridge, bridge.next);
 }
 
