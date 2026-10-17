@@ -25,7 +25,8 @@ const steiners = new Set();
 const splitStack = [];
 
 // set by filterPoints whenever it removes at least one node; read by earcutLinked's stall
-// handler to decide whether another clip pass is worth attempting before the costlier stages
+// handler to decide whether another clip pass is worth attempting before the costlier stages,
+// and by findHoleBridge, since a removal can heal the twin of an earlier bridge end into an edge through that point
 let filteredOut = false;
 
 /**
@@ -316,6 +317,7 @@ function eliminateHoles(data, holeIndices, outerNode, dim) {
     // process holes from left to right; indexActive lets removeNode keep block bboxes live as
     // filterPoints heals edges during merges (see growBlock)
     indexActive = true;
+    filteredOut = false;
     for (let i = 0; i < queue.length; i++) {
         outerNode = eliminateHole(queue[i], outerNode);
     }
@@ -449,6 +451,8 @@ function findHoleBridge(hole, outerNode) {
     let qx = -Infinity;
     /** @type {Node | undefined} */
     let m;
+    /** @type {Node | undefined} */
+    let q;
 
     // find a segment intersected by a ray from the hole's leftmost point to the left;
     // segment's endpoint with lesser x will be potential connection point
@@ -470,6 +474,7 @@ function findHoleBridge(hole, outerNode) {
                 const x = p.x + (hy - p.y) * (p.next.x - p.x) / (p.next.y - p.y);
                 if (x <= hx && x > qx) {
                     qx = x;
+                    q = p;
                     m = p.x < p.next.x ? p : p.next;
                     if (x === hx) return m; // hole touches outer segment; pick leftmost endpoint
                 }
@@ -478,7 +483,18 @@ function findHoleBridge(hole, outerNode) {
         } while (p !== stop);
     }
 
-    if (!m) return null;
+    if (!m || !q) return null;
+
+    // a vertex hit from outside its sector can be a point the boundary passes twice, after filterPoints healed the
+    // collinear twin of an earlier bridge end into an edge through it. Only that edge faces the hole, whichever the
+    // scan met first and however its crossing x rounded.
+    if (filteredOut) {
+        const v = q.y === hy ? q : q.next.y === hy ? q.next : null;
+        if (v && !locallyInside(v, hole)) {
+            const e = edgeThrough(v);
+            if (e) m = e.x < e.next.x ? e : e.next;
+        }
+    }
 
     // look for points inside the triangle of hole point, segment intersection and endpoint;
     // if there are no points found, we have a valid connection;
@@ -517,6 +533,21 @@ function findHoleBridge(hole, outerNode) {
     }
 
     return m;
+}
+
+// an edge running down strictly through vertex v (by the area() test filterPoints uses to drop collinear points)
+/** @param {Node} v @returns {Node | null} */
+function edgeThrough(v) {
+    for (let b = 0, g = 0; b < numBlocks; b++, g += 4) {
+        if (v.x < blockBBox[g] || v.x > blockBBox[g + 2] || v.y < blockBBox[g + 1] || v.y > blockBBox[g + 3]) continue;
+        const stop = liveBlockStop(b);
+        let p = liveBlockHead(b);
+        do {
+            if (p.y > v.y && p.next.y < v.y && area(p, v, p.next) === 0) return p;
+            p = p.next;
+        } while (p !== stop);
+    }
+    return null;
 }
 
 // whether sector in vertex m contains sector in vertex p in the same coordinates
