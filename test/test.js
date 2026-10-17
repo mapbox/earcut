@@ -368,3 +368,18 @@ test('block-index-collinear', () => {
         assert.ok(err < 1e-9, `rotation ${rotation}: deviation ${err} (hole dropped?)`);
     }
 });
+
+// The first hole is bridged to an outer vertex whose ring neighbor is collinear with the hole point, so filterPoints
+// heals the bridge twin away and the second hole's ray meets that vertex and the healed edge at the same point.
+// Bridging to the vertex enters it from outside its sector and gives overlapping triangles. In the second polygon
+// (x * 0.12, y * 3) the healed edge's crossing x rounds to just left of the vertex.
+test('bridge-healed-twin', () => {
+    for (const rings of [
+        [[[1, 1], [0, 0], [6, 0], [2, 9]], [[3, 3], [4, 2], [3, 4]], [[4, 1], [5, 2], [5, 1]]],
+        [[[0.12, 3], [0, 0], [0.72, 0], [0.24, 27]], [[0.36, 9], [0.48, 6], [0.36, 12]], [[0.48, 3], [0.6, 6], [0.6, 3]]]
+    ]) {
+        const data = flatten(rings);
+        const indices = earcut(data.vertices, data.holes, data.dimensions);
+        assert.equal(deviation(data.vertices, data.holes, data.dimensions, indices), 0);
+    }
+});
