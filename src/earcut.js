@@ -920,6 +920,16 @@ export function refine(triangles, coords, dim = 2) {
     const t = triangles;
     const n = t.length;
     if (n < 6) return;
+
+    // the predicates below assume CCW triangles; for a CW mesh, swapping each edge's endpoints
+    // mirrors them, so take the winding from the first non-degenerate triangle
+    let cw = false;
+    for (let k = 0, o = 0; o === 0 && k < n; k += 3) {
+        const a = t[k] * dim, b = t[k + 1] * dim, c = t[k + 2] * dim;
+        o = orient(coords[a], coords[a + 1], coords[b], coords[b + 1], coords[c], coords[c + 1]);
+        cw = o < 0;
+    }
+
     ensureScratch(n);
     gen++;              // bumping the generation logically empties the hash (no clearing)
     he.fill(-1, 0, n);
@@ -962,7 +972,7 @@ export function refine(triangles, coords, dim = 2) {
         const al = a0 + (a + 1) % 3;
         const bl = b0 + (b + 2) % 3;
         const br = b0 + (b + 1) % 3;
-        const p0 = t[ar], pr = t[a], pl = t[al], p1 = t[bl];
+        const p0 = t[ar], pr = t[cw ? al : a], pl = t[cw ? a : al], p1 = t[bl];
 
         const x0 = coords[p0 * dim], y0 = coords[p0 * dim + 1];
         const xr = coords[pr * dim], yr = coords[pr * dim + 1];
