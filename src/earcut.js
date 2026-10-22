@@ -354,6 +354,12 @@ function eliminateHole(hole, outerNode) {
     // heal collinear/coincident points around the two new slit edges, but leave bridge2 alone: dropping it as collinear
     // would leave bridge lying on the healed edge, where a later hole could bridge into it from outside its sector
     filterPoints(bridgeReverse.prev, bridgeReverse);
+
+    // likewise, if bridge lies strictly between its prev and hole, healing would drop it and leave bridge2 on the healed
+    // edge; skip the heal then (a spike at bridge, e.g. a hole touching an outer edge, still needs it)
+    const a = bridge.prev;
+    if (area(a, bridge, hole) === 0 && (a.x - bridge.x) * (hole.x - bridge.x) + (a.y - bridge.y) * (hole.y - bridge.y) < 0) return bridge;
+
     return filterPoints(bridge, bridge.next);
 }
 
