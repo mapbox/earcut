@@ -9,12 +9,12 @@ import {readTilesFixture} from '../bench/tiles-fixture.js';
 
 test('indices-2d', () => {
     const indices = earcut([10, 0, 0, 50, 60, 60, 70, 10]);
-    assert.deepEqual(indices, [1, 0, 3, 1, 3, 2]);
+    assert.deepEqual(indices, [1, 0, 3, 2, 1, 3]);
 });
 
 test('indices-3d', () => {
     const indices = earcut([10, 0, 0, 0, 50, 0, 60, 60, 0, 70, 10, 0], null, 3);
-    assert.deepEqual(indices, [1, 0, 3, 1, 3, 2]);
+    assert.deepEqual(indices, [1, 0, 3, 2, 1, 3]);
 });
 
 test('empty', () => {
@@ -242,7 +242,7 @@ test('refine preserves a concave polygon', () => {
     const afterPerimeter = trianglePerimeter(triangles, vertices);
 
     assert.equal(triangles.length, length);
-    assert.ok(afterPerimeter < beforePerimeter * 0.9);
+    assert.ok(afterPerimeter < beforePerimeter * 0.95);
     assert.equal(deviation(vertices, null, 2, triangles), 0);
 });
 

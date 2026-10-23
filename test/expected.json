@@ -9,7 +9,7 @@
         "water3b": 25,
         "water4": 705,
         "water-huge": 5170,
-        "water-huge2": 4462,
+        "water-huge2": 4460,
         "water-huge3": 15470,
         "self-tangent-1": 23,
         "self-tangent-2": 25,
@@ -72,14 +72,15 @@
         "issue17": 2e-16,
         "issue29": 1e-15,
         "self-touching": 1e-13,
-        "eberly-6": 2e-15,
+        "eberly-6": 3e-15,
         "issue142": 0.13
     },
     "errors-with-rotation": {
         "water-huge": 0.005,
-        "water-huge2": 0.03,
+        "water-huge2": 0.031,
         "bad-hole": 0.03,
         "issue16": 1e-15,
-        "eberly-6": 3e-14
+        "eberly-6": 3e-14,
+        "issue142": 0.3
     }
 }

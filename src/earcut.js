@@ -136,7 +136,7 @@ function earcutLinked(ear, triangles, minX, minY, invSize) {
 
     // a strictly convex ring has no vertex that could block an ear, so skip the point checks until a candidate fails;
     // without this, a big convex ring is cut as one fan of long triangles and each hashed check scans O(n) points
-    let stop = ear, cured = false, convex = invSize ? isConvex(ear) : false;
+    let stop = ear, cured = false, flip = false, convex = invSize ? isConvex(ear) : false;
 
     // iterate through ears, slicing them one by one
     while (ear.prev !== ear.next) {
@@ -148,8 +148,11 @@ function earcutLinked(ear, triangles, minX, minY, invSize) {
             triangles.push(prev.i, ear.i, next.i); // cut off the triangle
 
             removeNode(ear);
-            ear = next;
-            stop = next;
+            // both neighbors just got a fresh corner, so alternate between them (zig-zag strip) instead of always
+            // moving forward, which runs into reflex corners and retries prev only after a full loop
+            flip = !flip;
+            ear = flip ? prev : next;
+            stop = ear;
             continue;
         }
 
