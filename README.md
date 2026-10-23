@@ -19,7 +19,7 @@ it's now also used by [Three.js](https://threejs.org/) and many other projects.
 
 ```js
 import earcut from 'earcut';
-const triangles = earcut([10,0, 0,50, 60,60, 70,10]); // returns [1,0,3, 1,3,2]
+const triangles = earcut([10,0, 0,50, 60,60, 70,10]); // returns [1,0,3, 2,1,3]
 ```
 
 ## Algorithm
@@ -94,11 +94,11 @@ Each group of three vertex indices in the resulting array forms a triangle.
 ```js
 // triangulating a polygon with a hole
 earcut([0,0, 100,0, 100,100, 0,100,  20,20, 80,20, 80,80, 20,80], [4]);
-// [0,4,7, 5,4,0, 5,0,1, 5,1,2, 3,0,7, 3,7,6, 6,5,2, 6,2,3]
+// [0,4,7, 3,0,7, 3,7,6, 2,3,6, 2,6,5, 1,2,5, 1,5,4, 0,1,4]
 
 // triangulating a polygon with 3d coords
 earcut([10,0,1, 0,50,2, 60,60,3, 70,10,4], null, 3);
-// [1,0,3, 1,3,2]
+// [1,0,3, 2,1,3]
 ```
 
 If you pass a single vertex as a hole, Earcut treats it as a Steiner point.
